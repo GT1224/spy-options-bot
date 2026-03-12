@@ -1,0 +1,11 @@
+node_modules/
+dashboard/node_modules/
+.next/
+dashboard/.next/
+.venv/
+backend/.venv/
+__pycache__/
+backend/__pycache__/
+.env
+backend/.env
+*.pyc
