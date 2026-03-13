@@ -11,8 +11,6 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from fastapi.middleware.cors import CORSMiddleware
-
 load_dotenv()
 
 app = FastAPI(title="SPY Options Bot", version="2.0")
@@ -31,8 +29,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://192.168.68.62:3000",
+        "http://localhost:3005",
+        "http://192.168.68.53:3005",
+        "https://spy-options-frqj0c08q-grant-turnbows-projects.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
