@@ -87,6 +87,7 @@ export default function Page() {
   const edge = top?.execution_edge;
   const promo = top?.promotion_gate;
   const mem = top?.signal_memory;
+  const flow = top?.flow_context;
   const regime = system?.session_regime;
 
   const signal = top?.setup ?? fullState?.signal_snapshot ?? {};
@@ -172,6 +173,10 @@ export default function Page() {
                 <StatusPill
                   text={mem?.status ? `Memory: ${mem.status}` : "Memory: —"}
                   active={mem?.status === "supported"}
+                />
+                <StatusPill
+                  text={flow?.status ? `Flow: ${flow.status}` : "Flow: —"}
+                  active={flow?.status === "aligned"}
                 />
               </div>
             </div>
@@ -296,6 +301,14 @@ export default function Page() {
               value={
                 mem
                   ? `${mem.status} · n=${mem.evidence_count !== undefined && mem.evidence_count !== null ? mem.evidence_count : "—"} · ${typeof mem.detail === "string" ? (mem.detail.length > 64 ? `${mem.detail.slice(0, 64)}…` : mem.detail) : "—"}`
+                  : "—"
+              }
+            />
+            <HiveRow
+              label="Flow context"
+              value={
+                flow
+                  ? `${flow.status} · n=${flow.evidence_count !== undefined && flow.evidence_count !== null ? flow.evidence_count : "—"} · ${typeof flow.detail === "string" ? (flow.detail.length > 64 ? `${flow.detail.slice(0, 64)}…` : flow.detail) : "—"}`
                   : "—"
               }
             />

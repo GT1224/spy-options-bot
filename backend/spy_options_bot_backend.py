@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 
 from hive_contract_quality_v1 import compute_hive_contract_quality_v1
 from hive_execution_edge_v1 import compute_hive_execution_edge_v1
+from hive_flow_context_v1 import FLOW_BUFFER_CAP, compute_hive_flow_context_v1
 from hive_guardrails_v1 import compute_hive_guardrails_v1
 from hive_promotion_gate_v1 import compute_hive_promotion_gate_v1
 from hive_session_regime_v1 import compute_hive_session_regime_v1
@@ -60,6 +61,7 @@ state: dict[str, Any] = {
     "consecutive_losses": 0,
     "last_loop_at": None,
     "signal_cycle_count": 0,
+    "recent_signal_flow": [],
     "open_position": None,
     "logs": [],
     "signal_snapshot": {},
@@ -233,6 +235,19 @@ def run_signal_cycle():
 
     log(f"cycle executed | spot={spot} | bias={bias} | score={setup_score}")
 
+    flow_entry = {
+        "at": state["last_loop_at"],
+        "action": trade.get("action"),
+        "bias": bias,
+        "structure": trade.get("structure"),
+        "setup_score": setup_score,
+    }
+    flow_buf = state.get("recent_signal_flow")
+    if not isinstance(flow_buf, list):
+        flow_buf = []
+    flow_buf.append(flow_entry)
+    state["recent_signal_flow"] = flow_buf[-FLOW_BUFFER_CAP:]
+
 
 def _derive_direction_from_trade(trade: dict[str, Any], bias: str | None) -> str | None:
     struct = trade.get("structure")
@@ -352,6 +367,13 @@ def build_hive_contract_v1() -> dict[str, Any]:
         open_position=state.get("open_position"),
     )
 
+    flow_context = compute_hive_flow_context_v1(
+        recent_entries=list(state.get("recent_signal_flow") or []),
+        consecutive_losses=state.get("consecutive_losses"),
+        open_position=state.get("open_position"),
+        promotion_gate=promotion_gate,
+    )
+
     session_regime = compute_hive_session_regime_v1()
 
     return {
@@ -381,6 +403,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "execution_edge": execution_edge,
             "promotion_gate": promotion_gate,
             "signal_memory": signal_memory,
+            "flow_context": flow_context,
             "recommended_trade": trade,
             "setup": setup_payload,
             "warnings": list(guardrails.get("warnings") or []),
@@ -414,10 +437,10 @@ def build_hive_contract_v1() -> dict[str, Any]:
                 "top_signal.execution_edge",
                 "top_signal.promotion_gate",
                 "top_signal.signal_memory",
+                "top_signal.flow_context",
             ],
             "future_hidden": [
                 "market_intel",
-                "flow_context",
             ],
         },
     }
