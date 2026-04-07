@@ -83,6 +83,7 @@ export default function Page() {
   const top = hive?.top_signal;
   const perf = hive?.performance_state;
   const guard = top?.guardrails;
+  const cq = top?.contract_quality;
 
   const signal = top?.setup ?? fullState?.signal_snapshot ?? {};
   const recommended = top?.recommended_trade ?? signal?.recommended_trade ?? {};
@@ -237,6 +238,21 @@ export default function Page() {
                 Array.isArray(guard?.warnings) && guard.warnings.length
                   ? guard.warnings.slice(0, 2).join(" · ")
                   : "—"
+              }
+            />
+            <HiveRow label="Contract Q status" value={formatVal(cq?.status)} emphasized />
+            <HiveRow
+              label="Contract Q score"
+              value={cq?.score !== undefined && cq?.score !== null ? String(cq.score) : "—"}
+            />
+            <HiveRow
+              label="Contract Q summary"
+              value={
+                Array.isArray(cq?.warnings) && cq.warnings.length
+                  ? cq.warnings.slice(0, 2).join(" · ")
+                  : Array.isArray(cq?.signals) && cq.signals.length
+                    ? cq.signals.slice(0, 3).join(", ")
+                    : "—"
               }
             />
             <HiveRow label="Action" value={formatVal(recommended?.action)} emphasized />
