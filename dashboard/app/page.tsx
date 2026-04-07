@@ -202,6 +202,19 @@ export default function Page() {
           }}
         >
           <Panel title="Recommended Trade">
+            <HiveRow
+              label="Hive rank"
+              value={top?.rank_score !== undefined && top?.rank_score !== null ? String(top.rank_score) : "—"}
+            />
+            <HiveRow label="Rank thesis" value={formatVal(top?.rationale?.thesis)} />
+            <HiveRow
+              label="Rank notes"
+              value={
+                Array.isArray(top?.rationale?.points) && top.rationale.points.length
+                  ? top.rationale.points.slice(0, 5).join(" · ")
+                  : "—"
+              }
+            />
             <HiveRow label="Action" value={formatVal(recommended?.action)} emphasized />
             <HiveRow label="Structure" value={formatVal(recommended?.structure)} emphasized />
             <HiveRow label="DTE" value={formatVal(recommended?.dte)} />

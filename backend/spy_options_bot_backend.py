@@ -13,6 +13,8 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from hive_signal_rank_v1 import compute_hive_rank_v1
+
 load_dotenv()
 
 app = FastAPI(title="SPY Options Bot", version="2.0")
@@ -270,6 +272,25 @@ def build_hive_contract_v1() -> dict[str, Any]:
     trading_enabled = bool(cfg.get("enabled"))
     use_live = bool(cfg.get("use_live_alpaca"))
 
+    direction = _derive_direction_from_trade(trade, bias if isinstance(bias, str) else None)
+    setup_payload = {
+        "spot": snap.get("spot"),
+        "vwap": snap.get("vwap"),
+        "ema8": snap.get("ema8"),
+        "ema21": snap.get("ema21"),
+        "opening_range_high": snap.get("opening_range_high"),
+        "opening_range_low": snap.get("opening_range_low"),
+        "volume_ratio": snap.get("volume_ratio"),
+        "bias": bias,
+        "setup_score": setup_score,
+    }
+    rank_bundle = compute_hive_rank_v1(
+        setup_payload,
+        trade,
+        direction,
+        state.get("last_loop_at"),
+    )
+
     return {
         "system_state": {
             "bot_running": bool(state.get("running")),
@@ -284,22 +305,15 @@ def build_hive_contract_v1() -> dict[str, Any]:
         "top_signal": {
             "signal_id": signal_id,
             "underlying": "SPY",
-            "direction": _derive_direction_from_trade(trade, bias if isinstance(bias, str) else None),
+            "direction": direction,
             "confidence": confidence,
             "signal_type": "rules",
             "rank": 1,
+            "rank_score": rank_bundle["rank_score"],
+            "rank_factors": rank_bundle["rank_factors"],
+            "rationale": rank_bundle["rationale"],
             "recommended_trade": trade,
-            "setup": {
-                "spot": snap.get("spot"),
-                "vwap": snap.get("vwap"),
-                "ema8": snap.get("ema8"),
-                "ema21": snap.get("ema21"),
-                "opening_range_high": snap.get("opening_range_high"),
-                "opening_range_low": snap.get("opening_range_low"),
-                "volume_ratio": snap.get("volume_ratio"),
-                "bias": bias,
-                "setup_score": setup_score,
-            },
+            "setup": setup_payload,
             "warnings": [],
         },
         "market_intel": {
@@ -321,7 +335,11 @@ def build_hive_contract_v1() -> dict[str, Any]:
                 "top_signal.recommended_trade",
                 "performance_state",
             ],
-            "advanced": [],
+            "advanced": [
+                "top_signal.rank_score",
+                "top_signal.rank_factors",
+                "top_signal.rationale",
+            ],
             "future_hidden": [
                 "market_intel",
                 "guardrails",
