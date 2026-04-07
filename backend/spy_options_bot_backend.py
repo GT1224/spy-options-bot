@@ -13,6 +13,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from hive_guardrails_v1 import compute_hive_guardrails_v1
 from hive_signal_rank_v1 import compute_hive_rank_v1
 
 load_dotenv()
@@ -291,6 +292,19 @@ def build_hive_contract_v1() -> dict[str, Any]:
         state.get("last_loop_at"),
     )
 
+    rank_score = rank_bundle["rank_score"]
+    guardrails = compute_hive_guardrails_v1(
+        setup=setup_payload,
+        trade=trade,
+        direction=direction,
+        last_cycle_at=state.get("last_loop_at"),
+        rank_score=rank_score if isinstance(rank_score, int) else None,
+        bot_running=bool(state.get("running")),
+        trading_enabled=trading_enabled,
+        open_position=state.get("open_position"),
+        consecutive_losses=state.get("consecutive_losses"),
+    )
+
     return {
         "system_state": {
             "bot_running": bool(state.get("running")),
@@ -312,9 +326,10 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "rank_score": rank_bundle["rank_score"],
             "rank_factors": rank_bundle["rank_factors"],
             "rationale": rank_bundle["rationale"],
+            "guardrails": guardrails,
             "recommended_trade": trade,
             "setup": setup_payload,
-            "warnings": [],
+            "warnings": list(guardrails.get("warnings") or []),
         },
         "market_intel": {
             "items": [],
@@ -339,10 +354,10 @@ def build_hive_contract_v1() -> dict[str, Any]:
                 "top_signal.rank_score",
                 "top_signal.rank_factors",
                 "top_signal.rationale",
+                "top_signal.guardrails",
             ],
             "future_hidden": [
                 "market_intel",
-                "guardrails",
                 "contract_quality",
                 "execution_edge",
                 "signal_memory",

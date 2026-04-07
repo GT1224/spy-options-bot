@@ -82,6 +82,7 @@ export default function Page() {
   const system = hive?.system_state;
   const top = hive?.top_signal;
   const perf = hive?.performance_state;
+  const guard = top?.guardrails;
 
   const signal = top?.setup ?? fullState?.signal_snapshot ?? {};
   const recommended = top?.recommended_trade ?? signal?.recommended_trade ?? {};
@@ -150,6 +151,11 @@ export default function Page() {
                 <StatusPill text={`Bias ${formatVal(signal?.bias)}`} />
                 <StatusPill text={`Score ${formatVal(signal?.setup_score)}`} />
                 <StatusPill text={autoRefresh ? "Auto Swarm Watching" : "Manual Refresh"} active={autoRefresh} />
+                <StatusPill
+                  text={guard?.status ? `Guard: ${guard.status}` : "Guard: —"}
+                  active={guard?.status === "viable"}
+                />
+                <StatusPill text={guard ? (guard.actionable ? "Actionable" : "Not actionable") : "Actionable: —"} active={!!guard?.actionable} />
               </div>
             </div>
           </div>
@@ -212,6 +218,24 @@ export default function Page() {
               value={
                 Array.isArray(top?.rationale?.points) && top.rationale.points.length
                   ? top.rationale.points.slice(0, 5).join(" · ")
+                  : "—"
+              }
+            />
+            <HiveRow label="Guard status" value={formatVal(guard?.status)} emphasized />
+            <HiveRow label="Guard actionable" value={guard ? String(guard.actionable) : "—"} />
+            <HiveRow
+              label="Guard rules"
+              value={
+                Array.isArray(guard?.triggered_rules) && guard.triggered_rules.length
+                  ? `${guard.triggered_rules.length}: ${guard.triggered_rules.slice(0, 4).join(", ")}`
+                  : "—"
+              }
+            />
+            <HiveRow
+              label="Guard warnings"
+              value={
+                Array.isArray(guard?.warnings) && guard.warnings.length
+                  ? guard.warnings.slice(0, 2).join(" · ")
                   : "—"
               }
             />
