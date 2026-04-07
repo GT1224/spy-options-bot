@@ -18,6 +18,7 @@ from hive_execution_edge_v1 import compute_hive_execution_edge_v1
 from hive_guardrails_v1 import compute_hive_guardrails_v1
 from hive_promotion_gate_v1 import compute_hive_promotion_gate_v1
 from hive_session_regime_v1 import compute_hive_session_regime_v1
+from hive_signal_memory_v1 import compute_hive_signal_memory_v1
 from hive_signal_rank_v1 import compute_hive_rank_v1
 
 load_dotenv()
@@ -58,6 +59,7 @@ state: dict[str, Any] = {
     "realized_pnl_today": 0,
     "consecutive_losses": 0,
     "last_loop_at": None,
+    "signal_cycle_count": 0,
     "open_position": None,
     "logs": [],
     "signal_snapshot": {},
@@ -215,6 +217,7 @@ def run_signal_cycle():
     trade = recommended_trade(bias, setup_score)
 
     state["last_loop_at"] = datetime.utcnow().isoformat()
+    state["signal_cycle_count"] = cycle_count
     state["signal_snapshot"] = {
         "spot": spot,
         "vwap": round(vwap, 2) if vwap is not None else None,
@@ -340,6 +343,15 @@ def build_hive_contract_v1() -> dict[str, Any]:
         execution_edge=execution_edge,
     )
 
+    signal_memory = compute_hive_signal_memory_v1(
+        signal_cycle_count=int(state.get("signal_cycle_count") or 0),
+        last_loop_at=state.get("last_loop_at") if isinstance(state.get("last_loop_at"), str) else None,
+        spot=snap.get("spot"),
+        setup_score=setup_score,
+        consecutive_losses=state.get("consecutive_losses"),
+        open_position=state.get("open_position"),
+    )
+
     session_regime = compute_hive_session_regime_v1()
 
     return {
@@ -368,6 +380,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "contract_quality": contract_quality,
             "execution_edge": execution_edge,
             "promotion_gate": promotion_gate,
+            "signal_memory": signal_memory,
             "recommended_trade": trade,
             "setup": setup_payload,
             "warnings": list(guardrails.get("warnings") or []),
@@ -400,10 +413,10 @@ def build_hive_contract_v1() -> dict[str, Any]:
                 "top_signal.contract_quality",
                 "top_signal.execution_edge",
                 "top_signal.promotion_gate",
+                "top_signal.signal_memory",
             ],
             "future_hidden": [
                 "market_intel",
-                "signal_memory",
                 "flow_context",
             ],
         },

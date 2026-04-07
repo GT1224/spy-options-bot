@@ -86,6 +86,7 @@ export default function Page() {
   const cq = top?.contract_quality;
   const edge = top?.execution_edge;
   const promo = top?.promotion_gate;
+  const mem = top?.signal_memory;
   const regime = system?.session_regime;
 
   const signal = top?.setup ?? fullState?.signal_snapshot ?? {};
@@ -167,6 +168,10 @@ export default function Page() {
                 <StatusPill
                   text={regime?.label ? `Session: ${regime.label}` : "Session: —"}
                   active={!!regime?.market_hours}
+                />
+                <StatusPill
+                  text={mem?.status ? `Memory: ${mem.status}` : "Memory: —"}
+                  active={mem?.status === "supported"}
                 />
               </div>
             </div>
@@ -285,6 +290,14 @@ export default function Page() {
                   : "—"
               }
               emphasized
+            />
+            <HiveRow
+              label="Signal memory"
+              value={
+                mem
+                  ? `${mem.status} · n=${mem.evidence_count !== undefined && mem.evidence_count !== null ? mem.evidence_count : "—"} · ${typeof mem.detail === "string" ? (mem.detail.length > 64 ? `${mem.detail.slice(0, 64)}…` : mem.detail) : "—"}`
+                  : "—"
+              }
             />
             <HiveRow label="Action" value={formatVal(recommended?.action)} emphasized />
             <HiveRow label="Structure" value={formatVal(recommended?.structure)} emphasized />
