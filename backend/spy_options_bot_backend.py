@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import json
 import os
 from collections import deque
 from datetime import datetime
@@ -222,6 +224,117 @@ def run_signal_cycle():
     log(f"cycle executed | spot={spot} | bias={bias} | score={setup_score}")
 
 
+def _derive_direction_from_trade(trade: dict[str, Any], bias: str | None) -> str | None:
+    struct = trade.get("structure")
+    if struct == "long_call":
+        return "call"
+    if struct == "long_put":
+        return "put"
+    if bias == "bullish":
+        return "call"
+    if bias == "bearish":
+        return "put"
+    return None
+
+
+def build_hive_contract_v1() -> dict[str, Any]:
+    """Wave-1 HIVE contract: FastAPI-owned JSON for Next.js (no external services)."""
+    snap = state.get("signal_snapshot") or {}
+    cfg = state.get("config") or {}
+    trade = snap.get("recommended_trade") or {}
+    bias = snap.get("bias")
+    setup_score = snap.get("setup_score")
+
+    confidence: float | None
+    if setup_score is None:
+        confidence = None
+    else:
+        try:
+            confidence = max(0.0, min(1.0, float(setup_score) / 100.0))
+        except (TypeError, ValueError):
+            confidence = None
+
+    id_payload = json.dumps(
+        {
+            "last_loop_at": state.get("last_loop_at"),
+            "spot": snap.get("spot"),
+            "setup_score": setup_score,
+            "bias": bias,
+            "action": trade.get("action"),
+        },
+        sort_keys=True,
+        default=str,
+    )
+    signal_id = hashlib.sha256(id_payload.encode()).hexdigest()[:24]
+
+    trading_enabled = bool(cfg.get("enabled"))
+    use_live = bool(cfg.get("use_live_alpaca"))
+
+    return {
+        "system_state": {
+            "bot_running": bool(state.get("running")),
+            "trading_enabled": trading_enabled,
+            "mode": "live" if use_live else "paper",
+            "provider_mode": state.get("provider_mode"),
+            "last_cycle_at": state.get("last_loop_at"),
+            "pending_signals_count": 0,
+            "health": {"ok": True},
+            "freshness": {"signal_stale_after_ms": 25 * 60 * 1000},
+        },
+        "top_signal": {
+            "signal_id": signal_id,
+            "underlying": "SPY",
+            "direction": _derive_direction_from_trade(trade, bias if isinstance(bias, str) else None),
+            "confidence": confidence,
+            "signal_type": "rules",
+            "rank": 1,
+            "recommended_trade": trade,
+            "setup": {
+                "spot": snap.get("spot"),
+                "vwap": snap.get("vwap"),
+                "ema8": snap.get("ema8"),
+                "ema21": snap.get("ema21"),
+                "opening_range_high": snap.get("opening_range_high"),
+                "opening_range_low": snap.get("opening_range_low"),
+                "volume_ratio": snap.get("volume_ratio"),
+                "bias": bias,
+                "setup_score": setup_score,
+            },
+            "warnings": [],
+        },
+        "market_intel": {
+            "items": [],
+            "last_updated_at": None,
+        },
+        "performance_state": {
+            "cash": state.get("cash"),
+            "equity": state.get("equity"),
+            "realized_pnl_today": state.get("realized_pnl_today"),
+            "open_position": state.get("open_position"),
+            "consecutive_losses": state.get("consecutive_losses"),
+            "unrealized_pnl": None,
+        },
+        "ui_visibility": {
+            "core": [
+                "system_state",
+                "top_signal.setup",
+                "top_signal.recommended_trade",
+                "performance_state",
+            ],
+            "advanced": [],
+            "future_hidden": [
+                "market_intel",
+                "guardrails",
+                "contract_quality",
+                "execution_edge",
+                "signal_memory",
+                "flow_context",
+                "session_regime",
+            ],
+        },
+    }
+
+
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     if request.method == "OPTIONS":
@@ -264,7 +377,9 @@ def health():
 
 @app.get("/state")
 def get_state():
-    return state
+    body = dict(state)
+    body["hive_contract_v1"] = build_hive_contract_v1()
+    return body
 
 
 @app.post("/bot/start")

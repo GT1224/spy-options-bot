@@ -78,9 +78,21 @@ export default function Page() {
     return () => clearInterval(id);
   }, [autoRefresh]);
 
-  const signal = fullState?.signal_snapshot || {};
-  const recommended = signal?.recommended_trade || {};
-  const running = !!health?.running;
+  const hive = fullState?.hive_contract_v1;
+  const system = hive?.system_state;
+  const top = hive?.top_signal;
+  const perf = hive?.performance_state;
+
+  const signal = top?.setup ?? fullState?.signal_snapshot ?? {};
+  const recommended = top?.recommended_trade ?? signal?.recommended_trade ?? {};
+  const running =
+    system?.bot_running !== undefined && system?.bot_running !== null
+      ? !!system.bot_running
+      : !!health?.running;
+  const tradingEnabled =
+    system?.trading_enabled !== undefined && system?.trading_enabled !== null
+      ? !!system.trading_enabled
+      : !!fullState?.config?.enabled;
 
   const cards = useMemo(
     () => [
@@ -134,7 +146,7 @@ export default function Page() {
               </div>
               <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <StatusPill text={running ? "Swarm Active" : "Swarm Idle"} active={running} />
-                <StatusPill text={`Trading ${fullState?.config?.enabled ? "Armed" : "Safe"}`} />
+                <StatusPill text={`Trading ${tradingEnabled ? "Armed" : "Safe"}`} />
                 <StatusPill text={`Bias ${formatVal(signal?.bias)}`} />
                 <StatusPill text={`Score ${formatVal(signal?.setup_score)}`} />
                 <StatusPill text={autoRefresh ? "Auto Swarm Watching" : "Manual Refresh"} active={autoRefresh} />
@@ -197,11 +209,11 @@ export default function Page() {
           </Panel>
 
           <Panel title="Hive Treasury">
-            <HiveRow label="Trading Enabled" value={String(fullState?.config?.enabled ?? false)} />
-            <HiveRow label="Cash" value={formatVal(fullState?.cash)} />
-            <HiveRow label="Equity" value={formatVal(fullState?.equity)} />
-            <HiveRow label="Daily P&L" value={formatVal(fullState?.realized_pnl_today)} />
-            <HiveRow label="Loss Streak" value={formatVal(fullState?.consecutive_losses)} />
+            <HiveRow label="Trading Enabled" value={String(tradingEnabled)} />
+            <HiveRow label="Cash" value={formatVal(perf?.cash ?? fullState?.cash)} />
+            <HiveRow label="Equity" value={formatVal(perf?.equity ?? fullState?.equity)} />
+            <HiveRow label="Daily P&L" value={formatVal(perf?.realized_pnl_today ?? fullState?.realized_pnl_today)} />
+            <HiveRow label="Loss Streak" value={formatVal(perf?.consecutive_losses ?? fullState?.consecutive_losses)} />
           </Panel>
         </section>
 
