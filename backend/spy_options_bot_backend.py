@@ -17,6 +17,7 @@ from hive_contract_quality_v1 import compute_hive_contract_quality_v1
 from hive_execution_edge_v1 import compute_hive_execution_edge_v1
 from hive_guardrails_v1 import compute_hive_guardrails_v1
 from hive_promotion_gate_v1 import compute_hive_promotion_gate_v1
+from hive_session_regime_v1 import compute_hive_session_regime_v1
 from hive_signal_rank_v1 import compute_hive_rank_v1
 
 load_dotenv()
@@ -339,6 +340,8 @@ def build_hive_contract_v1() -> dict[str, Any]:
         execution_edge=execution_edge,
     )
 
+    session_regime = compute_hive_session_regime_v1()
+
     return {
         "system_state": {
             "bot_running": bool(state.get("running")),
@@ -349,6 +352,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "pending_signals_count": 0,
             "health": {"ok": True},
             "freshness": {"signal_stale_after_ms": 25 * 60 * 1000},
+            "session_regime": session_regime,
         },
         "top_signal": {
             "signal_id": signal_id,
@@ -383,6 +387,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
         "ui_visibility": {
             "core": [
                 "system_state",
+                "system_state.session_regime",
                 "top_signal.setup",
                 "top_signal.recommended_trade",
                 "performance_state",
@@ -400,7 +405,6 @@ def build_hive_contract_v1() -> dict[str, Any]:
                 "market_intel",
                 "signal_memory",
                 "flow_context",
-                "session_regime",
             ],
         },
     }

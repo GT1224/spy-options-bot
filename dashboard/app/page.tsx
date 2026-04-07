@@ -86,6 +86,7 @@ export default function Page() {
   const cq = top?.contract_quality;
   const edge = top?.execution_edge;
   const promo = top?.promotion_gate;
+  const regime = system?.session_regime;
 
   const signal = top?.setup ?? fullState?.signal_snapshot ?? {};
   const recommended = top?.recommended_trade ?? signal?.recommended_trade ?? {};
@@ -162,6 +163,10 @@ export default function Page() {
                 <StatusPill
                   text={promo?.status ? `Gate: ${promo.status}` : "Gate: —"}
                   active={promo?.status === "promoted"}
+                />
+                <StatusPill
+                  text={regime?.label ? `Session: ${regime.label}` : "Session: —"}
+                  active={!!regime?.market_hours}
                 />
               </div>
             </div>
@@ -288,6 +293,14 @@ export default function Page() {
           </Panel>
 
           <Panel title="Hive Treasury">
+            <HiveRow
+              label="Session (ET)"
+              value={
+                regime
+                  ? `${regime.code} · RTH ${regime.market_hours ? "on" : "off"}${typeof regime.detail === "string" && regime.detail.length ? ` — ${regime.detail.length > 72 ? `${regime.detail.slice(0, 72)}…` : regime.detail}` : ""}`
+                  : "—"
+              }
+            />
             <HiveRow label="Trading Enabled" value={String(tradingEnabled)} />
             <HiveRow label="Cash" value={formatVal(perf?.cash ?? fullState?.cash)} />
             <HiveRow label="Equity" value={formatVal(perf?.equity ?? fullState?.equity)} />
