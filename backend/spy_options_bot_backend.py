@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from hive_contract_quality_v1 import compute_hive_contract_quality_v1
+from hive_execution_edge_v1 import compute_hive_execution_edge_v1
 from hive_guardrails_v1 import compute_hive_guardrails_v1
 from hive_signal_rank_v1 import compute_hive_rank_v1
 
@@ -314,6 +315,20 @@ def build_hive_contract_v1() -> dict[str, Any]:
         guardrails,
     )
 
+    execution_edge = compute_hive_execution_edge_v1(
+        setup_payload,
+        trade,
+        state.get("last_loop_at"),
+        rank_bundle,
+        guardrails,
+        contract_quality,
+        bot_running=bool(state.get("running")),
+        trading_enabled=trading_enabled,
+        mode="live" if use_live else "paper",
+        open_position=state.get("open_position"),
+        consecutive_losses=state.get("consecutive_losses"),
+    )
+
     return {
         "system_state": {
             "bot_running": bool(state.get("running")),
@@ -337,6 +352,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "rationale": rank_bundle["rationale"],
             "guardrails": guardrails,
             "contract_quality": contract_quality,
+            "execution_edge": execution_edge,
             "recommended_trade": trade,
             "setup": setup_payload,
             "warnings": list(guardrails.get("warnings") or []),
@@ -366,10 +382,10 @@ def build_hive_contract_v1() -> dict[str, Any]:
                 "top_signal.rationale",
                 "top_signal.guardrails",
                 "top_signal.contract_quality",
+                "top_signal.execution_edge",
             ],
             "future_hidden": [
                 "market_intel",
-                "execution_edge",
                 "signal_memory",
                 "flow_context",
                 "session_regime",

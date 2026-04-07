@@ -84,6 +84,7 @@ export default function Page() {
   const perf = hive?.performance_state;
   const guard = top?.guardrails;
   const cq = top?.contract_quality;
+  const edge = top?.execution_edge;
 
   const signal = top?.setup ?? fullState?.signal_snapshot ?? {};
   const recommended = top?.recommended_trade ?? signal?.recommended_trade ?? {};
@@ -253,6 +254,19 @@ export default function Page() {
                   : Array.isArray(cq?.signals) && cq.signals.length
                     ? cq.signals.slice(0, 3).join(", ")
                     : "—"
+              }
+            />
+            <HiveRow label="Exec edge status" value={formatVal(edge?.status)} emphasized />
+            <HiveRow
+              label="Exec edge score"
+              value={edge?.score !== undefined && edge?.score !== null ? String(edge.score) : "—"}
+            />
+            <HiveRow
+              label="Exec edge blockers"
+              value={
+                Array.isArray(edge?.blockers) && edge.blockers.length
+                  ? edge.blockers.slice(0, 2).join(" · ")
+                  : "—"
               }
             />
             <HiveRow label="Action" value={formatVal(recommended?.action)} emphasized />
