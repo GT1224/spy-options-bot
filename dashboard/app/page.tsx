@@ -85,6 +85,7 @@ export default function Page() {
   const guard = top?.guardrails;
   const cq = top?.contract_quality;
   const edge = top?.execution_edge;
+  const promo = top?.promotion_gate;
 
   const signal = top?.setup ?? fullState?.signal_snapshot ?? {};
   const recommended = top?.recommended_trade ?? signal?.recommended_trade ?? {};
@@ -158,6 +159,10 @@ export default function Page() {
                   active={guard?.status === "viable"}
                 />
                 <StatusPill text={guard ? (guard.actionable ? "Actionable" : "Not actionable") : "Actionable: —"} active={!!guard?.actionable} />
+                <StatusPill
+                  text={promo?.status ? `Gate: ${promo.status}` : "Gate: —"}
+                  active={promo?.status === "promoted"}
+                />
               </div>
             </div>
           </div>
@@ -266,6 +271,15 @@ export default function Page() {
                   ? edge.blockers.slice(0, 2).join(" · ")
                   : "—"
               }
+            />
+            <HiveRow
+              label="Promotion gate"
+              value={
+                promo
+                  ? `${promo.status} · ${typeof promo.reason === "string" ? (promo.reason.length > 96 ? `${promo.reason.slice(0, 96)}…` : promo.reason) : "—"}`
+                  : "—"
+              }
+              emphasized
             />
             <HiveRow label="Action" value={formatVal(recommended?.action)} emphasized />
             <HiveRow label="Structure" value={formatVal(recommended?.structure)} emphasized />

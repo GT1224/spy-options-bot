@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 from hive_contract_quality_v1 import compute_hive_contract_quality_v1
 from hive_execution_edge_v1 import compute_hive_execution_edge_v1
 from hive_guardrails_v1 import compute_hive_guardrails_v1
+from hive_promotion_gate_v1 import compute_hive_promotion_gate_v1
 from hive_signal_rank_v1 import compute_hive_rank_v1
 
 load_dotenv()
@@ -329,6 +330,15 @@ def build_hive_contract_v1() -> dict[str, Any]:
         consecutive_losses=state.get("consecutive_losses"),
     )
 
+    promotion_gate = compute_hive_promotion_gate_v1(
+        setup=setup_payload,
+        trade=trade,
+        rank_score=rank_score if isinstance(rank_score, int) else None,
+        guardrails=guardrails,
+        contract_quality=contract_quality,
+        execution_edge=execution_edge,
+    )
+
     return {
         "system_state": {
             "bot_running": bool(state.get("running")),
@@ -353,6 +363,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "guardrails": guardrails,
             "contract_quality": contract_quality,
             "execution_edge": execution_edge,
+            "promotion_gate": promotion_gate,
             "recommended_trade": trade,
             "setup": setup_payload,
             "warnings": list(guardrails.get("warnings") or []),
@@ -383,6 +394,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
                 "top_signal.guardrails",
                 "top_signal.contract_quality",
                 "top_signal.execution_edge",
+                "top_signal.promotion_gate",
             ],
             "future_hidden": [
                 "market_intel",
