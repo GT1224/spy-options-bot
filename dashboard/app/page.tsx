@@ -223,8 +223,6 @@ export default function Page() {
                   : "—"
               }
             />
-            <HiveRow label="Guard status" value={formatVal(guard?.status)} emphasized />
-            <HiveRow label="Guard actionable" value={guard ? String(guard.actionable) : "—"} />
             <HiveRow
               label="Guard rules"
               value={
