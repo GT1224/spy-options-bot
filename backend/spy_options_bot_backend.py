@@ -27,17 +27,7 @@ from hive_signal_rank_v1 import compute_hive_rank_v1
 load_dotenv()
 
 app = FastAPI(title="SPY Options Bot", version="2.0")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3005",
-        "http://192.168.68.53:3005",
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
+# Single stack: union of the two former CORSMiddleware registrations (strict superset).
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -58,6 +48,7 @@ _signal_cycle_lock = threading.Lock()
 
 state: dict[str, Any] = {
     "running": False,
+    # Duplicates config["enabled"] for raw /state; kept in sync in update_config only.
     "enabled": False,
     "provider_mode": "mock",
     "cash": 15000,

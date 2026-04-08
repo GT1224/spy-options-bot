@@ -87,7 +87,9 @@ def compute_hive_execution_edge_v1(
             "status": "pass",
             "score": None,
             "reasons": [],
-            "blockers": ["Recommendation is no_trade — nothing to execute."],
+            "blockers": [
+                "Recommendation is no_trade — nothing to execute (no broker routing in this process).",
+            ],
         }
 
     if gs == "avoid":
