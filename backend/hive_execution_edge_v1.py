@@ -117,7 +117,10 @@ def compute_hive_execution_edge_v1(
     if losses >= 3:
         blockers.append("Elevated loss streak — pause or size down before acting.")
 
-    notes.append(f"Mode: {mode} — this layer does not model fills or spreads.")
+    notes.append(
+        f"In-process SPY signal only — no broker orders; settings mode label is {mode!r} "
+        "(preference, not proof of routing)."
+    )
 
     # Supporting reasons (only when not hard-blocked on core gates)
     if rs is not None and rs >= 55:

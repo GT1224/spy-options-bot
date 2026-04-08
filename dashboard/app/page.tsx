@@ -92,6 +92,13 @@ export default function Page() {
   const flow = top?.flow_context;
   const delta = top?.cycle_delta;
   const regime = system?.session_regime;
+  const execSurface = system?.execution_surface as string | undefined;
+  const surfacePillText =
+    execSurface === "signal_only"
+      ? "Surface: signal-only (no broker)"
+      : execSurface
+        ? `Surface: ${execSurface}`
+        : "Surface: —";
 
   const signal = top?.setup ?? fullState?.signal_snapshot ?? {};
   const recommended = top?.recommended_trade ?? signal?.recommended_trade ?? {};
@@ -169,6 +176,7 @@ export default function Page() {
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <StatusPill text={running ? "Swarm Active" : "Swarm Idle"} active={running} />
                   <StatusPill text={`Trading ${tradingEnabled ? "Armed" : "Safe"}`} />
+                  <StatusPill text={surfacePillText} />
                   <StatusPill text={`Bias ${formatVal(signal?.bias)}`} />
                   <StatusPill text={`Score ${formatVal(signal?.setup_score)}`} />
                   <StatusPill text={autoRefresh ? "Auto refresh on" : "Auto refresh off"} active={autoRefresh} />

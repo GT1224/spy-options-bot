@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import json
 import os
+import threading
 from collections import deque
 from datetime import datetime
 from typing import Any
@@ -51,6 +52,9 @@ app.add_middleware(
 )
 
 BOT_ADMIN_KEY = os.getenv("BOT_ADMIN_KEY", "mysecret123")
+
+# Serializes run_signal_cycle across bot_loop and POST /cycle (sync + threadpool).
+_signal_cycle_lock = threading.Lock()
 
 state: dict[str, Any] = {
     "running": False,
@@ -191,64 +195,65 @@ def recommended_trade(bias, score):
 def run_signal_cycle():
     global mock_price, cycle_count
 
-    cycle_count += 1
+    with _signal_cycle_lock:
+        cycle_count += 1
 
-    # simple fake movement with some up/down behavior
-    if cycle_count % 7 == 0:
-        mock_price -= 0.8
-    else:
-        mock_price += 0.5
+        # simple fake movement with some up/down behavior
+        if cycle_count % 7 == 0:
+            mock_price -= 0.8
+        else:
+            mock_price += 0.5
 
-    volume = 1000 + (cycle_count % 5) * 250
+        volume = 1000 + (cycle_count % 5) * 250
 
-    prices.append(mock_price)
-    volumes.append(volume)
+        prices.append(mock_price)
+        volumes.append(volume)
 
-    if len(opening_range_prices) < 5:
-        opening_range_prices.append(mock_price)
+        if len(opening_range_prices) < 5:
+            opening_range_prices.append(mock_price)
 
-    spot = round(mock_price, 2)
-    ema8 = sma(list(prices), 8)
-    ema21 = sma(list(prices), 21)
-    vwap = calc_vwap(list(prices), list(volumes))
-    volume_ratio = calc_volume_ratio(list(volumes), 5)
+        spot = round(mock_price, 2)
+        ema8 = sma(list(prices), 8)
+        ema21 = sma(list(prices), 21)
+        vwap = calc_vwap(list(prices), list(volumes))
+        volume_ratio = calc_volume_ratio(list(volumes), 5)
 
-    opening_range_high = max(opening_range_prices) if opening_range_prices else None
-    opening_range_low = min(opening_range_prices) if opening_range_prices else None
+        opening_range_high = max(opening_range_prices) if opening_range_prices else None
+        opening_range_low = min(opening_range_prices) if opening_range_prices else None
 
-    bias = calc_bias(spot, vwap, ema8, ema21, opening_range_high, opening_range_low)
-    setup_score = calc_setup_score(spot, vwap, ema8, ema21, opening_range_high, opening_range_low, volume_ratio)
-    trade = recommended_trade(bias, setup_score)
+        bias = calc_bias(spot, vwap, ema8, ema21, opening_range_high, opening_range_low)
+        setup_score = calc_setup_score(spot, vwap, ema8, ema21, opening_range_high, opening_range_low, volume_ratio)
+        trade = recommended_trade(bias, setup_score)
 
-    state["last_loop_at"] = datetime.utcnow().isoformat()
-    state["signal_cycle_count"] = cycle_count
-    state["signal_snapshot"] = {
-        "spot": spot,
-        "vwap": round(vwap, 2) if vwap is not None else None,
-        "ema8": round(ema8, 2) if ema8 is not None else None,
-        "ema21": round(ema21, 2) if ema21 is not None else None,
-        "opening_range_high": round(opening_range_high, 2) if opening_range_high is not None else None,
-        "opening_range_low": round(opening_range_low, 2) if opening_range_low is not None else None,
-        "volume_ratio": round(volume_ratio, 2) if volume_ratio is not None else None,
-        "bias": bias,
-        "setup_score": setup_score,
-        "recommended_trade": trade,
-    }
+        state["last_loop_at"] = datetime.utcnow().isoformat()
+        state["signal_cycle_count"] = cycle_count
+        state["signal_snapshot"] = {
+            "spot": spot,
+            "vwap": round(vwap, 2) if vwap is not None else None,
+            "ema8": round(ema8, 2) if ema8 is not None else None,
+            "ema21": round(ema21, 2) if ema21 is not None else None,
+            "opening_range_high": round(opening_range_high, 2) if opening_range_high is not None else None,
+            "opening_range_low": round(opening_range_low, 2) if opening_range_low is not None else None,
+            "volume_ratio": round(volume_ratio, 2) if volume_ratio is not None else None,
+            "bias": bias,
+            "setup_score": setup_score,
+            "recommended_trade": trade,
+        }
 
-    log(f"cycle executed | spot={spot} | bias={bias} | score={setup_score}")
+        log(f"cycle executed | spot={spot} | bias={bias} | score={setup_score}")
 
-    flow_entry = {
-        "at": state["last_loop_at"],
-        "action": trade.get("action"),
-        "bias": bias,
-        "structure": trade.get("structure"),
-        "setup_score": setup_score,
-    }
-    flow_buf = state.get("recent_signal_flow")
-    if not isinstance(flow_buf, list):
-        flow_buf = []
-    flow_buf.append(flow_entry)
-    state["recent_signal_flow"] = flow_buf[-FLOW_BUFFER_CAP:]
+        flow_entry = {
+            "at": state["last_loop_at"],
+            "action": trade.get("action"),
+            "bias": bias,
+            "structure": trade.get("structure"),
+            "setup_score": setup_score,
+        }
+        flow_buf = state.get("recent_signal_flow")
+        if not isinstance(flow_buf, list):
+            flow_buf = []
+        flow_buf.append(flow_entry)
+        state["recent_signal_flow"] = flow_buf[-FLOW_BUFFER_CAP:]
 
 
 def _derive_direction_from_trade(trade: dict[str, Any], bias: str | None) -> str | None:
@@ -397,9 +402,12 @@ def build_hive_contract_v1() -> dict[str, Any]:
         "system_state": {
             "bot_running": bool(state.get("running")),
             "trading_enabled": trading_enabled,
+            # Alpaca toggle is a settings preference only — this process does not route orders.
             "mode": "live" if use_live else "paper",
+            "execution_surface": "signal_only",
             "provider_mode": state.get("provider_mode"),
             "last_cycle_at": state.get("last_loop_at"),
+            # No in-process order queue; reserved for future broker wiring (not used today).
             "pending_signals_count": 0,
             "health": {"ok": True},
             "freshness": {"signal_stale_after_ms": 25 * 60 * 1000},
@@ -442,6 +450,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "core": [
                 "system_state",
                 "system_state.session_regime",
+                "system_state.execution_surface",
                 "top_signal.setup",
                 "top_signal.recommended_trade",
                 "performance_state",
@@ -491,7 +500,11 @@ async def bot_loop():
         if state["config"]["enabled"]:
             run_signal_cycle()
 
-        await asyncio.sleep(state["config"]["poll_seconds"])
+        try:
+            poll = int(state["config"]["poll_seconds"])
+        except (TypeError, ValueError):
+            poll = 10
+        await asyncio.sleep(max(1, min(3600, poll)))
 
     log("bot stopped")
 
@@ -525,6 +538,7 @@ async def start_bot():
 @app.post("/bot/stop")
 def stop_bot():
     state["running"] = False
+    log("bot stop requested — loop will exit after current sleep")
     return {"message": "bot stopping"}
 
 
@@ -537,9 +551,20 @@ async def run_cycle():
 @app.post("/config")
 def update_config(patch: dict):
     for k, v in patch.items():
-        if k in state["config"]:
+        if k not in state["config"]:
+            continue
+        if k == "poll_seconds":
+            try:
+                n = int(v)
+            except (TypeError, ValueError):
+                continue
+            state["config"][k] = max(1, min(3600, n))
+        elif k in ("enabled", "use_live_alpaca"):
+            state["config"][k] = bool(v)
+        else:
             state["config"][k] = v
 
+    state["enabled"] = bool(state["config"]["enabled"])
     log(f"config updated {patch}")
     return state["config"]
 
