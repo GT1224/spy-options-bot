@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from hive_contract_quality_v1 import compute_hive_contract_quality_v1
+from hive_cycle_delta_v1 import compact_pulse_snapshot, compute_hive_cycle_delta_v1
 from hive_execution_edge_v1 import compute_hive_execution_edge_v1
 from hive_flow_context_v1 import FLOW_BUFFER_CAP, compute_hive_flow_context_v1
 from hive_guardrails_v1 import compute_hive_guardrails_v1
@@ -62,6 +63,7 @@ state: dict[str, Any] = {
     "last_loop_at": None,
     "signal_cycle_count": 0,
     "recent_signal_flow": [],
+    "prior_pulse_compact": None,
     "open_position": None,
     "logs": [],
     "signal_snapshot": {},
@@ -376,6 +378,21 @@ def build_hive_contract_v1() -> dict[str, Any]:
 
     session_regime = compute_hive_session_regime_v1()
 
+    current_pulse = compact_pulse_snapshot(
+        rank_score=rank_score if isinstance(rank_score, int) else None,
+        promotion_gate=promotion_gate,
+        execution_edge=execution_edge,
+        contract_quality=contract_quality,
+        direction=direction,
+        bias=bias,
+        trade=trade,
+        session_regime=session_regime,
+    )
+    prior_raw = state.get("prior_pulse_compact")
+    prior_pulse = prior_raw if isinstance(prior_raw, dict) else None
+    cycle_delta = compute_hive_cycle_delta_v1(prior=prior_pulse, current=current_pulse)
+    state["prior_pulse_compact"] = dict(current_pulse)
+
     return {
         "system_state": {
             "bot_running": bool(state.get("running")),
@@ -404,6 +421,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "promotion_gate": promotion_gate,
             "signal_memory": signal_memory,
             "flow_context": flow_context,
+            "cycle_delta": cycle_delta,
             "recommended_trade": trade,
             "setup": setup_payload,
             "warnings": list(guardrails.get("warnings") or []),
@@ -438,6 +456,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
                 "top_signal.promotion_gate",
                 "top_signal.signal_memory",
                 "top_signal.flow_context",
+                "top_signal.cycle_delta",
             ],
             "future_hidden": [
                 "market_intel",

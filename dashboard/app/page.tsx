@@ -90,6 +90,7 @@ export default function Page() {
   const promo = top?.promotion_gate;
   const mem = top?.signal_memory;
   const flow = top?.flow_context;
+  const delta = top?.cycle_delta;
   const regime = system?.session_regime;
 
   const signal = top?.setup ?? fullState?.signal_snapshot ?? {};
@@ -184,6 +185,21 @@ export default function Page() {
                     active={guardPillActive}
                   />
                   <StatusPill text={gatePillText} tone={gatePillTone} active={gatePromoted} />
+                  <StatusPill
+                    text={
+                      !delta?.status
+                        ? "Δ: —"
+                        : delta.status === "none"
+                          ? "Δ: no prior pulse"
+                          : delta.status === "unchanged"
+                            ? "Δ: unchanged"
+                            : delta.status === "minor_change"
+                              ? "Δ: minor"
+                              : "Δ: meaningful"
+                    }
+                    tone={delta?.status === "meaningful_change" ? "hold" : "neutral"}
+                    active={delta?.status === "unchanged"}
+                  />
                 </div>
               </div>
             </div>
@@ -314,6 +330,15 @@ export default function Page() {
                 }
                 emphasized={gatePromoted}
                 muted={gateSuppressed || gateHold}
+              />
+              <HiveRow
+                label="Since last pulse"
+                value={
+                  delta
+                    ? `${delta.status} · ${typeof delta.detail === "string" ? (delta.detail.length > 72 ? `${delta.detail.slice(0, 72)}…` : delta.detail) : "—"}`
+                    : "—"
+                }
+                muted
               />
             </PanelSection>
             <PanelSection title="Contract quality">
