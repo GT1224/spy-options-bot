@@ -35,7 +35,7 @@ def compute_hive_promotion_gate_v1(
     if action != "trade":
         return {
             "status": "suppressed",
-            "reason": "Recommendation is no_trade — nothing to promote.",
+            "reason": "Suppressed — Hive recommends no_trade; do not treat as an entry.",
             "factors": ["no_trade"],
             "passes_minimum": False,
         }
@@ -43,7 +43,7 @@ def compute_hive_promotion_gate_v1(
     if gs == "avoid":
         return {
             "status": "suppressed",
-            "reason": "Guardrails are avoid — signal withheld from promotion.",
+            "reason": "Suppressed — guardrails are avoid; withhold action.",
             "factors": ["guardrails_avoid"],
             "passes_minimum": False,
         }
@@ -51,7 +51,7 @@ def compute_hive_promotion_gate_v1(
     if cq_status == "weak" and (rank_score is None or rank_score < 50):
         return {
             "status": "suppressed",
-            "reason": "Contract quality weak and rank does not compensate.",
+            "reason": "Suppressed — contract quality is weak and rank does not offset it.",
             "factors": ["contract_quality_weak"],
             "passes_minimum": False,
         }
@@ -59,7 +59,7 @@ def compute_hive_promotion_gate_v1(
     if rank_score is not None and rank_score < 28:
         return {
             "status": "suppressed",
-            "reason": "Hive rank below minimum floor for promotion.",
+            "reason": "Suppressed — hive rank is below the promotion floor.",
             "factors": ["rank_below_floor"],
             "passes_minimum": False,
         }
@@ -67,10 +67,10 @@ def compute_hive_promotion_gate_v1(
     if es == "pass":
         blockers = execution_edge.get("blockers") or []
         first = blockers[0] if isinstance(blockers, list) and blockers else "Execution path not cleared."
-        reason = first if isinstance(first, str) else "Execution path not cleared."
+        tail = first if isinstance(first, str) else "Execution path not cleared."
         return {
             "status": "suppressed",
-            "reason": reason,
+            "reason": f"Suppressed — execution not cleared: {tail}",
             "factors": ["execution_pass"],
             "passes_minimum": False,
         }
@@ -78,7 +78,7 @@ def compute_hive_promotion_gate_v1(
     if es == "unknown":
         return {
             "status": "hold",
-            "reason": "Execution readiness unknown — wait for signal context.",
+            "reason": "On hold — execution readiness unknown; wait for a full pulse.",
             "factors": ["execution_unknown"],
             "passes_minimum": False,
         }
@@ -91,7 +91,7 @@ def compute_hive_promotion_gate_v1(
         factors.append(f"rank_{rank_score}" if rank_score is not None else "rank_pending")
         return {
             "status": "promoted",
-            "reason": "Combined rank, guardrails, contract quality, and execution edge clear the gate.",
+            "reason": "Promoted — rank, guardrails, contract quality, and execution edge align for the gate.",
             "factors": factors[:8],
             "passes_minimum": True,
         }
@@ -99,7 +99,7 @@ def compute_hive_promotion_gate_v1(
     if es == "caution" and actionable:
         return {
             "status": "hold",
-            "reason": "Execution edge is caution — borderline; review before sizing.",
+            "reason": "On hold — execution edge is caution; not a green light.",
             "factors": ["execution_caution", f"guard_{gs}", f"cq_{cq_status}"],
             "passes_minimum": False,
         }
@@ -107,7 +107,7 @@ def compute_hive_promotion_gate_v1(
     if es == "go" and not actionable:
         return {
             "status": "hold",
-            "reason": "Execution reads go but guardrails mark not actionable — on hold.",
+            "reason": "On hold — execution reads go but guardrails block action right now.",
             "factors": ["exec_go_not_actionable"],
             "passes_minimum": False,
         }
@@ -115,7 +115,7 @@ def compute_hive_promotion_gate_v1(
     if es == "go" and actionable and not rank_ok:
         return {
             "status": "hold",
-            "reason": "Rank is borderline — hold until evidence strengthens.",
+            "reason": "On hold — rank is borderline; wait for stronger evidence.",
             "factors": ["rank_borderline"],
             "passes_minimum": False,
         }
@@ -123,14 +123,14 @@ def compute_hive_promotion_gate_v1(
     if es == "go" and actionable and not cq_ok:
         return {
             "status": "hold",
-            "reason": "Contract quality not yet acceptable for full promotion.",
+            "reason": "On hold — contract quality is not strong enough to promote.",
             "factors": ["cq_not_acceptable"],
             "passes_minimum": False,
         }
 
     return {
         "status": "hold",
-        "reason": "Mixed evidence — use full Hive rows before sizing.",
+        "reason": "On hold — mixed sub-layer read; confirm in Hive rows before sizing.",
         "factors": [f"exec_{es}", f"guard_{gs}"],
         "passes_minimum": False,
     }

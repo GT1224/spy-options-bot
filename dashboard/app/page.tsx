@@ -6,6 +6,8 @@ import Image from "next/image";
 const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 const ADMIN_KEY = "mysecret123";
 
+type PillTone = "neutral" | "promoted" | "hold" | "suppressed";
+
 export default function Page() {
   const [health, setHealth] = useState<any>(null);
   const [fullState, setFullState] = useState<any>(null);
@@ -101,6 +103,16 @@ export default function Page() {
       ? !!system.trading_enabled
       : !!fullState?.config?.enabled;
 
+  const promoStatus = promo?.status as string | undefined;
+  const gateSuppressed = promoStatus === "suppressed";
+  const gateHold = promoStatus === "hold";
+  const gatePromoted = promoStatus === "promoted";
+  const gatePillText = !promoStatus ? "Gate: —" : gateSuppressed ? "Gate: suppressed" : gateHold ? "Gate: on hold" : "Gate: promoted";
+  const gatePillTone: PillTone = !promoStatus ? "neutral" : gateSuppressed ? "suppressed" : gateHold ? "hold" : "promoted";
+
+  const guardTone: PillTone = guard?.status === "avoid" ? "suppressed" : guard?.status === "caution" || (guard?.status === "viable" && !guard?.actionable) ? "hold" : guard?.status === "viable" ? "promoted" : "neutral";
+  const guardPillActive = guard?.status === "viable" && !!guard?.actionable;
+
   const cards = useMemo(
     () => [
       { label: "Spot", value: signal.spot, featured: true },
@@ -168,12 +180,10 @@ export default function Page() {
                         ? `Guard: ${guard.status}${guard.actionable ? " · act" : " · hold"}`
                         : "Guard: —"
                     }
-                    active={guard?.status === "viable"}
+                    tone={guardTone}
+                    active={guardPillActive}
                   />
-                  <StatusPill
-                    text={promo?.status ? `Gate: ${promo.status}` : "Gate: —"}
-                    active={promo?.status === "promoted"}
-                  />
+                  <StatusPill text={gatePillText} tone={gatePillTone} active={gatePromoted} />
                 </div>
               </div>
             </div>
@@ -261,8 +271,40 @@ export default function Page() {
               />
             </PanelSection>
             <PanelSection title="Promotion gate">
+              {gateSuppressed ? (
+                <div
+                  style={{
+                    fontSize: 12,
+                    lineHeight: 1.45,
+                    color: "#f0d4d4",
+                    marginBottom: 10,
+                    padding: "10px 12px",
+                    background: "rgba(140,60,60,0.14)",
+                    borderRadius: 10,
+                    border: "1px solid rgba(180,90,90,0.4)",
+                  }}
+                >
+                  <strong>Not actionable.</strong> Sub-layers may still show numbers — the gate is <strong>suppressed</strong>. Do not size an entry from the trade leg below.
+                </div>
+              ) : null}
+              {gateHold ? (
+                <div
+                  style={{
+                    fontSize: 12,
+                    lineHeight: 1.45,
+                    color: "#ffe8c8",
+                    marginBottom: 10,
+                    padding: "10px 12px",
+                    background: "rgba(200,140,40,0.12)",
+                    borderRadius: 10,
+                    border: "1px solid rgba(210,150,50,0.45)",
+                  }}
+                >
+                  <strong>On hold — not a green light.</strong> Review discipline before acting; confirm guardrails and execution edge.
+                </div>
+              ) : null}
               <HiveRow
-                label="Detail"
+                label="Gate detail"
                 value={
                   promo && typeof promo.reason === "string" && promo.reason.length
                     ? promo.reason.length > 120
@@ -270,7 +312,8 @@ export default function Page() {
                       : promo.reason
                     : "—"
                 }
-                emphasized
+                emphasized={gatePromoted}
+                muted={gateSuppressed || gateHold}
               />
             </PanelSection>
             <PanelSection title="Contract quality">
@@ -305,11 +348,23 @@ export default function Page() {
                 }
               />
             </PanelSection>
-            <PanelSection title="Trade leg">
-              <HiveRow label="Action" value={formatVal(recommended?.action)} emphasized />
-              <HiveRow label="Structure" value={formatVal(recommended?.structure)} emphasized />
-              <HiveRow label="DTE" value={formatVal(recommended?.dte)} />
-              <HiveRow label="Delta" value={formatVal(recommended?.delta)} />
+            <PanelSection title={gateSuppressed ? "Trade leg (reference — not promoted)" : gateHold ? "Trade leg (confirm before acting)" : "Trade leg"}>
+              <div style={{ opacity: gateSuppressed ? 0.68 : gateHold ? 0.88 : 1 }}>
+                <HiveRow
+                  label="Action"
+                  value={formatVal(recommended?.action)}
+                  emphasized={gatePromoted && recommended?.action === "trade"}
+                  muted={gateSuppressed || (gateHold && recommended?.action === "trade")}
+                />
+                <HiveRow
+                  label="Structure"
+                  value={formatVal(recommended?.structure)}
+                  emphasized={gatePromoted && recommended?.action === "trade"}
+                  muted={gateSuppressed || gateHold}
+                />
+                <HiveRow label="DTE" value={formatVal(recommended?.dte)} muted={gateSuppressed} />
+                <HiveRow label="Delta" value={formatVal(recommended?.delta)} muted={gateSuppressed} />
+              </div>
             </PanelSection>
             <PanelSection title="In-process context (this run only)">
               <HiveRow
@@ -618,15 +673,68 @@ function RobotBee() {
   );
 }
 
-function StatusPill({ text, active = false }: { text: string; active?: boolean }) {
+function StatusPill({
+  text,
+  active = false,
+  tone = "neutral",
+}: {
+  text: string;
+  active?: boolean;
+  tone?: PillTone;
+}) {
+  const base = {
+    borderRadius: 999,
+    padding: "8px 12px" as const,
+    fontSize: 13 as const,
+  };
+  if (tone === "promoted" && active) {
+    return (
+      <div
+        style={{
+          ...base,
+          background: "rgba(86,211,100,0.18)",
+          border: "1px solid #56d364",
+          color: "#d8ffd8",
+        }}
+      >
+        {text}
+      </div>
+    );
+  }
+  if (tone === "suppressed") {
+    return (
+      <div
+        style={{
+          ...base,
+          background: "rgba(150,64,64,0.2)",
+          border: "1px solid #944",
+          color: "#f2d4d4",
+        }}
+      >
+        {text}
+      </div>
+    );
+  }
+  if (tone === "hold") {
+    return (
+      <div
+        style={{
+          ...base,
+          background: "rgba(220,150,40,0.14)",
+          border: "1px solid #b87a18",
+          color: "#ffe9c0",
+        }}
+      >
+        {text}
+      </div>
+    );
+  }
   return (
     <div
       style={{
+        ...base,
         background: active ? "rgba(86,211,100,0.18)" : "rgba(255,213,92,0.08)",
         border: active ? "1px solid #56d364" : "1px solid #6f5719",
-        borderRadius: 999,
-        padding: "8px 12px",
-        fontSize: 13,
         color: active ? "#d8ffd8" : "#f5e2a3",
       }}
     >
@@ -751,7 +859,19 @@ function PanelSection({ title, children, isFirst }: { title: string; children: R
   );
 }
 
-function HiveRow({ label, value, emphasized = false }: { label: string; value: string; emphasized?: boolean }) {
+function HiveRow({
+  label,
+  value,
+  emphasized = false,
+  muted = false,
+}: {
+  label: string;
+  value: string;
+  emphasized?: boolean;
+  muted?: boolean;
+}) {
+  const valueColor = muted ? "#8f8268" : emphasized ? "#ffd55c" : "#fff1b8";
+  const fontSize = emphasized && !muted ? 18 : muted ? 15 : 16;
   return (
     <div
       style={{
@@ -762,8 +882,8 @@ function HiveRow({ label, value, emphasized = false }: { label: string; value: s
         borderBottom: "1px solid rgba(255,213,92,0.1)",
       }}
     >
-      <div style={{ color: "#c5ab5b" }}>{label}</div>
-      <div style={{ color: emphasized ? "#ffd55c" : "#fff1b8", fontWeight: 700, textAlign: "right", fontSize: emphasized ? 18 : 16 }}>
+      <div style={{ color: muted ? "#9a8b65" : "#c5ab5b" }}>{label}</div>
+      <div style={{ color: valueColor, fontWeight: 700, textAlign: "right", fontSize }}>
         {value}
       </div>
     </div>
