@@ -8,6 +8,34 @@ const ADMIN_KEY = "mysecret123";
 
 type PillTone = "neutral" | "promoted" | "hold" | "suppressed";
 
+/** W4-L3 — shared visual tokens (inline only; no new deps). */
+const HIVE_UI = {
+  bg: "radial-gradient(circle at top, #2b2100 0%, #15120a 42%, #0b0a08 100%)",
+  text: "#f9ecb8",
+  textMuted: "#a89050",
+  textSection: "#9a8344",
+  textLabel: "#c5ab5b",
+  accent: "#ffd55c",
+  accentSoft: "#f3df9d",
+  borderHero: "#6c5416",
+  borderPanel: "#5f4a15",
+  borderDeep: "#4f3d12",
+  surfaceHero: "rgba(255,213,92,0.06)",
+  surfaceLive: "linear-gradient(180deg, rgba(255,213,92,0.06) 0%, rgba(255,213,92,0.02) 100%)",
+  panelBg: "linear-gradient(180deg, #1d1708 0%, #12100a 100%)",
+  shadowCard: "0 10px 28px rgba(0,0,0,0.28)",
+  shadowLift: "0 10px 24px rgba(0,0,0,0.24)",
+  shadowSoft: "0 10px 24px rgba(0,0,0,0.22)",
+  rXl: 24,
+  rLg: 20,
+  rMd: 14,
+  rSm: 12,
+  font: "Arial, sans-serif",
+  motion: "background-color 165ms ease, border-color 165ms ease, box-shadow 165ms ease, opacity 165ms ease, transform 165ms ease, filter 165ms ease",
+  divider: "rgba(255,213,92,0.1)",
+  dividerStrong: "rgba(255,213,92,0.12)",
+} as const;
+
 export default function Page() {
   const [health, setHealth] = useState<any>(null);
   const [fullState, setFullState] = useState<any>(null);
@@ -138,24 +166,37 @@ export default function Page() {
   );
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "radial-gradient(circle at top, #2b2100 0%, #15120a 42%, #0b0a08 100%)",
-        color: "#f9ecb8",
-        fontFamily: "Arial, sans-serif",
-        padding: 18,
-      }}
-    >
+    <>
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `@media (prefers-reduced-motion: reduce) {
+  [data-hive-dashboard] * {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+  }
+}`,
+        }}
+      />
+      <main
+        data-hive-dashboard
+        style={{
+          minHeight: "100vh",
+          background: HIVE_UI.bg,
+          color: HIVE_UI.text,
+          fontFamily: HIVE_UI.font,
+          padding: 18,
+        }}
+      >
       <div style={{ maxWidth: 1180, margin: "0 auto" }}>
         <section
           style={{
-            background: "rgba(255,213,92,0.06)",
-            border: "1px solid #6c5416",
-            borderRadius: 24,
+            background: HIVE_UI.surfaceHero,
+            border: `1px solid ${HIVE_UI.borderHero}`,
+            borderRadius: HIVE_UI.rXl,
             padding: 22,
             marginBottom: 18,
-            boxShadow: "0 10px 28px rgba(0,0,0,0.28)",
+            boxShadow: HIVE_UI.shadowCard,
           }}
         >
           <div style={{ display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap" }}>
@@ -164,15 +205,15 @@ export default function Page() {
             </div>
 
             <div style={{ flex: 1, minWidth: 260 }}>
-              <div style={{ fontSize: 12, letterSpacing: 2.2, color: "#d3b04f", textTransform: "uppercase", marginBottom: 8 }}>
+              <div style={{ fontSize: 12, letterSpacing: 2.2, color: HIVE_UI.textLabel, textTransform: "uppercase", marginBottom: 8 }}>
                 Hyper-Intelligent Volatility Execution
               </div>
-              <h1 style={{ margin: 0, fontSize: 44, color: "#ffd55c", letterSpacing: 1.2 }}>HIVE</h1>
-              <div style={{ marginTop: 10, fontSize: 16, color: "#f3df9d" }}>
+              <h1 style={{ margin: 0, fontSize: 44, color: HIVE_UI.accent, letterSpacing: 1.2 }}>HIVE</h1>
+              <div style={{ marginTop: 10, fontSize: 16, color: HIVE_UI.accentSoft }}>
                 Mechanical swarm intelligence for SPY volatility trading
               </div>
               <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-                <div style={{ fontSize: 11, color: "#a89050", letterSpacing: 0.4 }}>Ops</div>
+                <div style={{ fontSize: 11, color: HIVE_UI.textMuted, letterSpacing: 0.4 }}>Ops</div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <StatusPill text={running ? "Swarm Active" : "Swarm Idle"} active={running} />
                   <StatusPill text={`Trading ${tradingEnabled ? "Armed" : "Safe"}`} />
@@ -181,7 +222,7 @@ export default function Page() {
                   <StatusPill text={`Score ${formatVal(signal?.setup_score)}`} />
                   <StatusPill text={autoRefresh ? "Auto refresh on" : "Auto refresh off"} active={autoRefresh} />
                 </div>
-                <div style={{ fontSize: 11, color: "#a89050", letterSpacing: 0.4 }}>Governance (at a glance)</div>
+                <div style={{ fontSize: 11, color: HIVE_UI.textMuted, letterSpacing: 0.4 }}>Governance (at a glance)</div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <StatusPill
                     text={
@@ -220,7 +261,7 @@ export default function Page() {
               background: "rgba(255,120,120,0.12)",
               color: "#ffd8d8",
               padding: 12,
-              borderRadius: 12,
+              borderRadius: HIVE_UI.rSm,
               marginBottom: 16,
               border: "1px solid #a34c4c",
             }}
@@ -241,15 +282,15 @@ export default function Page() {
 
         <section
           style={{
-            background: "linear-gradient(180deg, rgba(255,213,92,0.06) 0%, rgba(255,213,92,0.02) 100%)",
-            border: "1px solid #5f4a15",
-            borderRadius: 24,
+            background: HIVE_UI.surfaceLive,
+            border: `1px solid ${HIVE_UI.borderPanel}`,
+            borderRadius: HIVE_UI.rXl,
             padding: 18,
             marginBottom: 20,
-            boxShadow: "0 10px 24px rgba(0,0,0,0.22)",
+            boxShadow: HIVE_UI.shadowSoft,
           }}
         >
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#ffd55c", marginBottom: 12 }}>Hive Live View</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: HIVE_UI.accent, marginBottom: 12 }}>Hive Live View</div>
           <OrbitHive cards={cards} autoRefresh={autoRefresh} running={running} />
         </section>
 
@@ -440,8 +481,8 @@ export default function Page() {
             <div
               style={{
                 background: "rgba(0,0,0,0.25)",
-                border: "1px solid #4f3d12",
-                borderRadius: 14,
+                border: `1px solid ${HIVE_UI.borderDeep}`,
+                borderRadius: HIVE_UI.rMd,
                 padding: 12,
                 maxHeight: 280,
                 overflowY: "auto",
@@ -456,6 +497,7 @@ export default function Page() {
         </section>
       </div>
     </main>
+    </>
   );
 }
 
@@ -567,7 +609,7 @@ function MechanicalHive({ active = false }: { active?: boolean }) {
         height: 320,
         transform: active ? "scale(1.01)" : "scale(1)",
         filter: active ? "drop-shadow(0 0 16px rgba(255,180,43,0.32))" : "none",
-        transition: "transform 0.25s ease, filter 0.25s ease",
+        transition: HIVE_UI.motion,
       }}
     >
       <svg viewBox="0 0 300 340" width="100%" height="100%" aria-hidden="true">
@@ -719,6 +761,9 @@ function StatusPill({
     borderRadius: 999,
     padding: "8px 12px" as const,
     fontSize: 13 as const,
+    fontWeight: 600 as const,
+    letterSpacing: "0.02em" as const,
+    transition: HIVE_UI.motion,
   };
   if (tone === "promoted" && active) {
     return (
@@ -790,7 +835,7 @@ function HiveButton({ onClick, label, active = false }: { onClick: () => void; l
         fontSize: 14,
         boxShadow: active ? "inset 0 3px 10px rgba(0,0,0,0.25)" : "0 6px 18px rgba(217,166,32,0.25)",
         cursor: "pointer",
-        transition: "transform 0.08s ease, filter 0.08s ease, box-shadow 0.08s ease",
+        transition: HIVE_UI.motion,
       }}
       onMouseDown={(e) => {
         e.currentTarget.style.filter = "brightness(0.84)";
@@ -834,7 +879,7 @@ function HoneyHex({ label, value, featured = false }: { label: string; value: st
           background: featured
             ? "linear-gradient(180deg, rgba(255,213,92,0.18) 0%, rgba(255,170,40,0.08) 100%)"
             : "linear-gradient(180deg, rgba(255,213,92,0.10) 0%, rgba(255,213,92,0.04) 100%)",
-          border: featured ? "1px solid #d9a620" : "1px solid #6f5719",
+          border: featured ? "1px solid #d9a620" : `1px solid ${HIVE_UI.borderHero}`,
           boxShadow: featured ? "0 0 24px rgba(255,213,92,0.12)" : "0 8px 20px rgba(0,0,0,0.25)",
           display: "flex",
           alignItems: "center",
@@ -844,7 +889,7 @@ function HoneyHex({ label, value, featured = false }: { label: string; value: st
         }}
       >
         <div>
-          <div style={{ fontSize: 11, color: "#c5ab5b", textTransform: "uppercase", letterSpacing: 1.1, marginBottom: 6 }}>
+          <div style={{ fontSize: 11, color: HIVE_UI.textLabel, textTransform: "uppercase", letterSpacing: 1.1, marginBottom: 6 }}>
             {label}
           </div>
           <div style={{ fontSize: featured ? 23 : 19, fontWeight: 700, color: "#fff1b8" }}>{value}</div>
@@ -858,14 +903,14 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
   return (
     <div
       style={{
-        background: "linear-gradient(180deg, #1d1708 0%, #12100a 100%)",
-        border: "1px solid #5f4a15",
-        borderRadius: 20,
+        background: HIVE_UI.panelBg,
+        border: `1px solid ${HIVE_UI.borderPanel}`,
+        borderRadius: HIVE_UI.rLg,
         padding: 16,
-        boxShadow: "0 10px 24px rgba(0,0,0,0.28)",
+        boxShadow: HIVE_UI.shadowLift,
       }}
     >
-      <h2 style={{ marginTop: 0, marginBottom: 14, color: "#ffd55c" }}>{title}</h2>
+      <h2 style={{ marginTop: 0, marginBottom: 14, color: HIVE_UI.accent, letterSpacing: "0.04em" }}>{title}</h2>
       {children}
     </div>
   );
@@ -878,10 +923,10 @@ function PanelSection({ title, children, isFirst }: { title: string; children: R
         style={{
           fontSize: 10,
           letterSpacing: 1.8,
-          color: "#9a8344",
+          color: HIVE_UI.textSection,
           textTransform: "uppercase",
           marginBottom: 4,
-          borderBottom: "1px solid rgba(255,213,92,0.12)",
+          borderBottom: `1px solid ${HIVE_UI.dividerStrong}`,
           paddingBottom: 6,
         }}
       >
@@ -912,10 +957,10 @@ function HiveRow({
         justifyContent: "space-between",
         gap: 16,
         padding: "10px 0",
-        borderBottom: "1px solid rgba(255,213,92,0.1)",
+        borderBottom: `1px solid ${HIVE_UI.divider}`,
       }}
     >
-      <div style={{ color: muted ? "#9a8b65" : "#c5ab5b" }}>{label}</div>
+      <div style={{ color: muted ? "#9a8b65" : HIVE_UI.textLabel }}>{label}</div>
       <div style={{ color: valueColor, fontWeight: 700, textAlign: "right", fontSize }}>
         {value}
       </div>
