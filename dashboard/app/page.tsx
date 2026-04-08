@@ -151,33 +151,30 @@ export default function Page() {
               <div style={{ marginTop: 10, fontSize: 16, color: "#f3df9d" }}>
                 Mechanical swarm intelligence for SPY volatility trading
               </div>
-              <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <StatusPill text={running ? "Swarm Active" : "Swarm Idle"} active={running} />
-                <StatusPill text={`Trading ${tradingEnabled ? "Armed" : "Safe"}`} />
-                <StatusPill text={`Bias ${formatVal(signal?.bias)}`} />
-                <StatusPill text={`Score ${formatVal(signal?.setup_score)}`} />
-                <StatusPill text={autoRefresh ? "Auto Swarm Watching" : "Manual Refresh"} active={autoRefresh} />
-                <StatusPill
-                  text={guard?.status ? `Guard: ${guard.status}` : "Guard: —"}
-                  active={guard?.status === "viable"}
-                />
-                <StatusPill text={guard ? (guard.actionable ? "Actionable" : "Not actionable") : "Actionable: —"} active={!!guard?.actionable} />
-                <StatusPill
-                  text={promo?.status ? `Gate: ${promo.status}` : "Gate: —"}
-                  active={promo?.status === "promoted"}
-                />
-                <StatusPill
-                  text={regime?.label ? `Session: ${regime.label}` : "Session: —"}
-                  active={!!regime?.market_hours}
-                />
-                <StatusPill
-                  text={mem?.status ? `Memory: ${mem.status}` : "Memory: —"}
-                  active={mem?.status === "supported"}
-                />
-                <StatusPill
-                  text={flow?.status ? `Flow: ${flow.status}` : "Flow: —"}
-                  active={flow?.status === "aligned"}
-                />
+              <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ fontSize: 11, color: "#a89050", letterSpacing: 0.4 }}>Ops</div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <StatusPill text={running ? "Swarm Active" : "Swarm Idle"} active={running} />
+                  <StatusPill text={`Trading ${tradingEnabled ? "Armed" : "Safe"}`} />
+                  <StatusPill text={`Bias ${formatVal(signal?.bias)}`} />
+                  <StatusPill text={`Score ${formatVal(signal?.setup_score)}`} />
+                  <StatusPill text={autoRefresh ? "Auto refresh on" : "Auto refresh off"} active={autoRefresh} />
+                </div>
+                <div style={{ fontSize: 11, color: "#a89050", letterSpacing: 0.4 }}>Governance (at a glance)</div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <StatusPill
+                    text={
+                      guard?.status
+                        ? `Guard: ${guard.status}${guard.actionable ? " · act" : " · hold"}`
+                        : "Guard: —"
+                    }
+                    active={guard?.status === "viable"}
+                  />
+                  <StatusPill
+                    text={promo?.status ? `Gate: ${promo.status}` : "Gate: —"}
+                    active={promo?.status === "promoted"}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -229,105 +226,120 @@ export default function Page() {
             gap: 16,
           }}
         >
-          <Panel title="Recommended Trade">
-            <HiveRow
-              label="Hive rank"
-              value={top?.rank_score !== undefined && top?.rank_score !== null ? String(top.rank_score) : "—"}
-            />
-            <HiveRow label="Rank thesis" value={formatVal(top?.rationale?.thesis)} />
-            <HiveRow
-              label="Rank notes"
-              value={
-                Array.isArray(top?.rationale?.points) && top.rationale.points.length
-                  ? top.rationale.points.slice(0, 5).join(" · ")
-                  : "—"
-              }
-            />
-            <HiveRow
-              label="Guard rules"
-              value={
-                Array.isArray(guard?.triggered_rules) && guard.triggered_rules.length
-                  ? `${guard.triggered_rules.length}: ${guard.triggered_rules.slice(0, 4).join(", ")}`
-                  : "—"
-              }
-            />
-            <HiveRow
-              label="Guard warnings"
-              value={
-                Array.isArray(guard?.warnings) && guard.warnings.length
-                  ? guard.warnings.slice(0, 2).join(" · ")
-                  : "—"
-              }
-            />
-            <HiveRow label="Contract Q status" value={formatVal(cq?.status)} emphasized />
-            <HiveRow
-              label="Contract Q score"
-              value={cq?.score !== undefined && cq?.score !== null ? String(cq.score) : "—"}
-            />
-            <HiveRow
-              label="Contract Q summary"
-              value={
-                Array.isArray(cq?.warnings) && cq.warnings.length
-                  ? cq.warnings.slice(0, 2).join(" · ")
-                  : Array.isArray(cq?.signals) && cq.signals.length
-                    ? cq.signals.slice(0, 3).join(", ")
+          <Panel title="Signal, gate & trade">
+            <PanelSection title="Rank" isFirst>
+              <HiveRow
+                label="Hive rank"
+                value={top?.rank_score !== undefined && top?.rank_score !== null ? String(top.rank_score) : "—"}
+              />
+              <HiveRow label="Thesis" value={formatVal(top?.rationale?.thesis)} />
+              <HiveRow
+                label="Notes"
+                value={
+                  Array.isArray(top?.rationale?.points) && top.rationale.points.length
+                    ? top.rationale.points.slice(0, 5).join(" · ")
                     : "—"
-              }
-            />
-            <HiveRow label="Exec edge status" value={formatVal(edge?.status)} emphasized />
-            <HiveRow
-              label="Exec edge score"
-              value={edge?.score !== undefined && edge?.score !== null ? String(edge.score) : "—"}
-            />
-            <HiveRow
-              label="Exec edge blockers"
-              value={
-                Array.isArray(edge?.blockers) && edge.blockers.length
-                  ? edge.blockers.slice(0, 2).join(" · ")
-                  : "—"
-              }
-            />
-            <HiveRow
-              label="Promotion gate"
-              value={
-                promo
-                  ? `${promo.status} · ${typeof promo.reason === "string" ? (promo.reason.length > 96 ? `${promo.reason.slice(0, 96)}…` : promo.reason) : "—"}`
-                  : "—"
-              }
-              emphasized
-            />
-            <HiveRow
-              label="Signal memory"
-              value={
-                mem
-                  ? `${mem.status} · n=${mem.evidence_count !== undefined && mem.evidence_count !== null ? mem.evidence_count : "—"} · ${typeof mem.detail === "string" ? (mem.detail.length > 64 ? `${mem.detail.slice(0, 64)}…` : mem.detail) : "—"}`
-                  : "—"
-              }
-            />
-            <HiveRow
-              label="Flow context"
-              value={
-                flow
-                  ? `${flow.status} · n=${flow.evidence_count !== undefined && flow.evidence_count !== null ? flow.evidence_count : "—"} · ${typeof flow.detail === "string" ? (flow.detail.length > 64 ? `${flow.detail.slice(0, 64)}…` : flow.detail) : "—"}`
-                  : "—"
-              }
-            />
-            <HiveRow label="Action" value={formatVal(recommended?.action)} emphasized />
-            <HiveRow label="Structure" value={formatVal(recommended?.structure)} emphasized />
-            <HiveRow label="DTE" value={formatVal(recommended?.dte)} />
-            <HiveRow label="Delta" value={formatVal(recommended?.delta)} />
+                }
+              />
+            </PanelSection>
+            <PanelSection title="Guardrails">
+              <HiveRow
+                label="Triggered rules"
+                value={
+                  Array.isArray(guard?.triggered_rules) && guard.triggered_rules.length
+                    ? `${guard.triggered_rules.length}: ${guard.triggered_rules.slice(0, 4).join(", ")}`
+                    : "—"
+                }
+              />
+              <HiveRow
+                label="Warnings"
+                value={
+                  Array.isArray(guard?.warnings) && guard.warnings.length
+                    ? guard.warnings.slice(0, 2).join(" · ")
+                    : "—"
+                }
+              />
+            </PanelSection>
+            <PanelSection title="Promotion gate">
+              <HiveRow
+                label="Detail"
+                value={
+                  promo && typeof promo.reason === "string" && promo.reason.length
+                    ? promo.reason.length > 120
+                      ? `${promo.reason.slice(0, 120)}…`
+                      : promo.reason
+                    : "—"
+                }
+                emphasized
+              />
+            </PanelSection>
+            <PanelSection title="Contract quality">
+              <HiveRow label="Status" value={formatVal(cq?.status)} emphasized />
+              <HiveRow
+                label="Score"
+                value={cq?.score !== undefined && cq?.score !== null ? String(cq.score) : "—"}
+              />
+              <HiveRow
+                label="Signals / warnings"
+                value={
+                  Array.isArray(cq?.warnings) && cq.warnings.length
+                    ? cq.warnings.slice(0, 2).join(" · ")
+                    : Array.isArray(cq?.signals) && cq.signals.length
+                      ? cq.signals.slice(0, 3).join(", ")
+                      : "—"
+                }
+              />
+            </PanelSection>
+            <PanelSection title="Execution edge">
+              <HiveRow label="Status" value={formatVal(edge?.status)} emphasized />
+              <HiveRow
+                label="Score"
+                value={edge?.score !== undefined && edge?.score !== null ? String(edge.score) : "—"}
+              />
+              <HiveRow
+                label="Blockers"
+                value={
+                  Array.isArray(edge?.blockers) && edge.blockers.length
+                    ? edge.blockers.slice(0, 2).join(" · ")
+                    : "—"
+                }
+              />
+            </PanelSection>
+            <PanelSection title="Trade leg">
+              <HiveRow label="Action" value={formatVal(recommended?.action)} emphasized />
+              <HiveRow label="Structure" value={formatVal(recommended?.structure)} emphasized />
+              <HiveRow label="DTE" value={formatVal(recommended?.dte)} />
+              <HiveRow label="Delta" value={formatVal(recommended?.delta)} />
+            </PanelSection>
+            <PanelSection title="In-process context (this run only)">
+              <HiveRow
+                label="Signal memory"
+                value={
+                  mem
+                    ? `${mem.status} · cycles ${mem.evidence_count !== undefined && mem.evidence_count !== null ? mem.evidence_count : "—"} · ${typeof mem.detail === "string" ? (mem.detail.length > 56 ? `${mem.detail.slice(0, 56)}…` : mem.detail) : "—"}`
+                    : "—"
+                }
+              />
+              <HiveRow
+                label="Flow (local pulses)"
+                value={
+                  flow
+                    ? `${flow.status} · n=${flow.evidence_count !== undefined && flow.evidence_count !== null ? flow.evidence_count : "—"} · ${typeof flow.detail === "string" ? (flow.detail.length > 56 ? `${flow.detail.slice(0, 56)}…` : flow.detail) : "—"}`
+                    : "—"
+                }
+              />
+            </PanelSection>
           </Panel>
 
           <Panel title="Hive Treasury">
             <HiveRow
-              label="Session (ET)"
+              label="Session (clock · ET)"
               value={
                 regime
                   ? `${regime.code} · RTH ${regime.market_hours ? "on" : "off"}${typeof regime.detail === "string" && regime.detail.length ? ` — ${regime.detail.length > 72 ? `${regime.detail.slice(0, 72)}…` : regime.detail}` : ""}`
                   : "—"
               }
             />
-            <HiveRow label="Trading Enabled" value={String(tradingEnabled)} />
             <HiveRow label="Cash" value={formatVal(perf?.cash ?? fullState?.cash)} />
             <HiveRow label="Equity" value={formatVal(perf?.equity ?? fullState?.equity)} />
             <HiveRow label="Daily P&L" value={formatVal(perf?.realized_pnl_today ?? fullState?.realized_pnl_today)} />
@@ -713,6 +725,27 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
       }}
     >
       <h2 style={{ marginTop: 0, marginBottom: 14, color: "#ffd55c" }}>{title}</h2>
+      {children}
+    </div>
+  );
+}
+
+function PanelSection({ title, children, isFirst }: { title: string; children: React.ReactNode; isFirst?: boolean }) {
+  return (
+    <div style={{ marginTop: isFirst ? 0 : 12 }}>
+      <div
+        style={{
+          fontSize: 10,
+          letterSpacing: 1.8,
+          color: "#9a8344",
+          textTransform: "uppercase",
+          marginBottom: 4,
+          borderBottom: "1px solid rgba(255,213,92,0.12)",
+          paddingBottom: 6,
+        }}
+      >
+        {title}
+      </div>
       {children}
     </div>
   );
