@@ -35,6 +35,7 @@ app.add_middleware(
         "http://localhost:3005",
         "http://192.168.68.53:3005",
         "https://spy-options-frqj0c08q-grant-turnbows-projects.vercel.app",
+        "https://hive-control-ah90ycp6j-grant-turnbows-projects.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
