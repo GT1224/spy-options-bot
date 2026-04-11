@@ -6,8 +6,11 @@ import json
 import os
 import threading
 from collections import deque
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
+
+# Operator-facing stale threshold (aligned with hive_contract_v1.system_state.freshness).
+SIGNAL_STALE_AFTER_MS = 25 * 60 * 1000
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
@@ -76,6 +79,20 @@ volumes = deque(maxlen=100)
 opening_range_prices = []
 mock_price = 580.0
 cycle_count = 0
+
+
+def _utc_age_seconds(iso_ts: str | None) -> float | None:
+    """Age of last_cycle_at / last_loop_at in seconds (UTC), or None if unparsable."""
+    if not iso_ts or not isinstance(iso_ts, str):
+        return None
+    try:
+        raw = iso_ts.replace("Z", "+00:00")
+        ts = datetime.fromisoformat(raw)
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        return max(0.0, (datetime.now(timezone.utc) - ts).total_seconds())
+    except (ValueError, TypeError):
+        return None
 
 
 def log(message: str):
@@ -245,7 +262,16 @@ def run_signal_cycle():
         flow_buf = state.get("recent_signal_flow")
         if not isinstance(flow_buf, list):
             flow_buf = []
-        flow_buf.append(flow_entry)
+        last = flow_buf[-1] if flow_buf else None
+        duplicate_pulse = (
+            isinstance(last, dict)
+            and last.get("action") == flow_entry.get("action")
+            and last.get("bias") == flow_entry.get("bias")
+            and last.get("structure") == flow_entry.get("structure")
+            and last.get("setup_score") == flow_entry.get("setup_score")
+        )
+        if not duplicate_pulse:
+            flow_buf.append(flow_entry)
         state["recent_signal_flow"] = flow_buf[-FLOW_BUFFER_CAP:]
 
 
@@ -391,19 +417,47 @@ def build_hive_contract_v1() -> dict[str, Any]:
     cycle_delta = compute_hive_cycle_delta_v1(prior=prior_pulse, current=current_pulse)
     state["prior_pulse_compact"] = dict(current_pulse)
 
+    last_at = state.get("last_loop_at") if isinstance(state.get("last_loop_at"), str) else None
+    age_sec = _utc_age_seconds(last_at)
+    signal_stale = age_sec is not None and (age_sec * 1000.0) > float(SIGNAL_STALE_AFTER_MS)
+    bot_running = bool(state.get("running"))
+    if not bot_running:
+        lifecycle_phase = "idle"
+        lifecycle_hint = "Swarm idle — no automated poll loop; Pulse Cycle still refreshes the snapshot."
+    elif not trading_enabled:
+        lifecycle_phase = "paused"
+        lifecycle_hint = "Swarm running but trading disarmed — timed pulses are skipped until armed."
+    else:
+        lifecycle_phase = "polling"
+        lifecycle_hint = "Swarm running and armed — timed pulses follow poll_seconds."
+
+    trade_action = trade.get("action") if isinstance(trade.get("action"), str) else None
+    if trade_action == "no_trade":
+        posture_hint = "Recommended posture is no_trade — gate and trade leg are reference only."
+    elif trade_action == "trade":
+        posture_hint = "Trade-shaped recommendation — confirm gate, guardrails, and execution edge before any manual action."
+    else:
+        posture_hint = "Awaiting a clear recommended_trade action from the latest pulse."
+
     return {
         "system_state": {
-            "bot_running": bool(state.get("running")),
+            "bot_running": bot_running,
             "trading_enabled": trading_enabled,
             # Alpaca toggle is a settings preference only — this process does not route orders.
             "mode": "live" if use_live else "paper",
             "execution_surface": "signal_only",
             "provider_mode": state.get("provider_mode"),
             "last_cycle_at": state.get("last_loop_at"),
-            # No in-process order queue; reserved for future broker wiring (not used today).
+            # Broker order queue only (always zero in this stack); not “pending hive ideas”.
             "pending_signals_count": 0,
+            "pending_signals_semantics": "broker_orders_only",
+            "lifecycle_phase": lifecycle_phase,
+            "lifecycle_hint": lifecycle_hint,
+            "signal_age_seconds": int(round(age_sec)) if age_sec is not None else None,
+            "signal_stale": signal_stale,
+            "operator_posture_hint": posture_hint,
             "health": {"ok": True},
-            "freshness": {"signal_stale_after_ms": 25 * 60 * 1000},
+            "freshness": {"signal_stale_after_ms": SIGNAL_STALE_AFTER_MS},
             "session_regime": session_regime,
         },
         "top_signal": {
@@ -444,6 +498,12 @@ def build_hive_contract_v1() -> dict[str, Any]:
                 "system_state",
                 "system_state.session_regime",
                 "system_state.execution_surface",
+                "system_state.lifecycle_phase",
+                "system_state.lifecycle_hint",
+                "system_state.signal_age_seconds",
+                "system_state.signal_stale",
+                "system_state.operator_posture_hint",
+                "system_state.pending_signals_semantics",
                 "top_signal.setup",
                 "top_signal.recommended_trade",
                 "performance_state",

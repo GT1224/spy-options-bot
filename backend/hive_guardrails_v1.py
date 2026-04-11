@@ -120,13 +120,16 @@ def compute_hive_guardrails_v1(
             triggered.append("weak_rank_severe")
             warnings.append("Rank score very low for a trade recommendation.")
             hard_block = True
-        elif rank_score < 40:
+        elif rank_score < 40 and action == "trade":
             triggered.append("weak_rank")
             warnings.append("Rank score is weak — review before acting.")
 
     if vr is not None and vr < 0.95:
         triggered.append("weak_volume_confirmation")
-        warnings.append("Volume ratio below prior-bar average.")
+        if action == "trade":
+            warnings.append("Volume ratio below prior-bar average.")
+        else:
+            warnings.append("Volume ratio below prior-bar average (context only while no_trade).")
 
     if bias_s == "neutral" and action == "trade":
         triggered.append("neutral_bias_trade")

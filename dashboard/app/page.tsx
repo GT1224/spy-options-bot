@@ -469,6 +469,44 @@ export default function Page() {
                   : "—"
               }
             />
+            <HiveRow
+              label="Lifecycle"
+              value={
+                system?.lifecycle_phase
+                  ? `${String(system.lifecycle_phase)}${typeof system.lifecycle_hint === "string" && system.lifecycle_hint.length ? ` — ${system.lifecycle_hint.length > 88 ? `${system.lifecycle_hint.slice(0, 88)}…` : system.lifecycle_hint}` : ""}`
+                  : "—"
+              }
+              muted
+            />
+            <HiveRow
+              label="Last pulse age"
+              value={
+                system?.signal_age_seconds !== undefined && system?.signal_age_seconds !== null
+                  ? `${system.signal_age_seconds}s${system?.signal_stale ? " · stale vs operator threshold" : ""}`
+                  : "—"
+              }
+              muted={!!system?.signal_stale}
+            />
+            <HiveRow
+              label="Pending (queue)"
+              value={
+                system?.pending_signals_semantics === "broker_orders_only"
+                  ? `${formatVal(system?.pending_signals_count ?? 0)} — broker orders only (none in signal_only)`
+                  : formatVal(system?.pending_signals_count ?? "—")
+              }
+              muted
+            />
+            <HiveRow
+              label="Posture"
+              value={
+                typeof system?.operator_posture_hint === "string" && system.operator_posture_hint.length
+                  ? system.operator_posture_hint.length > 100
+                    ? `${system.operator_posture_hint.slice(0, 100)}…`
+                    : system.operator_posture_hint
+                  : "—"
+              }
+              muted
+            />
             <HiveRow label="Cash" value={formatVal(perf?.cash ?? fullState?.cash)} />
             <HiveRow label="Equity" value={formatVal(perf?.equity ?? fullState?.equity)} />
             <HiveRow label="Daily P&L" value={formatVal(perf?.realized_pnl_today ?? fullState?.realized_pnl_today)} />
