@@ -35,7 +35,7 @@ const HIVE_UI = {
   borderStrong: "rgba(255,255,255,0.12)",
   borderDeep: "rgba(255,255,255,0.05)",
   stageGlow:
-    "radial-gradient(circle at 50% 38%, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 18%, rgba(0,0,0,0) 55%)",
+    "radial-gradient(circle at 50% 36%, rgba(255,255,255,0.022) 0%, rgba(0,0,0,0) 52%)",
   pageGlow: "none",
   font: "Arial, sans-serif",
   motion:
@@ -224,11 +224,11 @@ export default function Page() {
 .hive-topbar {
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: 18px;
+  gap: 16px;
   align-items: center;
-  padding: 14px 18px;
+  padding: 13px 17px;
   border: 1px solid ${HIVE_UI.border};
-  border-radius: 18px;
+  border-radius: 16px;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)),
     linear-gradient(180deg, #0a0d12, #090b10);
@@ -256,16 +256,16 @@ export default function Page() {
 }
 .hive-hero-theater {
   position: relative;
-  margin-top: 18px;
-  min-height: min(52vh, 520px);
-  max-height: 560px;
-  border-radius: 24px;
-  border: 1px solid ${HIVE_UI.border};
+  margin-top: 16px;
+  min-height: min(48vh, 500px);
+  max-height: 528px;
+  border-radius: 22px;
+  border: 1px solid ${HIVE_UI.borderStrong};
   overflow: hidden;
-  background: #010102;
+  background: #010101;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.05),
-    0 28px 80px rgba(0,0,0,0.45);
+    inset 0 1px 0 rgba(255,255,255,0.035),
+    0 32px 90px rgba(0,0,0,0.58);
 }
 .hive-hero-theater::before {
   content: "";
@@ -274,10 +274,11 @@ export default function Page() {
   z-index: 2;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0.12) 24%, rgba(0,0,0,0.08) 52%, rgba(0,0,0,0.88) 100%),
-    radial-gradient(ellipse 92% 78% at 50% 48%, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.52) 55%, rgba(0,0,0,0.94) 100%),
-    linear-gradient(115deg, rgba(8,10,14,0.55) 0%, rgba(0,0,0,0) 45%, rgba(6,8,12,0.4) 100%);
-  border-bottom: 1px solid ${HIVE_UI.borderDeep};
+    linear-gradient(180deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.38) 22%, rgba(0,0,0,0.52) 55%, rgba(0,0,0,0.94) 100%),
+    radial-gradient(ellipse 88% 72% at 50% 44%, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.62) 48%, rgba(0,0,0,0.97) 100%),
+    linear-gradient(118deg, rgba(5,5,6,0.72) 0%, rgba(0,0,0,0) 46%, rgba(8,6,4,0.38) 100%),
+    radial-gradient(ellipse 120% 80% at 78% 18%, rgba(199,154,49,0.07) 0%, rgba(0,0,0,0) 42%);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 .hive-hero-media {
   position: absolute;
@@ -293,7 +294,7 @@ export default function Page() {
   bottom: -11%;
 }
 .hive-hero-media-inner img {
-  filter: saturate(0.82) brightness(0.86) contrast(1.06) hue-rotate(-14deg);
+  filter: saturate(0.86) brightness(0.79) contrast(1.14) hue-rotate(-10deg);
 }
 .hive-hero-theater::after {
   content: "";
@@ -301,40 +302,51 @@ export default function Page() {
   inset: 0;
   z-index: 3;
   pointer-events: none;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
-  border-radius: 24px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.055),
+    inset 0 0 120px rgba(0,0,0,0.35);
+  border-radius: 22px;
 }
 .hive-hero-chrome-top {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
-  z-index: 4;
-  background: linear-gradient(90deg, transparent, ${HIVE_UI.accentLine}, transparent);
-  opacity: 0.85;
+  height: 2px;
+  z-index: 5;
+  background: linear-gradient(90deg, transparent 8%, ${HIVE_UI.accentLine} 50%, transparent 92%);
+  opacity: 0.92;
+}
+.hive-hero-caption {
+  padding: 11px 16px 13px 14px;
+  border-radius: 0 16px 0 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.58), rgba(0,0,0,0.14));
+  border-left: 2px solid rgba(199,154,49,0.42);
+  box-shadow: 0 18px 48px rgba(0,0,0,0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 .hive-stage-shell {
   position: relative;
-  margin-top: 18px;
+  margin-top: 16px;
   border: 1px solid ${HIVE_UI.border};
-  border-radius: 24px;
+  border-radius: 22px;
   background:
     ${HIVE_UI.stageGlow},
-    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.006)),
-    linear-gradient(180deg, #07090d 0%, #030405 100%);
+    linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.004)),
+    linear-gradient(180deg, #06080c 0%, #030405 100%);
   overflow: hidden;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.03),
-    0 22px 60px rgba(0,0,0,0.4);
+    inset 0 1px 0 rgba(255,255,255,0.028),
+    0 24px 64px rgba(0,0,0,0.48);
 }
 .hive-stage-shell::before {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(255,255,255,0.035), rgba(255,255,255,0) 18%, rgba(255,255,255,0) 82%, rgba(255,255,255,0.025)),
-    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+    linear-gradient(90deg, rgba(255,255,255,0.028), rgba(255,255,255,0) 16%, rgba(255,255,255,0) 84%, rgba(255,255,255,0.02)),
+    linear-gradient(180deg, rgba(255,255,255,0.014), rgba(255,255,255,0));
   pointer-events: none;
 }
 .hive-stage-header {
@@ -342,33 +354,33 @@ export default function Page() {
   z-index: 2;
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 14px;
+  gap: 12px;
   align-items: end;
-  padding: 18px 22px 0;
+  padding: 16px 20px 0;
 }
 .hive-stage-body {
   position: relative;
   z-index: 1;
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr) 280px;
-  gap: 18px;
-  padding: 18px 18px 18px;
+  gap: 16px;
+  padding: 16px 16px 16px;
   align-items: stretch;
 }
 .hive-side-rail {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 .hive-rail-card {
   border: 1px solid ${HIVE_UI.borderDeep};
-  border-radius: 16px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
-  padding: 14px;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.028), rgba(255,255,255,0.012));
+  padding: 13px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.022);
 }
 .hive-rail-title {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.18em;
@@ -376,30 +388,30 @@ export default function Page() {
   color: ${HIVE_UI.textMuted};
 }
 .hive-command-rail {
-  margin-top: 16px;
+  margin-top: 14px;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  padding: 14px 16px;
+  padding: 13px 15px;
   border: 1px solid ${HIVE_UI.border};
-  border-radius: 16px;
-  background: linear-gradient(180deg, #0a0d12, #090b10);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #090c11, #080a0e);
 }
 .hive-lower-grid {
-  margin-top: 18px;
+  margin-top: 16px;
   display: grid;
   grid-template-columns: 1.05fr 1.2fr;
-  gap: 18px;
+  gap: 16px;
 }
 .hive-stack {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 .hive-signal-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 12px;
 }
 .hive-signal-span {
   grid-column: 1 / -1;
@@ -444,7 +456,7 @@ export default function Page() {
           background: `linear-gradient(180deg, ${HIVE_UI.bgTop} 0%, ${HIVE_UI.bg} 35%, #010102 100%)`,
           color: HIVE_UI.text,
           fontFamily: HIVE_UI.font,
-          padding: "18px 18px 34px",
+          padding: "16px 16px 30px",
         }}
       >
         <div className="hive-shell">
@@ -605,14 +617,15 @@ export default function Page() {
               </div>
             </div>
             <div
+              className="hive-hero-caption"
               style={{
                 position: "absolute",
-                left: 22,
-                bottom: 22,
-                zIndex: 4,
+                left: 0,
+                bottom: 0,
+                zIndex: 6,
                 display: "flex",
                 flexDirection: "column",
-                gap: 6,
+                gap: 5,
                 maxWidth: "min(92vw, 520px)",
                 pointerEvents: "none",
               }}
@@ -622,34 +635,37 @@ export default function Page() {
                   fontSize: 10,
                   letterSpacing: "0.28em",
                   fontWeight: 700,
-                  color: HIVE_UI.textMuted,
+                  color: HIVE_UI.textSoft,
                   textTransform: "uppercase",
+                  opacity: 0.92,
                 }}
               >
                 SPY options · swarm command
               </div>
               <div
                 style={{
-                  fontSize: 28,
-                  lineHeight: 1.05,
+                  fontSize: 27,
+                  lineHeight: 1.04,
                   fontWeight: 800,
                   letterSpacing: "0.14em",
                   color: HIVE_UI.text,
-                  textShadow: "0 2px 24px rgba(0,0,0,0.85)",
+                  textShadow:
+                    "0 1px 0 rgba(0,0,0,0.95), 0 2px 18px rgba(0,0,0,0.75), 0 12px 40px rgba(0,0,0,0.55)",
                 }}
               >
                 TACTICAL THEATER
               </div>
               <div
                 style={{
-                  fontSize: 11,
-                  letterSpacing: "0.22em",
+                  fontSize: 10,
+                  letterSpacing: "0.26em",
                   fontWeight: 700,
                   color: HIVE_UI.accent,
                   textTransform: "uppercase",
+                  opacity: 0.95,
                 }}
               >
-                HIVE core
+                HIVE · SWARM ARRAY
               </div>
             </div>
           </section>
