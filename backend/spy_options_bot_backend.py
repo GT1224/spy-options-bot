@@ -28,6 +28,7 @@ from hive_signal_rank_v1 import compute_hive_rank_v1
 from alpaca_paper_v1 import (
     AlpacaPaperError,
     PAPER_ORDER_PREFLIGHT_TIMEOUT,
+    compact_paper_order_observability,
     load_paper_credentials,
     read_paper_portfolio_snapshot,
     submit_spy_equity_order,
@@ -133,6 +134,8 @@ state: dict[str, Any] = {
     "broker_last_sync_ok": False,
     "broker_last_error": None,
     "broker_open_orders_count": 0,
+    # Last manual paper submit broker snapshot (in-process; cleared when paper broker is disabled).
+    "last_paper_order_observability": None,
     "logs": [],
     "signal_snapshot": {},
     "config": {
@@ -163,6 +166,7 @@ def _reset_demo_portfolio_after_alpaca_off() -> None:
     state["broker_last_sync_ok"] = False
     state["broker_last_error"] = None
     state["broker_open_orders_count"] = 0
+    state["last_paper_order_observability"] = None
     _paper_client_order_ids.clear()
 
 
@@ -663,6 +667,9 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "freshness": {"signal_stale_after_ms": SIGNAL_STALE_AFTER_MS},
             "session_regime": session_regime,
             "broker_sync": broker_sync,
+            "manual_paper_last_broker_snapshot": state.get("last_paper_order_observability")
+            if isinstance(state.get("last_paper_order_observability"), dict)
+            else None,
         },
         "top_signal": {
             "signal_id": signal_id,
@@ -1001,12 +1008,16 @@ def paper_order(payload: dict[str, Any]):
     log("alpaca paper order submitted")
     maybe_sync_alpaca_paper(force=True)
     oid = out.get("id")
+    obs = compact_paper_order_observability(out) if isinstance(out, dict) else None
+    if isinstance(obs, dict):
+        state["last_paper_order_observability"] = obs
     return {
         "ok": True,
         "error": None,
         "order_id": oid,
         "client_order_id": client_order_id,
         "broker_stage": "accepted_by_broker",
+        "paper_order_observability": obs,
         "message": (
             "Alpaca accepted the order — not a fill. Working orders can remain open until fill, expiry, or cancel; "
             "check Alpaca for status."

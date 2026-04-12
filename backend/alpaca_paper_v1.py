@@ -150,6 +150,76 @@ def submit_spy_equity_order(
     return _post_json("/v2/orders", key_id, secret, body, timeout)
 
 
+def compact_paper_order_observability(raw: dict[str, Any]) -> dict[str, Any]:
+    """
+    Read-only projection of an Alpaca /v2/orders object for HIVE operator UI.
+    No broker calls; maps broker status -> stable hive_lifecycle_label.
+    """
+    st_raw = raw.get("status")
+    st = str(st_raw).strip().lower() if st_raw is not None else ""
+
+    def _num(x: Any) -> float | None:
+        if x is None:
+            return None
+        try:
+            return float(x)
+        except (TypeError, ValueError):
+            return None
+
+    qty = _num(raw.get("qty"))
+    filled_qty = _num(raw.get("filled_qty"))
+    fap = _num(raw.get("filled_avg_price"))
+
+    if st == "filled":
+        label = "FILLED"
+    elif st == "partially_filled":
+        label = "PARTIAL FILL"
+    elif st == "canceled":
+        label = "CANCELED"
+    elif st == "expired":
+        label = "EXPIRED"
+    elif st == "rejected":
+        label = "REJECTED"
+    elif st == "done_for_day":
+        label = "DONE FOR DAY"
+    elif st in (
+        "new",
+        "accepted",
+        "pending_new",
+        "accepted_for_bidding",
+        "pending_cancel",
+        "pending_replace",
+        "held",
+        "calculated",
+    ):
+        label = "ACCEPTED / WORKING"
+    elif st in ("replaced",):
+        label = "REPLACED"
+    elif st in ("stopped", "suspended"):
+        label = "BROKER HELD"
+    elif not st:
+        label = "STATUS UNKNOWN"
+    else:
+        label = "STATUS UNKNOWN"
+
+    return {
+        "order_id": raw.get("id"),
+        "client_order_id": raw.get("client_order_id"),
+        "symbol": raw.get("symbol"),
+        "side": raw.get("side"),
+        "order_type": raw.get("type") or raw.get("order_type"),
+        "broker_status": raw.get("status"),
+        "hive_lifecycle_label": label,
+        "qty": qty,
+        "filled_qty": filled_qty,
+        "filled_avg_price": round(fap, 4) if fap is not None else None,
+        "submitted_at": raw.get("submitted_at"),
+        "filled_at": raw.get("filled_at"),
+        "canceled_at": raw.get("canceled_at"),
+        "expired_at": raw.get("expired_at"),
+    }
+
+
 def fetch_account(key_id: str, secret: str, timeout: tuple[float, float] = DEFAULT_TIMEOUT) -> dict[str, Any]:
     data = _get_json("/v2/account", key_id, secret, timeout)
     if not isinstance(data, dict):

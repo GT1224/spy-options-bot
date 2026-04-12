@@ -8,6 +8,41 @@ const HIVE_API = "/api/hive";
 
 type PillTone = "neutral" | "promoted" | "hold" | "suppressed";
 
+/** POST /paper/order + hive_contract_v1.system_state.manual_paper_last_broker_snapshot */
+type PaperOrderObservability = {
+  order_id?: string | null;
+  client_order_id?: string | null;
+  symbol?: string | null;
+  side?: string | null;
+  order_type?: string | null;
+  broker_status?: string | null;
+  hive_lifecycle_label?: string | null;
+  qty?: number | null;
+  filled_qty?: number | null;
+  filled_avg_price?: number | null;
+  submitted_at?: string | null;
+  filled_at?: string | null;
+  canceled_at?: string | null;
+  expired_at?: string | null;
+};
+
+function formatHiveObsTime(iso: string | null | undefined): string {
+  if (!iso || typeof iso !== "string") return "—";
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return iso.length > 24 ? `${iso.slice(0, 24)}…` : iso;
+  try {
+    return new Date(t).toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
+
 const HIVE_UI = {
   bg: "#020203",
   bgTop: "#06070a",
@@ -51,6 +86,7 @@ export default function Page() {
   const [paperLimit, setPaperLimit] = useState<string>("");
   const [paperCid, setPaperCid] = useState<string>("");
   const [paperOrderHint, setPaperOrderHint] = useState<string | null>(null);
+  const [paperOrderObs, setPaperOrderObs] = useState<PaperOrderObservability | null>(null);
 
   async function apiCall(path: string, method = "GET", body?: any) {
     const res = await fetch(`${HIVE_API}${path}`, {
@@ -188,10 +224,14 @@ export default function Page() {
         order_id?: string;
         reason?: string;
         session_label?: string;
+        paper_order_observability?: PaperOrderObservability | null;
       };
       if (data?.ok && data?.message) {
         const oid = data.order_id ? String(data.order_id).slice(0, 12) : "—";
         setPaperOrderHint(`${data.message} (ref ${oid})`);
+      }
+      if (data?.paper_order_observability && typeof data.paper_order_observability === "object") {
+        setPaperOrderObs(data.paper_order_observability);
       }
       await loadAll();
     } catch (err: any) {
@@ -228,6 +268,18 @@ export default function Page() {
     const id = setInterval(() => loadAll(), 5000);
     return () => clearInterval(id);
   }, [autoRefresh]);
+
+  useEffect(() => {
+    const sys = fullState?.hive_contract_v1?.system_state;
+    if (!sys || typeof sys !== "object") return;
+    if (!("manual_paper_last_broker_snapshot" in sys)) return;
+    const s = sys.manual_paper_last_broker_snapshot;
+    if (s && typeof s === "object" && !Array.isArray(s)) {
+      setPaperOrderObs(s as PaperOrderObservability);
+    } else {
+      setPaperOrderObs(null);
+    }
+  }, [fullState?.hive_contract_v1?.system_state]);
 
   const hive = fullState?.hive_contract_v1;
   const system = hive?.system_state;
@@ -1370,6 +1422,114 @@ export default function Page() {
                   }}
                 >
                   {paperOrderHint}
+                </div>
+              ) : null}
+              {paperOrderObs ? (
+                <div
+                  style={{
+                    marginTop: 10,
+                    padding: "9px 11px",
+                    borderRadius: 10,
+                    border: `1px solid ${HIVE_UI.border}`,
+                    background: HIVE_UI.shell2,
+                    fontSize: 10,
+                    lineHeight: 1.45,
+                    color: HIVE_UI.textSoft,
+                    maxWidth: 640,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "6px 12px",
+                      alignItems: "baseline",
+                      marginBottom: 4,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 800,
+                        letterSpacing: "0.12em",
+                        color: HIVE_UI.accent,
+                      }}
+                    >
+                      {paperOrderObs.hive_lifecycle_label ?? "STATUS UNKNOWN"}
+                    </span>
+                    {paperOrderObs.broker_status ? (
+                      <span style={{ color: HIVE_UI.textMuted }}>
+                        Alpaca:{" "}
+                        <span style={{ color: HIVE_UI.textSoft }}>
+                          {String(paperOrderObs.broker_status)}
+                        </span>
+                      </span>
+                    ) : null}
+                  </div>
+                  <div style={{ color: HIVE_UI.textMuted }}>
+                    Qty{" "}
+                    <span style={{ color: HIVE_UI.textSoft }}>
+                      {paperOrderObs.qty != null ? paperOrderObs.qty : "—"}
+                    </span>
+                    {" · "}
+                    Filled{" "}
+                    <span style={{ color: HIVE_UI.textSoft }}>
+                      {paperOrderObs.filled_qty != null ? paperOrderObs.filled_qty : "—"}
+                    </span>
+                    {paperOrderObs.filled_avg_price != null ? (
+                      <>
+                        {" · "}
+                        Avg fill{" "}
+                        <span style={{ color: HIVE_UI.textSoft }}>
+                          {paperOrderObs.filled_avg_price}
+                        </span>
+                      </>
+                    ) : null}
+                  </div>
+                  <div style={{ color: HIVE_UI.textMuted, marginTop: 3 }}>
+                    Submitted{" "}
+                    <span style={{ color: HIVE_UI.textSoft }}>
+                      {formatHiveObsTime(paperOrderObs.submitted_at ?? undefined)}
+                    </span>
+                    {paperOrderObs.filled_at ? (
+                      <>
+                        {" · "}
+                        Filled{" "}
+                        <span style={{ color: HIVE_UI.textSoft }}>
+                          {formatHiveObsTime(paperOrderObs.filled_at)}
+                        </span>
+                      </>
+                    ) : null}
+                    {paperOrderObs.canceled_at ? (
+                      <>
+                        {" · "}
+                        Canceled{" "}
+                        <span style={{ color: HIVE_UI.textSoft }}>
+                          {formatHiveObsTime(paperOrderObs.canceled_at)}
+                        </span>
+                      </>
+                    ) : null}
+                    {paperOrderObs.expired_at ? (
+                      <>
+                        {" · "}
+                        Expired{" "}
+                        <span style={{ color: HIVE_UI.textSoft }}>
+                          {formatHiveObsTime(paperOrderObs.expired_at)}
+                        </span>
+                      </>
+                    ) : null}
+                  </div>
+                  <div style={{ marginTop: 5, fontSize: 9, color: HIVE_UI.textDim }}>
+                    order {paperOrderObs.order_id ? String(paperOrderObs.order_id).slice(0, 14) : "—"} · cid{" "}
+                    {paperOrderObs.client_order_id
+                      ? String(paperOrderObs.client_order_id).slice(0, 20)
+                      : "—"}
+                  </div>
+                  <div style={{ marginTop: 6, fontSize: 9, color: HIVE_UI.textDim, lineHeight: 1.4 }}>
+                    Broker snapshot from the submit response (stale after fills/cancels). Use{" "}
+                    <strong style={{ color: HIVE_UI.textMuted }}>Sync broker</strong>, pending count above, or Alpaca
+                    for live state. <strong style={{ color: HIVE_UI.textMuted }}>Accepted / working ≠ filled.</strong>
+                  </div>
                 </div>
               ) : null}
             </div>
