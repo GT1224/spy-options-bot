@@ -37,7 +37,9 @@ const HIVE_UI = {
   stageGlow:
     "radial-gradient(circle at 50% 36%, rgba(255,255,255,0.022) 0%, rgba(0,0,0,0) 52%)",
   pageGlow: "none",
-  font: "Arial, sans-serif",
+  font: 'system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+  fontLog:
+    'ui-monospace, "Cascadia Mono", "SF Mono", Consolas, "Liberation Mono", monospace',
   motion:
     "background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, opacity 160ms ease, transform 160ms ease, filter 160ms ease, color 160ms ease",
 } as const;
@@ -196,9 +198,38 @@ export default function Page() {
     transition-delay: 0s !important;
   }
 }
+[data-hive-dashboard] {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "kern" 1, "liga" 1;
+}
 [data-hive-dashboard] button:focus-visible {
   outline: 2px solid ${HIVE_UI.accent};
   outline-offset: 2px;
+}
+.hive-topbar-chips {
+  row-gap: 5px;
+  column-gap: 5px;
+}
+.hive-stage-header-pills {
+  row-gap: 5px;
+  column-gap: 6px;
+}
+.hive-bee-log-inner {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.008), rgba(0,0,0,0.05)),
+    #07090c;
+  border: 1px solid ${HIVE_UI.borderDeep};
+  border-radius: 10px;
+  padding: 11px 12px;
+  max-height: 560px;
+  overflow-y: auto;
+  font-family: ${HIVE_UI.fontLog};
+  font-size: 12px;
+  line-height: 1.55;
+  color: ${HIVE_UI.textSoft};
+  white-space: pre-wrap;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.015);
 }
 .hive-shell {
   max-width: 1540px;
@@ -368,9 +399,9 @@ export default function Page() {
 }
 .hive-tactical-deck {
   min-width: 0;
-  border: 1px solid rgba(255,255,255,0.095);
+  border: 1px solid ${HIVE_UI.border};
   border-left: 2px solid rgba(199,154,49,0.38);
-  border-radius: 15px;
+  border-radius: 14px;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.028), rgba(255,255,255,0.005)),
     linear-gradient(180deg, #0b0e14, #07090d);
@@ -391,9 +422,6 @@ export default function Page() {
 }
 .hive-signal-grid--tight {
   gap: 10px;
-}
-.hive-diagnostics-slab {
-  opacity: 0.98;
 }
 @media (max-width: 1100px) {
   .hive-deck-grid-2 {
@@ -417,11 +445,11 @@ export default function Page() {
 }
 .hive-rail-title {
   margin: 0 0 7px;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: ${HIVE_UI.textMuted};
+  color: ${HIVE_UI.textDim};
 }
 .hive-command-rail {
   margin-top: 10px;
@@ -430,7 +458,7 @@ export default function Page() {
   align-items: center;
   gap: 5px 6px;
   padding: 8px 10px;
-  border: 1px solid rgba(255,255,255,0.065);
+  border: 1px solid ${HIVE_UI.border};
   border-radius: 12px;
   background: linear-gradient(180deg, #080b10, #06080c);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
@@ -467,12 +495,25 @@ export default function Page() {
   .hive-topbar {
     grid-template-columns: 1fr;
     align-items: start;
+    row-gap: 8px;
+  }
+  .hive-topbar-chips {
+    row-gap: 6px;
+    width: 100%;
   }
   .hive-topbar-kickers {
     justify-content: flex-start;
+    width: 100%;
   }
   .hive-stage-header {
     grid-template-columns: 1fr;
+  }
+  .hive-stage-header-pills {
+    justify-content: flex-start;
+    width: 100%;
+  }
+  .hive-command-rail {
+    row-gap: 6px;
   }
   .hive-lower-grid {
     grid-template-columns: 1fr;
@@ -482,6 +523,14 @@ export default function Page() {
   }
   .hive-side-rail {
     grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 520px) {
+  .hive-topbar-chips {
+    column-gap: 4px;
+  }
+  .hive-stage-header-pills {
+    column-gap: 5px;
   }
 }
           `,
@@ -575,10 +624,10 @@ export default function Page() {
               }}
             >
               <div
+                className="hive-topbar-chips"
                 style={{
                   display: "flex",
                   flexWrap: "wrap",
-                  gap: 5,
                   alignItems: "center",
                 }}
               >
@@ -717,12 +766,12 @@ export default function Page() {
               <div>
                 <div
                   style={{
-                    fontSize: 10,
-                    letterSpacing: "0.24em",
-                    fontWeight: 700,
-                    color: HIVE_UI.textMuted,
+                    fontSize: 9,
+                    letterSpacing: "0.26em",
+                    fontWeight: 800,
+                    color: HIVE_UI.textDim,
                     textTransform: "uppercase",
-                    marginBottom: 6,
+                    marginBottom: 5,
                   }}
                 >
                   Primary pulse
@@ -738,18 +787,19 @@ export default function Page() {
                   <div
                     style={{
                       fontSize: 28,
-                      lineHeight: 1,
+                      lineHeight: 1.02,
                       fontWeight: 800,
-                      letterSpacing: "0.11em",
+                      letterSpacing: "0.12em",
                       color: HIVE_UI.text,
+                      textRendering: "geometricPrecision",
                     }}
                   >
                     LIVE TACTICAL FIELD
                   </div>
                   <div
                     style={{
-                      fontSize: 10,
-                      letterSpacing: "0.26em",
+                      fontSize: 9,
+                      letterSpacing: "0.28em",
                       fontWeight: 800,
                       color: HIVE_UI.accent,
                     }}
@@ -760,10 +810,10 @@ export default function Page() {
               </div>
 
               <div
+                className="hive-stage-header-pills"
                 style={{
                   display: "flex",
                   flexWrap: "wrap",
-                  gap: 6,
                   justifyContent: "flex-end",
                 }}
               >
@@ -918,7 +968,6 @@ export default function Page() {
                 variant="diagnostics"
                 title="Extended diagnostics"
                 subtitle="Secondary depth · operator deck above"
-                className="hive-diagnostics-slab"
               >
                 <div className="hive-signal-grid hive-signal-grid--tight">
                   <div>
@@ -1046,24 +1095,14 @@ export default function Page() {
                 title="Bee log"
                 subtitle="In-process activity stream (this worker only)"
               >
-                <div
-                  style={{
-                    background: "linear-gradient(180deg, #06080b, #040507)",
-                    border: `1px solid ${HIVE_UI.borderDeep}`,
-                    borderRadius: 14,
-                    padding: 14,
-                    maxHeight: 560,
-                    overflowY: "auto",
-                    fontSize: 13,
-                    lineHeight: 1.6,
-                    color: "#cad2dc",
-                    whiteSpace: "pre-wrap",
-                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.02)",
-                  }}
-                >
+                <div className="hive-bee-log-inner">
                   {(fullState?.logs || []).length
                     ? (fullState.logs as string[]).join("\n")
-                    : "No bee activity yet"}
+                    : (
+                        <span style={{ color: HIVE_UI.textMuted, letterSpacing: "0.06em" }}>
+                          No bee activity yet
+                        </span>
+                      )}
                 </div>
               </Panel>
             </div>
@@ -1196,11 +1235,12 @@ function TacticalFieldDeck({
       >
         <div
           style={{
-            fontSize: 21,
+            fontSize: 22,
             fontWeight: 800,
-            letterSpacing: "0.11em",
+            letterSpacing: "0.12em",
             color: HIVE_UI.text,
             marginBottom: 5,
+            textRendering: "geometricPrecision",
           }}
         >
           {postureTitle}
@@ -1437,7 +1477,7 @@ function MetricKicker({
     <div
       style={{
         minWidth: 72,
-        border: `1px solid ${accent ? HIVE_UI.accentLine : "rgba(255,255,255,0.065)"}`,
+        border: `1px solid ${accent ? HIVE_UI.accentLine : HIVE_UI.border}`,
         borderRadius: 8,
         padding: "5px 8px",
         background: accent
@@ -1497,9 +1537,10 @@ function RailRow({
     >
       <div
         style={{
-          fontSize: 12,
+          fontSize: 11,
+          fontWeight: 600,
           color: muted ? HIVE_UI.textDim : HIVE_UI.textMuted,
-          letterSpacing: "0.02em",
+          letterSpacing: "0.04em",
         }}
       >
         {label}
@@ -1509,6 +1550,7 @@ function RailRow({
           fontSize: 13,
           fontWeight: 700,
           textAlign: "right",
+          letterSpacing: accent ? "0.02em" : "0",
           color: danger
             ? "#ffcdcd"
             : accent
@@ -1595,7 +1637,7 @@ function StatusPill({
       style={{
         ...base,
         background: active ? HIVE_UI.goodSoft : "rgba(255,255,255,0.02)",
-        border: active ? `1px solid ${HIVE_UI.good}` : `1px solid rgba(255,255,255,0.065)`,
+        border: active ? `1px solid ${HIVE_UI.good}` : `1px solid ${HIVE_UI.border}`,
         color: active ? "#dcffe3" : HIVE_UI.textSoft,
       }}
     >
@@ -1706,10 +1748,11 @@ function Panel({
           style={{
             margin: 0,
             color: isDiag ? HIVE_UI.textSoft : HIVE_UI.text,
-            fontSize: isDiag ? 11 : 12,
+            fontSize: isDiag ? 10 : 12,
             fontWeight: 800,
-            letterSpacing: isDiag ? "0.14em" : "0.16em",
+            letterSpacing: isDiag ? "0.17em" : "0.17em",
             textTransform: "uppercase",
+            textRendering: "geometricPrecision",
           }}
         >
           {title}
@@ -1793,13 +1836,23 @@ function HiveRow({
         borderBottom: `1px solid ${HIVE_UI.borderDeep}`,
       }}
     >
-      <div style={{ color: muted ? HIVE_UI.textDim : HIVE_UI.textMuted }}>{label}</div>
+      <div
+        style={{
+          color: muted ? HIVE_UI.textDim : HIVE_UI.textMuted,
+          fontSize: 11,
+          fontWeight: 600,
+          letterSpacing: "0.04em",
+        }}
+      >
+        {label}
+      </div>
       <div
         style={{
           color: valueColor,
           fontWeight: 800,
           textAlign: "right",
           fontSize,
+          letterSpacing: emphasized && !muted ? "0.02em" : "0",
         }}
       >
         {value}
