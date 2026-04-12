@@ -24,8 +24,20 @@ from hive_session_regime_v1 import compute_hive_session_regime_v1
 from hive_signal_memory_v1 import compute_hive_signal_memory_v1
 from hive_signal_rank_v1 import compute_hive_rank_v1
 
+from alpaca_paper_v1 import (
+    AlpacaPaperError,
+    load_paper_credentials,
+    read_paper_portfolio_snapshot,
+)
+
 # Operator-facing stale threshold (must match hive_contract_v1.system_state.freshness.signal_stale_after_ms).
 SIGNAL_STALE_AFTER_MS = 25 * 60 * 1000
+
+# H1A: throttle broker reads so GET /state stays responsive and Alpaca is not hammered.
+BROKER_SYNC_TTL_SECONDS = 45.0
+BROKER_MIN_ATTEMPT_INTERVAL_SECONDS = 12.0
+
+_broker_sync_lock = threading.Lock()
 
 load_dotenv()
 
@@ -69,13 +81,21 @@ state: dict[str, Any] = {
     "recent_signal_flow": [],
     "prior_pulse_compact": None,
     "open_position": None,
+    "unrealized_pnl": None,
+    "performance_source": "demo_seed",
+    "broker_last_success_at": None,
+    "broker_last_attempt_at": None,
+    "broker_last_sync_ok": False,
+    "broker_last_error": None,
+    "broker_open_orders_count": 0,
     "logs": [],
     "signal_snapshot": {},
     "config": {
         "enabled": False,
         "use_live_alpaca": False,
+        "alpaca_paper_enabled": False,
         "poll_seconds": 10,
-    }
+    },
 }
 
 prices = deque(maxlen=100)
@@ -83,6 +103,109 @@ volumes = deque(maxlen=100)
 opening_range_prices = []
 mock_price = 580.0
 cycle_count = 0
+
+
+def _reset_demo_portfolio_after_alpaca_off() -> None:
+    """Operator disabled paper broker — restore static demo treasury fields."""
+    state["cash"] = 15000
+    state["equity"] = 15000
+    state["open_position"] = None
+    state["unrealized_pnl"] = None
+    state["performance_source"] = "demo_seed"
+    state["broker_last_success_at"] = None
+    state["broker_last_attempt_at"] = None
+    state["broker_last_sync_ok"] = False
+    state["broker_last_error"] = None
+    state["broker_open_orders_count"] = 0
+
+
+def maybe_sync_alpaca_paper(*, force: bool) -> None:
+    """
+    TTL-throttled read sync from Alpaca paper. On failure, retains last-good cash/equity/position.
+    Never logs secrets. Fast-fail via short HTTP timeouts inside the client.
+    """
+    cfg = state.get("config") or {}
+    if not bool(cfg.get("alpaca_paper_enabled")):
+        return
+
+    key_id, secret = load_paper_credentials()
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+
+    with _broker_sync_lock:
+        if not key_id or not secret:
+            state["broker_last_attempt_at"] = now_iso
+            state["broker_last_sync_ok"] = False
+            state["broker_last_error"] = "missing ALPACA_PAPER_KEY_ID or ALPACA_PAPER_SECRET_KEY"
+            return
+
+        if not force:
+            succ_age = _utc_age_seconds(
+                state["broker_last_success_at"] if isinstance(state.get("broker_last_success_at"), str) else None
+            )
+            if succ_age is not None and succ_age < BROKER_SYNC_TTL_SECONDS:
+                return
+
+            att_age = _utc_age_seconds(
+                state["broker_last_attempt_at"] if isinstance(state.get("broker_last_attempt_at"), str) else None
+            )
+            if att_age is not None and att_age < BROKER_MIN_ATTEMPT_INTERVAL_SECONDS:
+                return
+        # force=True bypasses TTL and min-interval throttles (POST /paper/sync).
+
+        state["broker_last_attempt_at"] = now_iso
+        try:
+            snap = read_paper_portfolio_snapshot(key_id, secret)
+            state["cash"] = snap["cash"]
+            state["equity"] = snap["equity"]
+            state["open_position"] = snap["open_position"]
+            state["unrealized_pnl"] = snap["unrealized_pnl"]
+            state["broker_open_orders_count"] = int(snap["open_orders_count"])
+            state["broker_last_success_at"] = now_iso
+            state["broker_last_sync_ok"] = True
+            state["broker_last_error"] = None
+            state["performance_source"] = "alpaca_paper"
+            log("alpaca paper broker sync ok")
+        except AlpacaPaperError as e:
+            state["broker_last_sync_ok"] = False
+            state["broker_last_error"] = str(e)[:240]
+            log(f"alpaca paper broker sync failed ({type(e).__name__})")
+
+
+def _compute_execution_surface() -> str:
+    cfg = state.get("config") or {}
+    if not bool(cfg.get("alpaca_paper_enabled")):
+        return "signal_only"
+    key_id, secret = load_paper_credentials()
+    if not key_id or not secret:
+        return "signal_only"
+
+    succ_at = state.get("broker_last_success_at") if isinstance(state.get("broker_last_success_at"), str) else None
+    age = _utc_age_seconds(succ_at)
+    ok = bool(state.get("broker_last_sync_ok"))
+    if ok and age is not None and age <= BROKER_SYNC_TTL_SECONDS:
+        return "alpaca_paper"
+    return "alpaca_paper_degraded"
+
+
+def _broker_sync_contract_block() -> dict[str, Any]:
+    surface = _compute_execution_surface()
+    succ_at = state.get("broker_last_success_at") if isinstance(state.get("broker_last_success_at"), str) else None
+    stale = surface == "alpaca_paper_degraded"
+
+    err = state.get("broker_last_error")
+    return {
+        "last_sync_at": succ_at,
+        "last_attempt_at": state.get("broker_last_attempt_at")
+        if isinstance(state.get("broker_last_attempt_at"), str)
+        else None,
+        "ok": bool(state.get("broker_last_sync_ok")),
+        "error": err if isinstance(err, str) else None,
+        "stale": stale,
+        "performance_source": state.get("performance_source")
+        if state.get("performance_source") in ("demo_seed", "alpaca_paper")
+        else "demo_seed",
+    }
 
 
 def _utc_age_seconds(iso_ts: str | None) -> float | None:
@@ -447,18 +570,31 @@ def build_hive_contract_v1() -> dict[str, Any]:
     else:
         posture_hint = "Awaiting a clear recommended_trade action from the latest pulse."
 
+    execution_surface = _compute_execution_surface()
+    broker_sync = _broker_sync_contract_block()
+    pending_ct = (
+        int(state.get("broker_open_orders_count") or 0)
+        if execution_surface in ("alpaca_paper", "alpaca_paper_degraded")
+        else 0
+    )
+    perf_src = (
+        state.get("performance_source")
+        if state.get("performance_source") in ("demo_seed", "alpaca_paper")
+        else "demo_seed"
+    )
+    unrealized_out = state.get("unrealized_pnl") if perf_src == "alpaca_paper" else None
+
     return {
         "system_state": {
             "bot_running": bot_running,
             "trading_enabled": trading_enabled,
-            # Alpaca toggle is a settings preference only — this process does not route orders.
+            # use_live_alpaca is rejected in /config (True); still not a live execution path in H1A.
             "mode": "live" if use_live else "paper",
-            "execution_surface": "signal_only",
+            "execution_surface": execution_surface,
             "provider_mode": state.get("provider_mode"),
             # Same instant as raw state["last_loop_at"] (operator-facing name).
             "last_cycle_at": state.get("last_loop_at"),
-            # Broker order queue only (always zero in this stack); not “pending hive ideas”.
-            "pending_signals_count": 0,
+            "pending_signals_count": pending_ct,
             "pending_signals_semantics": "broker_orders_only",
             "lifecycle_phase": lifecycle_phase,
             "lifecycle_hint": lifecycle_hint,
@@ -468,6 +604,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "health": {"ok": True},
             "freshness": {"signal_stale_after_ms": SIGNAL_STALE_AFTER_MS},
             "session_regime": session_regime,
+            "broker_sync": broker_sync,
         },
         "top_signal": {
             "signal_id": signal_id,
@@ -501,12 +638,13 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "realized_pnl_today": state.get("realized_pnl_today"),
             "open_position": state.get("open_position"),
             "consecutive_losses": state.get("consecutive_losses"),
-            "unrealized_pnl": None,
+            "unrealized_pnl": unrealized_out,
         },
         # Hints for UIs/docs only — not enforced when serializing the contract.
         "ui_visibility": {
             "core": [
                 "system_state",
+                "system_state.broker_sync",
                 "system_state.session_regime",
                 "system_state.execution_surface",
                 "system_state.lifecycle_phase",
@@ -585,9 +723,34 @@ def health():
 
 @app.get("/state")
 def get_state():
+    maybe_sync_alpaca_paper(force=False)
     body = dict(state)
     body["hive_contract_v1"] = build_hive_contract_v1()
     return body
+
+
+@app.post("/paper/sync")
+def paper_sync():
+    """Force Alpaca paper read sync (admin). Bypasses TTL / min-interval throttles."""
+    cfg = state.get("config") or {}
+    if not bool(cfg.get("alpaca_paper_enabled")):
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": "alpaca_paper_enabled is false"},
+        )
+    key_id, secret = load_paper_credentials()
+    if not key_id or not secret:
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": "missing ALPACA_PAPER_KEY_ID or ALPACA_PAPER_SECRET_KEY"},
+        )
+
+    maybe_sync_alpaca_paper(force=True)
+    if not bool(state.get("broker_last_sync_ok")):
+        err = state.get("broker_last_error")
+        msg = err if isinstance(err, str) else "broker sync failed"
+        return JSONResponse(status_code=502, content={"ok": False, "error": msg[:240]})
+    return {"ok": True, "error": None}
 
 
 @app.post("/bot/start")
@@ -615,6 +778,14 @@ async def run_cycle():
 
 @app.post("/config")
 def update_config(patch: dict):
+    if patch.get("use_live_alpaca") is True:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": "use_live_alpaca=true is disabled in this build; live Alpaca routing is not available (H1A paper read sync only).",
+            },
+        )
+
     for k, v in patch.items():
         if k not in state["config"]:
             continue
@@ -624,12 +795,15 @@ def update_config(patch: dict):
             except (TypeError, ValueError):
                 continue
             state["config"][k] = max(1, min(3600, n))
-        elif k in ("enabled", "use_live_alpaca"):
+        elif k in ("enabled", "use_live_alpaca", "alpaca_paper_enabled"):
             state["config"][k] = bool(v)
         else:
             state["config"][k] = v
 
     state["enabled"] = bool(state["config"]["enabled"])
+    if "alpaca_paper_enabled" in patch and not bool(state["config"].get("alpaca_paper_enabled")):
+        _reset_demo_portfolio_after_alpaca_off()
+
     log(f"config updated {patch}")
     return state["config"]
 

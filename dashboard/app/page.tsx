@@ -115,6 +115,18 @@ export default function Page() {
     await loadAll();
   }
 
+  async function syncBroker() {
+    try {
+      setError("");
+      await apiCall("/paper/sync", "POST");
+      await loadAll();
+    } catch (err: any) {
+      const msg = err?.message || "Broker sync failed";
+      setError(msg);
+      await loadAll();
+    }
+  }
+
   useEffect(() => {
     loadAll();
   }, []);
@@ -138,12 +150,24 @@ export default function Page() {
   const delta = top?.cycle_delta;
   const regime = system?.session_regime;
   const execSurface = system?.execution_surface as string | undefined;
+  const brokerSync = system?.broker_sync;
   const surfacePillText =
     execSurface === "signal_only"
       ? "Surface: signal-only (no broker)"
-      : execSurface
-        ? `Surface: ${execSurface}`
-        : "Surface: —";
+      : execSurface === "alpaca_paper"
+        ? "Surface: Alpaca paper (synced)"
+        : execSurface === "alpaca_paper_degraded"
+          ? "Surface: Alpaca paper (degraded)"
+          : execSurface
+            ? `Surface: ${execSurface}`
+            : "Surface: —";
+
+  const treasurySource =
+    brokerSync?.performance_source === "alpaca_paper"
+      ? "Alpaca paper (read-only sync)"
+      : "Demo seed (not broker-backed)";
+  const brokerStale =
+    execSurface === "alpaca_paper_degraded" || !!brokerSync?.stale;
 
   const signal = top?.setup ?? fullState?.signal_snapshot ?? {};
   const recommended = top?.recommended_trade ?? signal?.recommended_trade ?? {};
@@ -806,6 +830,19 @@ export default function Page() {
                   >
                     OPERATOR DECK
                   </div>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: HIVE_UI.textMuted,
+                      letterSpacing: "0.04em",
+                      maxWidth: 520,
+                      lineHeight: 1.35,
+                      marginTop: 4,
+                    }}
+                  >
+                    Pulse uses in-process mock tape unless a market-feed lane exists; Alpaca paper
+                    sync does not change spot.
+                  </div>
                 </div>
               </div>
 
@@ -837,6 +874,26 @@ export default function Page() {
 
             <div className="hive-stage-body">
               <div className="hive-side-rail">
+                {brokerStale ? (
+                  <div
+                    style={{
+                      marginBottom: 10,
+                      padding: "10px 12px",
+                      borderRadius: 12,
+                      border: `1px solid ${HIVE_UI.danger}`,
+                      background: HIVE_UI.dangerSoft,
+                      color: HIVE_UI.textSoft,
+                      fontSize: 12,
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    <strong style={{ color: HIVE_UI.danger }}>Broker snapshot stale or sync failed.</strong>{" "}
+                    Treasury may show last-good Alpaca paper values or demo seed.{" "}
+                    {typeof brokerSync?.error === "string" && brokerSync.error.length
+                      ? `Last error: ${brokerSync.error.length > 120 ? `${brokerSync.error.slice(0, 120)}…` : brokerSync.error}`
+                      : null}
+                  </div>
+                ) : null}
                 <div className="hive-rail-card">
                   <h3 className="hive-rail-title">Operator readout</h3>
                   <RailRow
@@ -887,6 +944,7 @@ export default function Page() {
 
                 <div className="hive-rail-card">
                   <h3 className="hive-rail-title">Treasury</h3>
+                  <RailRow label="Source" value={treasurySource} muted />
                   <RailRow label="Cash" value={formatVal(perf?.cash ?? fullState?.cash)} />
                   <RailRow
                     label="Equity"
@@ -905,6 +963,9 @@ export default function Page() {
                       perf?.consecutive_losses ?? fullState?.consecutive_losses
                     )}
                   />
+                  {perf?.unrealized_pnl != null ? (
+                    <RailRow label="Unrealized" value={formatVal(perf.unrealized_pnl)} muted />
+                  ) : null}
                 </div>
               </div>
 
@@ -954,6 +1015,14 @@ export default function Page() {
             <HiveButton compact onClick={stopBot} label="Recall" />
             <HiveButton compact onClick={enableTrading} label="Arm" />
             <HiveButton compact onClick={disableTrading} label="Disarm" />
+            <HiveButton
+              compact
+              onClick={() => {
+                void syncBroker();
+              }}
+              label="Sync broker"
+              disabled={!fullState?.config?.alpaca_paper_enabled}
+            />
             <HiveButton
               compact
               onClick={() => setAutoRefresh(!autoRefresh)}
@@ -1651,17 +1720,20 @@ function HiveButton({
   label,
   active = false,
   compact = false,
+  disabled = false,
 }: {
   onClick: () => void;
   label: string;
   active?: boolean;
   compact?: boolean;
+  disabled?: boolean;
 }) {
   const restShadow = "inset 0 1px 0 rgba(255,255,255,0.03)";
   const activeShadow = `inset 0 0 0 1px ${HIVE_UI.accentLine}`;
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={onClick}
       style={{
         background: active
@@ -1676,7 +1748,8 @@ function HiveButton({
         letterSpacing: compact ? "0.065em" : "0.08em",
         textTransform: "uppercase" as const,
         boxShadow: active ? activeShadow : restShadow,
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.45 : 1,
         transition: HIVE_UI.motion,
       }}
       onMouseDown={(e) => {
