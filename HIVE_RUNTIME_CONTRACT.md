@@ -32,3 +32,14 @@
 ## 4. Operator takeaway
 
 **Production heartbeat = always-on FastAPI process + optional `bot_loop` after `/bot/start` + `enabled` true.** GitHub Actions / CI are **not** part of this repo’s live cadence. External schedulers are **out of scope** for this contract.
+
+## 5. H2 — admin surface & CORS (paper-capable API)
+
+| Variable | Where | Purpose |
+|----------|--------|---------|
+| **`BOT_ADMIN_KEY`** | FastAPI env + Next **server** env | Shared secret; **min 32 characters** unless **`HIVE_ALLOW_WEAK_ADMIN_KEY=1`** (local dev only; allows legacy default when key unset). |
+| **`HIVE_ALLOW_WEAK_ADMIN_KEY`** | FastAPI only | Set to `1` / `true` / `yes` only on trusted localhost. |
+| **`HIVE_CORS_ORIGINS`** | FastAPI | Comma-separated extra browser origins (e.g. production dashboard URL). Default list is localhost/127.0.0.1 on ports 3000 and 3005. **No** `*.vercel.app` wildcard. |
+| **`HIVE_API_ORIGIN`** | Next **server** only | FastAPI base URL for the BFF (e.g. `http://127.0.0.1:8000`). |
+
+The dashboard calls **`/api/hive/*`** on the Next origin; Route Handlers inject **`x-bot-admin-key`** — the browser never sees the key.

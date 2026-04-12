@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import json
 import os
+import sys
 import threading
 from collections import deque
 from datetime import datetime, timezone
@@ -46,27 +47,65 @@ _paper_client_order_ids: deque[str] = deque(maxlen=500)
 
 load_dotenv()
 
-app = FastAPI(title="SPY Options Bot", version="2.0")
-# Single stack: union of the two former CORSMiddleware registrations (strict superset).
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+_MIN_BOT_ADMIN_KEY_LEN = 32
+
+
+def _hive_allow_weak_admin_key() -> bool:
+    return os.getenv("HIVE_ALLOW_WEAK_ADMIN_KEY", "").strip().lower() in ("1", "true", "yes")
+
+
+def _resolve_bot_admin_key() -> str:
+    """
+    Fail closed: require BOT_ADMIN_KEY (>=32 chars) unless HIVE_ALLOW_WEAK_ADMIN_KEY is set
+    for explicit local-dev-only use (optional default key when unset).
+    """
+    raw = os.getenv("BOT_ADMIN_KEY", "").strip()
+    if _hive_allow_weak_admin_key():
+        return raw if raw else "mysecret123"
+    if not raw:
+        print(
+            "FATAL: BOT_ADMIN_KEY is required (min 32 chars). "
+            "For local dev only, set HIVE_ALLOW_WEAK_ADMIN_KEY=1.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    if len(raw) < _MIN_BOT_ADMIN_KEY_LEN:
+        print(
+            f"FATAL: BOT_ADMIN_KEY must be at least {_MIN_BOT_ADMIN_KEY_LEN} characters.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    return raw
+
+
+def _cors_origins() -> list[str]:
+    base = [
         "http://localhost:3000",
         "http://localhost:3005",
-        "http://192.168.68.53:3005",
-        "https://spy-options-frqj0c08q-grant-turnbows-projects.vercel.app",
-        "https://hive-control-ah90ycp6j-grant-turnbows-projects.vercel.app",
-        "https://hive-control-2.vercel.app",
-    ],
-    # Preview and branch deploys use *.vercel.app hosts not listed above; without this,
-    # browsers surface cross-origin failures as "Failed to fetch".
-    allow_origin_regex=r"https://.*\.vercel\.app",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3005",
+    ]
+    extra = os.getenv("HIVE_CORS_ORIGINS", "").strip()
+    if not extra:
+        return base
+    out = list(base)
+    for part in extra.split(","):
+        p = part.strip()
+        if p and p not in out:
+            out.append(p)
+    return out
+
+
+BOT_ADMIN_KEY = _resolve_bot_admin_key()
+
+app = FastAPI(title="SPY Options Bot", version="2.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-BOT_ADMIN_KEY = os.getenv("BOT_ADMIN_KEY", "mysecret123")
 
 # Serializes run_signal_cycle across bot_loop and POST /cycle (sync + threadpool).
 _signal_cycle_lock = threading.Lock()
