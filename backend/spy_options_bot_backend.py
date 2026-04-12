@@ -32,6 +32,7 @@ from alpaca_paper_v1 import (
     load_paper_credentials,
     read_paper_portfolio_snapshot,
     reconcile_paper_order_observability,
+    resolve_terminal_manual_paper_order_observability,
     submit_spy_equity_order,
     validate_client_order_id,
 )
@@ -232,6 +233,15 @@ def maybe_sync_alpaca_paper(*, force: bool) -> None:
             oo = snap.get("open_orders")
             if isinstance(last_obs, dict) and isinstance(oo, list):
                 state["last_paper_order_observability"] = reconcile_paper_order_observability(last_obs, oo)
+            obs2 = state.get("last_paper_order_observability")
+            if (
+                isinstance(obs2, dict)
+                and obs2.get("snapshot_freshness") == "NOT IN OPEN ORDERS"
+                and obs2.get("order_id")
+            ):
+                state["last_paper_order_observability"] = resolve_terminal_manual_paper_order_observability(
+                    key_id, secret, obs2
+                )
             log("alpaca paper broker sync ok")
         except AlpacaPaperError as e:
             state["broker_last_sync_ok"] = False

@@ -48,6 +48,9 @@ def _headers(key_id: str, secret: str) -> dict[str, str]:
     }
 
 
+_ORDER_ID_PATH_SAFE_RE = re.compile(r"^[A-Fa-f0-9\-]{16,64}$")
+
+
 def _get_json(path: str, key_id: str, secret: str, timeout: tuple[float, float]) -> Any:
     url = f"{ALPACA_PAPER_BASE_URL}{path}"
     try:
@@ -220,6 +223,95 @@ def compact_paper_order_observability(raw: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def fetch_order_by_id_safe(
+    key_id: str,
+    secret: str,
+    order_id: str,
+    timeout: tuple[float, float] = DEFAULT_TIMEOUT,
+) -> tuple[str, dict[str, Any] | None]:
+    """
+    GET /v2/orders/{order_id} — single-order read for terminal truth.
+    Returns ("ok", dict) | ("not_found", None) | ("error", None). No secrets in return value.
+    """
+    oid = str(order_id).strip()
+    if not oid or not _ORDER_ID_PATH_SAFE_RE.match(oid):
+        return "error", None
+    url = f"{ALPACA_PAPER_BASE_URL}/v2/orders/{oid}"
+    try:
+        r = requests.get(url, headers=_headers(key_id, secret), timeout=timeout)
+    except requests.RequestException:
+        return "error", None
+    if r.status_code == 404:
+        return "not_found", None
+    if r.status_code >= 400:
+        return "error", None
+    try:
+        data = r.json()
+    except ValueError:
+        return "error", None
+    if not isinstance(data, dict):
+        return "error", None
+    return "ok", data
+
+
+def resolve_terminal_manual_paper_order_observability(
+    key_id: str,
+    secret: str,
+    absent_obs: dict[str, Any],
+    timeout: tuple[float, float] = DEFAULT_TIMEOUT,
+) -> dict[str, Any]:
+    """
+    After reconcile says NOT IN OPEN ORDERS, one GET by order_id for Alpaca terminal status.
+    Never claims FILLED unless broker response status maps to FILLED in compact_paper_order_observability.
+    """
+    oid = absent_obs.get("order_id")
+    if oid is None or not str(oid).strip():
+        return dict(absent_obs)
+
+    kind, raw = fetch_order_by_id_safe(key_id, secret, str(oid), timeout)
+    if kind == "not_found":
+        out = dict(absent_obs)
+        out["snapshot_freshness"] = "NOT IN OPEN ORDERS"
+        out["truth_note"] = (
+            "Not on the open-order list; Alpaca GET /v2/orders/{id} returned 404 for this id. "
+            "Terminal state still unknown (id may be invalid or no longer retrievable)."
+        )
+        return out
+
+    if kind == "error":
+        out = dict(absent_obs)
+        out["snapshot_freshness"] = "LOOKUP FAILED / UNKNOWN"
+        out["truth_note"] = (
+            "Not on the open-order list; single-order broker lookup failed (network or HTTP error). "
+            "Terminal state unknown; retry Sync broker or check Alpaca."
+        )
+        return out
+
+    cid_expect = absent_obs.get("client_order_id")
+    cid_got = raw.get("client_order_id")
+    if (
+        cid_expect is not None
+        and str(cid_expect).strip()
+        and cid_got is not None
+        and str(cid_got).strip()
+        and str(cid_expect).strip() != str(cid_got).strip()
+    ):
+        out = dict(absent_obs)
+        out["snapshot_freshness"] = "LOOKUP FAILED / UNKNOWN"
+        out["truth_note"] = (
+            "Broker order id response client_order_id did not match HIVE's last manual submit; "
+            "refusing to show terminal state. Check Alpaca."
+        )
+        return out
+
+    out = compact_paper_order_observability(raw)
+    out["snapshot_freshness"] = "RESOLVED FROM BROKER ORDER LOOKUP"
+    out["truth_note"] = (
+        "Terminal/working fields from Alpaca GET /v2/orders/{id} during last broker sync (read-only)."
+    )
+    return out
+
+
 def reconcile_paper_order_observability(
     last: dict[str, Any],
     open_orders: list[dict[str, Any]],
@@ -230,6 +322,21 @@ def reconcile_paper_order_observability(
     """
     oid = last.get("order_id")
     cid = last.get("client_order_id")
+
+    if last.get("snapshot_freshness") == "RESOLVED FROM BROKER ORDER LOOKUP" and oid is not None:
+        still_open = False
+        for o in open_orders:
+            if not isinstance(o, dict):
+                continue
+            if str(o.get("id") or "") == str(oid):
+                still_open = True
+                break
+            if cid is not None and str(o.get("client_order_id") or "") == str(cid):
+                still_open = True
+                break
+        if not still_open:
+            return dict(last)
+
     match: dict[str, Any] | None = None
     for o in open_orders:
         if not isinstance(o, dict):

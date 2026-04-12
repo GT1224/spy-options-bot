@@ -1455,7 +1455,13 @@ export default function Page() {
                         fontSize: 9,
                         fontWeight: 800,
                         letterSpacing: "0.14em",
-                        color: HIVE_UI.textDim,
+                        color:
+                          (paperOrderObs.snapshot_freshness ?? "") === "LOOKUP FAILED / UNKNOWN"
+                            ? HIVE_UI.danger
+                            : (paperOrderObs.snapshot_freshness ?? "") ===
+                                "RESOLVED FROM BROKER ORDER LOOKUP"
+                              ? HIVE_UI.good
+                              : HIVE_UI.textDim,
                       }}
                     >
                       {paperOrderObs.snapshot_freshness ?? "STALE / LAST KNOWN"}
