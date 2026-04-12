@@ -235,7 +235,7 @@ export default function Page() {
 .hive-topbar-kickers {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   justify-content: flex-end;
 }
 .hive-hero-theater {
@@ -297,10 +297,11 @@ export default function Page() {
   top: 0;
   left: 0;
   right: 0;
-  height: 2px;
+  height: 3px;
   z-index: 5;
-  background: linear-gradient(90deg, transparent 8%, ${HIVE_UI.accentLine} 50%, transparent 92%);
-  opacity: 0.92;
+  background: linear-gradient(90deg, transparent 6%, ${HIVE_UI.accentLine} 50%, transparent 94%);
+  opacity: 0.94;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.45);
 }
 .hive-hero-caption {
   padding: 11px 16px 13px 14px;
@@ -347,7 +348,7 @@ export default function Page() {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(200px, 238px) minmax(0, 1fr) minmax(200px, 238px);
+  grid-template-columns: minmax(200px, 244px) minmax(0, 1fr);
   gap: 14px;
   padding: 14px 14px 16px;
   align-items: stretch;
@@ -403,20 +404,21 @@ export default function Page() {
   color: ${HIVE_UI.textMuted};
 }
 .hive-command-rail {
-  margin-top: 14px;
+  margin-top: 12px;
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  padding: 13px 15px;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 10px 12px;
   border: 1px solid ${HIVE_UI.border};
   border-radius: 14px;
   background: linear-gradient(180deg, #090c11, #080a0e);
 }
 .hive-lower-grid {
-  margin-top: 16px;
+  margin-top: 14px;
   display: grid;
   grid-template-columns: 1.05fr 1.2fr;
-  gap: 16px;
+  gap: 14px;
 }
 .hive-stack {
   display: flex;
@@ -554,18 +556,20 @@ export default function Page() {
                 style={{
                   display: "flex",
                   flexWrap: "wrap",
-                  gap: 8,
+                  gap: 6,
                   alignItems: "center",
                 }}
               >
                 <StatusPill
+                  dense
                   text={running ? "Swarm Active" : "Swarm Idle"}
                   active={running}
                 />
-                <StatusPill text={`Trading ${tradingEnabled ? "Armed" : "Safe"}`} />
-                <StatusPill text={surfacePillText} />
-                <StatusPill text={gatePillText} tone={gatePillTone} active={gatePromoted} />
+                <StatusPill dense text={`Trading ${tradingEnabled ? "Armed" : "Safe"}`} />
+                <StatusPill dense text={surfacePillText} />
+                <StatusPill dense text={gatePillText} tone={gatePillTone} active={gatePromoted} />
                 <StatusPill
+                  dense
                   text={
                     guard?.status
                       ? `Guard: ${guard.status}${guard.actionable ? " · act" : " · hold"}`
@@ -575,6 +579,7 @@ export default function Page() {
                   active={guardPillActive}
                 />
                 <StatusPill
+                  dense
                   text={autoRefresh ? "Auto refresh on" : "Auto refresh off"}
                   active={autoRefresh}
                 />
@@ -736,16 +741,18 @@ export default function Page() {
                 style={{
                   display: "flex",
                   flexWrap: "wrap",
-                  gap: 8,
+                  gap: 6,
                   justifyContent: "flex-end",
                 }}
               >
-                <StatusPill text={`Session ${regime?.code ? String(regime.code) : "—"}`} />
+                <StatusPill dense text={`Session ${regime?.code ? String(regime.code) : "—"}`} />
                 <StatusPill
+                  dense
                   text={`RTH ${regime?.market_hours ? "on" : "off"}`}
                   active={!!regime?.market_hours}
                 />
                 <StatusPill
+                  dense
                   text={
                     system?.signal_age_seconds !== undefined &&
                     system?.signal_age_seconds !== null
@@ -850,96 +857,35 @@ export default function Page() {
                 />
               </div>
 
-              <div className="hive-side-rail">
-                <div className="hive-rail-card">
-                  <h3 className="hive-rail-title">Guard + gate</h3>
-                  <RailRow
-                    label="Guard"
-                    value={
-                      guard?.status
-                        ? `${guard.status}${guard.actionable ? " · actionable" : ""}`
-                        : "—"
-                    }
-                    accent={guard?.status === "viable" && !!guard?.actionable}
-                    danger={guard?.status === "avoid"}
-                  />
-                  <RailRow
-                    label="Gate"
-                    value={gatePillText.replace("Gate: ", "")}
-                    accent={gatePromoted}
-                    danger={gateSuppressed}
-                  />
-                  <RailRow
-                    label="Gate detail"
-                    value={
-                      promo && typeof promo.reason === "string" && promo.reason.length
-                        ? promo.reason.length > 58
-                          ? `${promo.reason.slice(0, 58)}…`
-                          : promo.reason
-                        : "—"
-                    }
-                    muted={gateSuppressed || gateHold}
-                  />
-                  <RailRow
-                    label="Since last pulse"
-                    value={
-                      delta
-                        ? `${delta.status} · ${
-                            typeof delta.detail === "string"
-                              ? delta.detail.length > 38
-                                ? `${delta.detail.slice(0, 38)}…`
-                                : delta.detail
-                              : "—"
-                          }`
-                        : "—"
-                    }
-                    muted
-                  />
-                </div>
-
-                <div className="hive-rail-card">
-                  <h3 className="hive-rail-title">Trade leg</h3>
-                  <RailRow
-                    label="Action"
-                    value={formatVal(recommended?.action)}
-                    accent={gatePromoted && recommended?.action === "trade"}
-                    muted={gateSuppressed}
-                  />
-                  <RailRow
-                    label="Structure"
-                    value={formatVal(recommended?.structure)}
-                    muted={gateSuppressed || gateHold}
-                  />
-                  <RailRow label="DTE" value={formatVal(recommended?.dte)} />
-                  <RailRow label="Delta" value={formatVal(recommended?.delta)} />
-                </div>
-              </div>
             </div>
           </section>
 
           <div className="hive-command-rail">
             <div
               style={{
-                fontSize: 10,
-                letterSpacing: "0.22em",
-                fontWeight: 700,
+                fontSize: 9,
+                letterSpacing: "0.24em",
+                fontWeight: 800,
                 color: HIVE_UI.textMuted,
                 textTransform: "uppercase",
                 alignSelf: "center",
-                marginRight: 6,
+                marginRight: 4,
+                paddingRight: 6,
+                borderRight: `1px solid ${HIVE_UI.borderDeep}`,
               }}
             >
-              Swarm controls
+              Command
             </div>
-            <HiveButton onClick={loadAll} label="Refresh Hive" />
-            <HiveButton onClick={runCycle} label="Pulse Cycle" />
-            <HiveButton onClick={startBot} label="Launch Bees" />
-            <HiveButton onClick={stopBot} label="Recall Bees" />
-            <HiveButton onClick={enableTrading} label="Arm Hive" />
-            <HiveButton onClick={disableTrading} label="Disarm Hive" />
+            <HiveButton compact onClick={loadAll} label="Refresh" />
+            <HiveButton compact onClick={runCycle} label="Pulse" />
+            <HiveButton compact onClick={startBot} label="Launch" />
+            <HiveButton compact onClick={stopBot} label="Recall" />
+            <HiveButton compact onClick={enableTrading} label="Arm" />
+            <HiveButton compact onClick={disableTrading} label="Disarm" />
             <HiveButton
+              compact
               onClick={() => setAutoRefresh(!autoRefresh)}
-              label={autoRefresh ? "Auto Swarm On" : "Auto Swarm Off"}
+              label={autoRefresh ? "Auto on" : "Auto off"}
               active={autoRefresh}
             />
           </div>
@@ -947,27 +893,18 @@ export default function Page() {
           <div className="hive-lower-grid">
             <div className="hive-stack">
               <Panel
-                title="Signal intelligence"
-                subtitle="Rank · gate · execution discipline · trade leg"
+                title="Extended diagnostics"
+                subtitle="Secondary depth · operator deck above"
               >
                 <div className="hive-signal-grid">
                   <div>
-                    <PanelSection title="Rank" isFirst>
+                    <PanelSection title="Rationale detail" isFirst>
                       <HiveRow
-                        label="Hive rank"
-                        value={
-                          top?.rank_score !== undefined && top?.rank_score !== null
-                            ? String(top.rank_score)
-                            : "—"
-                        }
-                      />
-                      <HiveRow label="Thesis" value={formatVal(top?.rationale?.thesis)} />
-                      <HiveRow
-                        label="Notes"
+                        label="Supporting notes"
                         value={
                           Array.isArray(top?.rationale?.points) &&
                           top.rationale.points.length
-                            ? top.rationale.points.slice(0, 5).join(" · ")
+                            ? top.rationale.points.slice(0, 8).join(" · ")
                             : "—"
                         }
                       />
@@ -979,9 +916,7 @@ export default function Page() {
                         value={
                           Array.isArray(guard?.triggered_rules) &&
                           guard.triggered_rules.length
-                            ? `${guard.triggered_rules.length}: ${guard.triggered_rules
-                                .slice(0, 4)
-                                .join(", ")}`
+                            ? `${guard.triggered_rules.length}: ${guard.triggered_rules.join(", ")}`
                             : "—"
                         }
                       />
@@ -989,172 +924,49 @@ export default function Page() {
                         label="Warnings"
                         value={
                           Array.isArray(guard?.warnings) && guard.warnings.length
-                            ? guard.warnings.slice(0, 2).join(" · ")
+                            ? guard.warnings.join(" · ")
                             : "—"
                         }
-                      />
-                    </PanelSection>
-
-                    <PanelSection title="Promotion gate">
-                      {gateSuppressed ? (
-                        <div
-                          style={{
-                            fontSize: 12,
-                            lineHeight: 1.5,
-                            color: "#ffdede",
-                            marginBottom: 12,
-                            padding: "12px 14px",
-                            background:
-                              "linear-gradient(180deg, rgba(217,107,107,0.15), rgba(217,107,107,0.08))",
-                            borderRadius: 12,
-                            border: `1px solid ${HIVE_UI.danger}`,
-                          }}
-                        >
-                          <strong>Not actionable.</strong> Sub-layers may still show
-                          numbers — the gate is <strong>suppressed</strong>. Do not size
-                          an entry from the trade leg below.
-                        </div>
-                      ) : null}
-
-                      {gateHold ? (
-                        <div
-                          style={{
-                            fontSize: 12,
-                            lineHeight: 1.5,
-                            color: HIVE_UI.textSoft,
-                            marginBottom: 12,
-                            padding: "12px 14px",
-                            background:
-                              "linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015))",
-                            borderRadius: 12,
-                            border: `1px solid ${HIVE_UI.border}`,
-                            borderLeft: `3px solid ${HIVE_UI.accent}`,
-                          }}
-                        >
-                          <strong>On hold — not a green light.</strong> Review discipline
-                          before acting; confirm guardrails and execution edge.
-                        </div>
-                      ) : null}
-
-                      <HiveRow
-                        label="Gate detail"
-                        value={
-                          promo && typeof promo.reason === "string" && promo.reason.length
-                            ? promo.reason.length > 120
-                              ? `${promo.reason.slice(0, 120)}…`
-                              : promo.reason
-                            : "—"
-                        }
-                        emphasized={gatePromoted}
-                        muted={gateSuppressed || gateHold}
-                      />
-                      <HiveRow
-                        label="Since last pulse"
-                        value={
-                          delta
-                            ? `${delta.status} · ${
-                                typeof delta.detail === "string"
-                                  ? delta.detail.length > 72
-                                    ? `${delta.detail.slice(0, 72)}…`
-                                    : delta.detail
-                                  : "—"
-                              }`
-                            : "—"
-                        }
-                        muted
                       />
                     </PanelSection>
                   </div>
 
                   <div>
-                    <PanelSection title="Contract quality" isFirst>
-                      <HiveRow label="Status" value={formatVal(cq?.status)} emphasized />
+                    <PanelSection title="Contract signals · notes" isFirst>
                       <HiveRow
-                        label="Score"
+                        label="Signals"
                         value={
-                          cq?.score !== undefined && cq?.score !== null
-                            ? String(cq.score)
+                          Array.isArray(cq?.signals) && cq.signals.length
+                            ? cq.signals.join(", ")
                             : "—"
                         }
+                        muted
                       />
                       <HiveRow
-                        label="Signals / warnings"
+                        label="CQ notes"
                         value={
-                          Array.isArray(cq?.warnings) && cq.warnings.length
-                            ? cq.warnings.slice(0, 2).join(" · ")
-                            : Array.isArray(cq?.signals) && cq.signals.length
-                              ? cq.signals.slice(0, 3).join(", ")
-                              : Array.isArray(cq?.notes) &&
-                                  cq.notes.length &&
-                                  typeof cq.notes[0] === "string"
-                                ? cq.notes[0].length > 100
-                                  ? `${cq.notes[0].slice(0, 100)}…`
-                                  : cq.notes[0]
-                                : "—"
+                          Array.isArray(cq?.notes) && cq.notes.length
+                            ? cq.notes
+                                .map((n: unknown) => (typeof n === "string" ? n : ""))
+                                .filter(Boolean)
+                                .slice(0, 3)
+                                .map((n) => (n.length > 90 ? `${n.slice(0, 90)}…` : n))
+                                .join(" · ") || "—"
+                            : "—"
                         }
-                        muted={
-                          Array.isArray(cq?.notes) &&
-                          cq.notes.length &&
-                          !(cq?.warnings?.length || cq?.signals?.length)
-                        }
+                        muted
                       />
                     </PanelSection>
 
-                    <PanelSection title="Execution edge">
-                      <HiveRow label="Status" value={formatVal(edge?.status)} emphasized />
-                      <HiveRow
-                        label="Score"
-                        value={
-                          edge?.score !== undefined && edge?.score !== null
-                            ? String(edge.score)
-                            : "—"
-                        }
-                      />
+                    <PanelSection title="Execution blockers (full)">
                       <HiveRow
                         label="Blockers"
                         value={
                           Array.isArray(edge?.blockers) && edge.blockers.length
-                            ? edge.blockers.slice(0, 2).join(" · ")
+                            ? edge.blockers.join(" · ")
                             : "—"
                         }
                       />
-                    </PanelSection>
-
-                    <PanelSection
-                      title={
-                        gateSuppressed
-                          ? "Trade leg (reference — not promoted)"
-                          : gateHold
-                            ? "Trade leg (confirm before acting)"
-                            : "Trade leg"
-                      }
-                    >
-                      <div style={{ opacity: gateSuppressed ? 0.68 : gateHold ? 0.88 : 1 }}>
-                        <HiveRow
-                          label="Action"
-                          value={formatVal(recommended?.action)}
-                          emphasized={gatePromoted && recommended?.action === "trade"}
-                          muted={
-                            gateSuppressed || (gateHold && recommended?.action === "trade")
-                          }
-                        />
-                        <HiveRow
-                          label="Structure"
-                          value={formatVal(recommended?.structure)}
-                          emphasized={gatePromoted && recommended?.action === "trade"}
-                          muted={gateSuppressed || gateHold}
-                        />
-                        <HiveRow
-                          label="DTE"
-                          value={formatVal(recommended?.dte)}
-                          muted={gateSuppressed}
-                        />
-                        <HiveRow
-                          label="Delta"
-                          value={formatVal(recommended?.delta)}
-                          muted={gateSuppressed}
-                        />
-                      </div>
                     </PanelSection>
                   </div>
 
@@ -1594,32 +1406,33 @@ function MetricKicker({
   return (
     <div
       style={{
-        minWidth: 84,
+        minWidth: 76,
         border: `1px solid ${accent ? HIVE_UI.accentLine : HIVE_UI.border}`,
-        borderRadius: 12,
-        padding: "8px 10px",
+        borderRadius: 10,
+        padding: "6px 9px",
         background: accent
-          ? "linear-gradient(180deg, rgba(199,154,49,0.12), rgba(199,154,49,0.05))"
-          : "linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015))",
+          ? "linear-gradient(180deg, rgba(199,154,49,0.11), rgba(199,154,49,0.04))"
+          : "linear-gradient(180deg, rgba(255,255,255,0.028), rgba(255,255,255,0.012))",
       }}
     >
       <div
         style={{
-          fontSize: 9,
-          fontWeight: 700,
-          letterSpacing: "0.18em",
+          fontSize: 8,
+          fontWeight: 800,
+          letterSpacing: "0.2em",
           color: HIVE_UI.textMuted,
           textTransform: "uppercase",
-          marginBottom: 5,
+          marginBottom: 4,
         }}
       >
         {label}
       </div>
       <div
         style={{
-          fontSize: 14,
+          fontSize: 13,
           fontWeight: 700,
           color: accent ? "#f1deb0" : HIVE_UI.text,
+          letterSpacing: "0.02em",
         }}
       >
         {value}
@@ -1685,17 +1498,20 @@ function StatusPill({
   text,
   active = false,
   tone = "neutral",
+  dense = false,
 }: {
   text: string;
   active?: boolean;
   tone?: PillTone;
+  dense?: boolean;
 }) {
   const base = {
     borderRadius: 999,
-    padding: "7px 12px",
-    fontSize: 12,
+    padding: dense ? "4px 9px" : "7px 12px",
+    fontSize: dense ? 10.5 : 12,
     fontWeight: 700,
-    letterSpacing: "0.03em",
+    letterSpacing: dense ? "0.02em" : "0.03em",
+    lineHeight: dense ? 1.25 : 1.3,
     transition: HIVE_UI.motion,
   };
 
@@ -1762,10 +1578,12 @@ function HiveButton({
   onClick,
   label,
   active = false,
+  compact = false,
 }: {
   onClick: () => void;
   label: string;
   active?: boolean;
+  compact?: boolean;
 }) {
   const restShadow = "inset 0 1px 0 rgba(255,255,255,0.03)";
   const activeShadow = `inset 0 0 0 1px ${HIVE_UI.accentLine}`;
@@ -1775,15 +1593,15 @@ function HiveButton({
       onClick={onClick}
       style={{
         background: active
-          ? "linear-gradient(180deg, rgba(199,154,49,0.16), rgba(199,154,49,0.08))"
-          : "linear-gradient(180deg, #11151b, #0c0f14)",
+          ? "linear-gradient(180deg, rgba(199,154,49,0.14), rgba(199,154,49,0.06))"
+          : "linear-gradient(180deg, #10141a, #0b0e13)",
         color: active ? "#f1deb0" : HIVE_UI.textSoft,
         border: active ? `1px solid ${HIVE_UI.accentLine}` : `1px solid ${HIVE_UI.border}`,
-        borderRadius: 12,
-        padding: "11px 14px",
+        borderRadius: compact ? 999 : 12,
+        padding: compact ? "6px 11px" : "11px 14px",
         fontWeight: 700,
-        fontSize: 12,
-        letterSpacing: "0.08em",
+        fontSize: compact ? 10 : 12,
+        letterSpacing: compact ? "0.07em" : "0.08em",
         textTransform: "uppercase" as const,
         boxShadow: active ? activeShadow : restShadow,
         cursor: "pointer",
@@ -1830,10 +1648,10 @@ function Panel({
         background:
           "linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.01)), linear-gradient(180deg, #0b0e13, #090b10)",
         border: `1px solid ${HIVE_UI.border}`,
-        borderRadius: 18,
-        padding: 16,
+        borderRadius: 16,
+        padding: 14,
         boxShadow:
-          "inset 0 1px 0 rgba(255,255,255,0.03), 0 12px 34px rgba(0,0,0,0.22)",
+          "inset 0 1px 0 rgba(255,255,255,0.03), 0 10px 30px rgba(0,0,0,0.24)",
       }}
     >
       <div
@@ -1842,15 +1660,15 @@ function Panel({
           flexWrap: "wrap",
           alignItems: "baseline",
           justifyContent: "space-between",
-          gap: 10,
-          marginBottom: subtitle ? 12 : 10,
+          gap: 8,
+          marginBottom: subtitle ? 10 : 8,
         }}
       >
         <h2
           style={{
             margin: 0,
             color: HIVE_UI.text,
-            fontSize: 13,
+            fontSize: 12,
             fontWeight: 800,
             letterSpacing: "0.16em",
             textTransform: "uppercase",
