@@ -458,8 +458,13 @@ export default function Page() {
                     ? cq.warnings.slice(0, 2).join(" · ")
                     : Array.isArray(cq?.signals) && cq.signals.length
                       ? cq.signals.slice(0, 3).join(", ")
-                      : "—"
+                      : Array.isArray(cq?.notes) && cq.notes.length && typeof cq.notes[0] === "string"
+                        ? cq.notes[0].length > 100
+                          ? `${cq.notes[0].slice(0, 100)}…`
+                          : cq.notes[0]
+                        : "—"
                 }
+                muted={Array.isArray(cq?.notes) && cq.notes.length && !(cq?.warnings?.length || cq?.signals?.length)}
               />
             </PanelSection>
             <PanelSection title="Execution edge">

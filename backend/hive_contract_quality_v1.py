@@ -52,11 +52,15 @@ def compute_hive_contract_quality_v1(
 
     if action != "trade":
         return {
-            # N/A for scoring, not an error — guardrails already describe posture.
+            # N/A for scoring — avoid duplicating guardrails/no_trade copy; rank thesis states the rules read.
             "status": "unknown",
             "score": None,
             "signals": [],
-            "warnings": ["no_trade — contract quality not scored (no structure leg)."],
+            "warnings": [],
+            "notes": [
+                "Contract quality not scored while no_trade (no option leg). "
+                "Use Hive rank thesis for the compact rules read; guardrails for posture.",
+            ],
         }
 
     if not struct:

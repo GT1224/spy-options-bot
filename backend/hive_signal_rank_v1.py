@@ -175,22 +175,63 @@ def compute_hive_rank_v1(
 
     if action == "trade" and struct:
         thesis = f"SPY {bias_s or 'mixed'} setup favors a {struct.replace('_', ' ')} — rank {rank_score}/100."
+    elif action == "no_trade":
+        # Mirrors recommended_trade() gates only (score ≥ 75 + directional bias); no new strategy.
+        if bias_s == "neutral":
+            thesis = (
+                f"SPY neutral bias — rules hold no_trade this pulse (setup_score {ss}/100, hive rank {rank_score}/100)."
+            )
+        elif ss < 75:
+            thesis = (
+                f"SPY {bias_s or 'mixed'} — no trade: setup_score {ss}/100 is below the 75 bar "
+                f"used by rules v1 (hive rank {rank_score}/100)."
+            )
+        else:
+            thesis = (
+                f"SPY {bias_s or 'mixed'} — no_trade despite score {ss}/100 (hive rank {rank_score}/100); "
+                f"check snapshot if this looks unexpected."
+            )
     elif bias_s in ("bullish", "bearish"):
         thesis = f"SPY {bias_s} tone ({dir_word}) — no qualified trade this cycle (rank {rank_score}/100)."
     else:
         thesis = f"SPY setup muted — rank {rank_score}/100."
 
-    points = [
-        f"Setup quality +{setup_quality}/40 (from setup_score {ss}).",
-        f"Direction match +{directional_alignment}/20.",
-        f"Momentum +{momentum_alignment}/15 — {mom_note}.",
-        f"Volume +{volume_confirmation}/15 — {vol_note}.",
-        f"Structure +{structure_clarity}/10 — {struct_note}.",
-        f"Freshness +{freshness}/20 — {fresh_note}.",
-    ]
-    if pen_notes:
-        points.extend(pen_notes)
-    points = points[:5]
+    if action == "no_trade":
+        if bias_s == "neutral":
+            gate_lines = [
+                f"Trade gate: neutral bias — rules do not emit long_call/long_put (setup_score {ss}/100).",
+            ]
+        elif ss < 75:
+            gate_lines = [
+                f"Trade gate: setup_score {ss}/100 is under the 75 minimum for a directional recommendation.",
+            ]
+        else:
+            gate_lines = [
+                f"Trade gate: no_trade with score {ss}/100 — verify bias/structure in the raw pulse if unclear.",
+            ]
+        points = [
+            f"Setup quality +{setup_quality}/40 (from setup_score {ss}).",
+            *gate_lines,
+            f"Direction match +{directional_alignment}/20.",
+            f"Momentum +{momentum_alignment}/15 — {mom_note}.",
+            f"Volume +{volume_confirmation}/15 — {vol_note}.",
+            f"Freshness +{freshness}/20 — {fresh_note}.",
+        ]
+        if pen_notes:
+            points.extend(pen_notes)
+        points = points[:5]
+    else:
+        points = [
+            f"Setup quality +{setup_quality}/40 (from setup_score {ss}).",
+            f"Direction match +{directional_alignment}/20.",
+            f"Momentum +{momentum_alignment}/15 — {mom_note}.",
+            f"Volume +{volume_confirmation}/15 — {vol_note}.",
+            f"Structure +{structure_clarity}/10 — {struct_note}.",
+            f"Freshness +{freshness}/20 — {fresh_note}.",
+        ]
+        if pen_notes:
+            points.extend(pen_notes)
+        points = points[:5]
 
     return {
         "rank_score": rank_score,
