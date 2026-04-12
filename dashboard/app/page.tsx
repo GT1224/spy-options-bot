@@ -46,6 +46,9 @@ const HIVE_UI = {
   calloutSuppressed: { bg: "rgba(140,60,60,0.14)", border: "rgba(180,90,90,0.42)", text: "#f0d4d4" },
   calloutHold: { bg: "rgba(200,140,40,0.12)", border: "rgba(210,150,50,0.42)", text: "#ffe8c8" },
   errorBanner: { bg: "rgba(255,120,120,0.12)", border: "#a34c4c", text: "#ffd8d8" },
+  /** HIVE-VIS-1A — command deck chrome (amber tactical shell only). */
+  surfaceCommand: "linear-gradient(180deg, rgba(22,18,10,0.95) 0%, rgba(10,9,6,0.98) 100%)",
+  railAccent: "#c9a227",
 } as const;
 
 export default function Page() {
@@ -191,7 +194,31 @@ export default function Page() {
 [data-hive-dashboard] button:focus-visible {
   outline: 2px solid #ffd55c;
   outline-offset: 2px;
-}`,
+}
+.hive-shell { max-width: 1240px; margin: 0 auto; }
+.hive-cockpit {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: 1fr;
+  margin-bottom: 20px;
+}
+@media (min-width: 1100px) {
+  .hive-cockpit { grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); align-items: start; }
+}
+.hive-live-deck {
+  border-left: 3px solid #c9a227;
+  box-shadow: inset 1px 0 0 rgba(255,213,92,0.08);
+}
+.hive-signal-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 960px) {
+  .hive-signal-grid { grid-template-columns: 1fr 1fr; }
+  .hive-signal-span { grid-column: 1 / -1; }
+}
+.hive-signal-col { min-width: 0; }`,
         }}
       />
       <main
@@ -204,15 +231,16 @@ export default function Page() {
           padding: HIVE_UI.spaceLg,
         }}
       >
-      <div style={{ maxWidth: 1180, margin: "0 auto" }}>
+      <div className="hive-shell">
         <section
           style={{
             background: HIVE_UI.surfaceHero,
             border: `1px solid ${HIVE_UI.borderHero}`,
+            borderTop: `3px solid ${HIVE_UI.accent}`,
             borderRadius: HIVE_UI.rXl,
             padding: HIVE_UI.spaceXl,
             marginBottom: HIVE_UI.spaceLg,
-            boxShadow: HIVE_UI.shadowCard,
+            boxShadow: `${HIVE_UI.shadowCard}, inset 0 1px 0 rgba(255,213,92,0.12)`,
           }}
         >
           <div style={{ display: "flex", gap: HIVE_UI.spaceLg, alignItems: "center", flexWrap: "wrap" }}>
@@ -315,48 +343,140 @@ export default function Page() {
           </div>
         ) : null}
 
-        <section style={{ display: "flex", gap: HIVE_UI.spaceSm, flexWrap: "wrap", marginBottom: HIVE_UI.spaceLg }}>
-          <HiveButton onClick={loadAll} label="Refresh Hive" />
-          <HiveButton onClick={runCycle} label="Pulse Cycle" />
-          <HiveButton onClick={startBot} label="Launch Bees" />
-          <HiveButton onClick={stopBot} label="Recall Bees" />
-          <HiveButton onClick={enableTrading} label="Arm Hive" />
-          <HiveButton onClick={disableTrading} label="Disarm Hive" />
-          <HiveButton onClick={() => setAutoRefresh(!autoRefresh)} label={autoRefresh ? "Auto Swarm On" : "Auto Swarm Off"} active={autoRefresh} />
-        </section>
-
         <section
           style={{
-            background: HIVE_UI.surfaceLive,
-            border: `1px solid ${HIVE_UI.borderPanel}`,
-            borderRadius: HIVE_UI.rXl,
-            padding: HIVE_UI.spaceLg,
+            background: HIVE_UI.surfaceCommand,
+            border: `1px solid ${HIVE_UI.borderDeep}`,
+            borderRadius: HIVE_UI.rLg,
+            padding: HIVE_UI.spaceMd,
             marginBottom: HIVE_UI.spaceLg,
             boxShadow: HIVE_UI.shadowSoft,
           }}
         >
           <div
             style={{
-              fontSize: HIVE_UI.liveTitle.fontSize,
-              fontWeight: HIVE_UI.liveTitle.fontWeight,
-              letterSpacing: HIVE_UI.liveTitle.letterSpacing,
-              color: HIVE_UI.accent,
+              fontSize: HIVE_UI.overline.fontSize,
+              letterSpacing: HIVE_UI.overline.letterSpacing,
+              fontWeight: HIVE_UI.overline.fontWeight,
+              color: HIVE_UI.textSection,
+              textTransform: "uppercase",
               marginBottom: HIVE_UI.spaceSm,
             }}
           >
-            Hive Live View
+            Swarm controls
           </div>
-          <OrbitHive cards={cards} autoRefresh={autoRefresh} running={running} />
+          <div style={{ display: "flex", gap: HIVE_UI.spaceSm, flexWrap: "wrap" }}>
+            <HiveButton onClick={loadAll} label="Refresh Hive" />
+            <HiveButton onClick={runCycle} label="Pulse Cycle" />
+            <HiveButton onClick={startBot} label="Launch Bees" />
+            <HiveButton onClick={stopBot} label="Recall Bees" />
+            <HiveButton onClick={enableTrading} label="Arm Hive" />
+            <HiveButton onClick={disableTrading} label="Disarm Hive" />
+            <HiveButton onClick={() => setAutoRefresh(!autoRefresh)} label={autoRefresh ? "Auto Swarm On" : "Auto Swarm Off"} active={autoRefresh} />
+          </div>
         </section>
 
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))",
-            gap: HIVE_UI.spaceLg,
-          }}
-        >
-          <Panel title="Signal, gate & trade">
+        <div className="hive-cockpit">
+          <section
+            className="hive-live-deck"
+            style={{
+              background: HIVE_UI.surfaceLive,
+              border: `1px solid ${HIVE_UI.borderPanel}`,
+              borderRadius: HIVE_UI.rXl,
+              padding: HIVE_UI.spaceLg,
+              boxShadow: HIVE_UI.shadowSoft,
+            }}
+          >
+            <div
+              style={{
+                fontSize: HIVE_UI.overline.fontSize,
+                letterSpacing: HIVE_UI.overline.letterSpacing,
+                fontWeight: HIVE_UI.overline.fontWeight,
+                color: HIVE_UI.textSection,
+                textTransform: "uppercase",
+                marginBottom: HIVE_UI.spaceXs,
+              }}
+            >
+              Primary pulse
+            </div>
+            <div
+              style={{
+                fontSize: HIVE_UI.liveTitle.fontSize,
+                fontWeight: HIVE_UI.liveTitle.fontWeight,
+                letterSpacing: HIVE_UI.liveTitle.letterSpacing,
+                color: HIVE_UI.accent,
+                marginBottom: HIVE_UI.spaceSm,
+              }}
+            >
+              Live tactical field
+            </div>
+            <OrbitHive cards={cards} autoRefresh={autoRefresh} running={running} />
+          </section>
+
+          <aside style={{ minWidth: 0 }}>
+            <Panel title="Operator readout" subtitle="Session · lifecycle · book">
+              <PanelSection title="Session & runtime" isFirst>
+                <HiveRow
+                  label="Session (clock · ET)"
+                  value={
+                    regime
+                      ? `${regime.code} · RTH ${regime.market_hours ? "on" : "off"}${typeof regime.detail === "string" && regime.detail.length ? ` — ${regime.detail.length > 72 ? `${regime.detail.slice(0, 72)}…` : regime.detail}` : ""}`
+                      : "—"
+                  }
+                />
+                <HiveRow
+                  label="Lifecycle"
+                  value={
+                    system?.lifecycle_phase
+                      ? `${String(system.lifecycle_phase)}${typeof system.lifecycle_hint === "string" && system.lifecycle_hint.length ? ` — ${system.lifecycle_hint.length > 88 ? `${system.lifecycle_hint.slice(0, 88)}…` : system.lifecycle_hint}` : ""}`
+                      : "—"
+                  }
+                  muted
+                />
+                <HiveRow
+                  label="Last pulse age"
+                  value={
+                    system?.signal_age_seconds !== undefined && system?.signal_age_seconds !== null
+                      ? `${system.signal_age_seconds}s${system?.signal_stale ? " · stale vs operator threshold" : ""}`
+                      : "—"
+                  }
+                  muted={!!system?.signal_stale}
+                />
+                <HiveRow
+                  label="Pending (queue)"
+                  value={
+                    system?.pending_signals_semantics === "broker_orders_only"
+                      ? `${formatVal(system?.pending_signals_count ?? 0)} — broker orders only (none in signal_only)`
+                      : formatVal(system?.pending_signals_count ?? "—")
+                  }
+                  muted
+                />
+                <HiveRow
+                  label="Posture"
+                  value={
+                    typeof system?.operator_posture_hint === "string" && system.operator_posture_hint.length
+                      ? system.operator_posture_hint.length > 100
+                        ? `${system.operator_posture_hint.slice(0, 100)}…`
+                        : system.operator_posture_hint
+                      : "—"
+                  }
+                  muted
+                />
+              </PanelSection>
+              <PanelSection title="Treasury">
+                <HiveRow label="Cash" value={formatVal(perf?.cash ?? fullState?.cash)} />
+                <HiveRow label="Equity" value={formatVal(perf?.equity ?? fullState?.equity)} />
+                <HiveRow label="Daily P&L" value={formatVal(perf?.realized_pnl_today ?? fullState?.realized_pnl_today)} />
+                <HiveRow label="Loss Streak" value={formatVal(perf?.consecutive_losses ?? fullState?.consecutive_losses)} />
+              </PanelSection>
+            </Panel>
+          </aside>
+        </div>
+
+        <section style={{ marginBottom: HIVE_UI.spaceLg }}>
+          <Panel title="Signal intelligence" subtitle="Rank · gate · execution discipline · trade leg">
+            <div className="hive-signal-grid">
+              <div className="hive-signal-col">
             <PanelSection title="Rank" isFirst>
               <HiveRow
                 label="Hive rank"
@@ -445,7 +565,9 @@ export default function Page() {
                 muted
               />
             </PanelSection>
-            <PanelSection title="Contract quality">
+              </div>
+              <div className="hive-signal-col">
+            <PanelSection title="Contract quality" isFirst>
               <HiveRow label="Status" value={formatVal(cq?.status)} emphasized />
               <HiveRow
                 label="Score"
@@ -500,6 +622,8 @@ export default function Page() {
                 <HiveRow label="Delta" value={formatVal(recommended?.delta)} muted={gateSuppressed} />
               </div>
             </PanelSection>
+              </div>
+              <div className="hive-signal-span">
             <PanelSection title="In-process context (this run only)">
               <HiveRow
                 label="Signal memory"
@@ -518,64 +642,13 @@ export default function Page() {
                 }
               />
             </PanelSection>
-          </Panel>
-
-          <Panel title="Hive Treasury">
-            <HiveRow
-              label="Session (clock · ET)"
-              value={
-                regime
-                  ? `${regime.code} · RTH ${regime.market_hours ? "on" : "off"}${typeof regime.detail === "string" && regime.detail.length ? ` — ${regime.detail.length > 72 ? `${regime.detail.slice(0, 72)}…` : regime.detail}` : ""}`
-                  : "—"
-              }
-            />
-            <HiveRow
-              label="Lifecycle"
-              value={
-                system?.lifecycle_phase
-                  ? `${String(system.lifecycle_phase)}${typeof system.lifecycle_hint === "string" && system.lifecycle_hint.length ? ` — ${system.lifecycle_hint.length > 88 ? `${system.lifecycle_hint.slice(0, 88)}…` : system.lifecycle_hint}` : ""}`
-                  : "—"
-              }
-              muted
-            />
-            <HiveRow
-              label="Last pulse age"
-              value={
-                system?.signal_age_seconds !== undefined && system?.signal_age_seconds !== null
-                  ? `${system.signal_age_seconds}s${system?.signal_stale ? " · stale vs operator threshold" : ""}`
-                  : "—"
-              }
-              muted={!!system?.signal_stale}
-            />
-            <HiveRow
-              label="Pending (queue)"
-              value={
-                system?.pending_signals_semantics === "broker_orders_only"
-                  ? `${formatVal(system?.pending_signals_count ?? 0)} — broker orders only (none in signal_only)`
-                  : formatVal(system?.pending_signals_count ?? "—")
-              }
-              muted
-            />
-            <HiveRow
-              label="Posture"
-              value={
-                typeof system?.operator_posture_hint === "string" && system.operator_posture_hint.length
-                  ? system.operator_posture_hint.length > 100
-                    ? `${system.operator_posture_hint.slice(0, 100)}…`
-                    : system.operator_posture_hint
-                  : "—"
-              }
-              muted
-            />
-            <HiveRow label="Cash" value={formatVal(perf?.cash ?? fullState?.cash)} />
-            <HiveRow label="Equity" value={formatVal(perf?.equity ?? fullState?.equity)} />
-            <HiveRow label="Daily P&L" value={formatVal(perf?.realized_pnl_today ?? fullState?.realized_pnl_today)} />
-            <HiveRow label="Loss Streak" value={formatVal(perf?.consecutive_losses ?? fullState?.consecutive_losses)} />
+              </div>
+            </div>
           </Panel>
         </section>
 
         <section style={{ marginTop: HIVE_UI.spaceLg }}>
-          <Panel title="Bee Log">
+          <Panel title="Bee log" subtitle="In-process activity stream (this worker only)">
             <div
               style={{
                 background: "rgba(0,0,0,0.25)",
@@ -1010,7 +1083,7 @@ function HoneyHex({ label, value, featured = false }: { label: string; value: st
   );
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+function Panel({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
     <div
       style={{
@@ -1019,12 +1092,13 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
         borderRadius: HIVE_UI.rLg,
         padding: HIVE_UI.spaceMd,
         boxShadow: HIVE_UI.shadowLift,
+        borderTop: `2px solid ${HIVE_UI.railAccent}`,
       }}
     >
       <h2
         style={{
           marginTop: 0,
-          marginBottom: HIVE_UI.spaceMd,
+          marginBottom: subtitle ? HIVE_UI.spaceXs : HIVE_UI.spaceMd,
           color: HIVE_UI.accent,
           fontSize: HIVE_UI.panelTitle.fontSize,
           fontWeight: HIVE_UI.panelTitle.fontWeight,
@@ -1033,6 +1107,19 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
       >
         {title}
       </h2>
+      {subtitle ? (
+        <div
+          style={{
+            fontSize: 12,
+            color: HIVE_UI.textMuted,
+            letterSpacing: "0.04em",
+            marginBottom: HIVE_UI.spaceMd,
+            lineHeight: 1.4,
+          }}
+        >
+          {subtitle}
+        </div>
+      ) : null}
       {children}
     </div>
   );
