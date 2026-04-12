@@ -208,28 +208,28 @@ export default function Page() {
 .hive-topbar {
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
-  padding: 13px 17px;
+  padding: 10px 14px;
   border: 1px solid ${HIVE_UI.border};
-  border-radius: 16px;
+  border-radius: 14px;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)),
-    linear-gradient(180deg, #0a0d12, #090b10);
+    linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0.006)),
+    linear-gradient(180deg, #090c11, #080a0e);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.04),
-    0 18px 50px rgba(0,0,0,0.3);
+    inset 0 1px 0 rgba(255,255,255,0.032),
+    0 12px 40px rgba(0,0,0,0.38);
 }
 .hive-topbar-left {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 11px;
   min-width: 0;
 }
 .hive-topbar-meta {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
 }
 .hive-topbar-kickers {
@@ -240,16 +240,16 @@ export default function Page() {
 }
 .hive-hero-theater {
   position: relative;
-  margin-top: 16px;
+  margin-top: 14px;
   min-height: min(48vh, 500px);
   max-height: 528px;
-  border-radius: 22px;
+  border-radius: 20px;
   border: 1px solid ${HIVE_UI.borderStrong};
   overflow: hidden;
   background: #010101;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.035),
-    0 32px 90px rgba(0,0,0,0.58);
+    inset 0 1px 0 rgba(255,255,255,0.032),
+    0 28px 82px rgba(0,0,0,0.55);
 }
 .hive-hero-theater::before {
   content: "";
@@ -290,7 +290,7 @@ export default function Page() {
     inset 0 0 0 1px rgba(255,255,255,0.06),
     inset 0 0 90px rgba(0,0,0,0.28),
     inset 0 0 200px rgba(0,0,0,0.38);
-  border-radius: 22px;
+  border-radius: 20px;
 }
 .hive-hero-chrome-top {
   position: absolute;
@@ -314,22 +314,35 @@ export default function Page() {
 }
 .hive-stage-shell {
   position: relative;
-  margin-top: 10px;
+  margin-top: 7px;
   border: 1px solid ${HIVE_UI.borderStrong};
-  border-radius: 22px;
+  border-radius: 20px;
   background:
     ${HIVE_UI.stageGlow},
-    linear-gradient(180deg, rgba(255,255,255,0.016), rgba(255,255,255,0.003)),
-    linear-gradient(180deg, #06080c 0%, #030405 100%);
+    linear-gradient(180deg, rgba(255,255,255,0.014), rgba(255,255,255,0.002)),
+    linear-gradient(180deg, #05070b 0%, #020304 100%);
   overflow: hidden;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.03),
-    0 24px 64px rgba(0,0,0,0.5);
+    inset 0 1px 0 rgba(255,255,255,0.028),
+    0 20px 56px rgba(0,0,0,0.52);
+}
+.hive-stage-shell::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 8%;
+  right: 8%;
+  height: 1px;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(199,154,49,0.22), transparent);
+  opacity: 0.9;
 }
 .hive-stage-shell::before {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: 0;
   background:
     linear-gradient(90deg, rgba(255,255,255,0.024), rgba(255,255,255,0) 16%, rgba(255,255,255,0) 84%, rgba(255,255,255,0.017)),
     linear-gradient(180deg, rgba(255,255,255,0.012), rgba(255,255,255,0));
@@ -340,40 +353,47 @@ export default function Page() {
   z-index: 2;
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 12px;
+  gap: 10px;
   align-items: end;
-  padding: 16px 20px 0;
+  padding: 13px 17px 0;
 }
 .hive-stage-body {
   position: relative;
   z-index: 1;
   display: grid;
   grid-template-columns: minmax(200px, 244px) minmax(0, 1fr);
-  gap: 14px;
-  padding: 14px 14px 16px;
+  gap: 12px;
+  padding: 12px 13px 14px;
   align-items: stretch;
 }
 .hive-tactical-deck {
   min-width: 0;
-  border: 1px solid ${HIVE_UI.border};
-  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.095);
+  border-left: 2px solid rgba(199,154,49,0.38);
+  border-radius: 15px;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.032), rgba(255,255,255,0.008)),
-    linear-gradient(180deg, #0a0d12, #07090e);
-  padding: 14px 16px 16px;
+    linear-gradient(180deg, rgba(255,255,255,0.028), rgba(255,255,255,0.005)),
+    linear-gradient(180deg, #0b0e14, #07090d);
+  padding: 12px 14px 14px;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.04),
-    0 10px 36px rgba(0,0,0,0.28);
+    inset 0 1px 0 rgba(255,255,255,0.038),
+    0 8px 32px rgba(0,0,0,0.32);
 }
 .hive-deck-grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 11px;
 }
 .hive-deck-mini-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.hive-signal-grid--tight {
   gap: 10px;
+}
+.hive-diagnostics-slab {
+  opacity: 0.98;
 }
 @media (max-width: 1100px) {
   .hive-deck-grid-2 {
@@ -390,40 +410,41 @@ export default function Page() {
 }
 .hive-rail-card {
   border: 1px solid ${HIVE_UI.borderDeep};
-  border-radius: 14px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.028), rgba(255,255,255,0.012));
-  padding: 13px;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.022);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0.008));
+  padding: 11px 12px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.018);
 }
 .hive-rail-title {
-  margin: 0 0 8px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
+  margin: 0 0 7px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: ${HIVE_UI.textMuted};
 }
 .hive-command-rail {
-  margin-top: 12px;
+  margin-top: 10px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 8px;
-  padding: 10px 12px;
-  border: 1px solid ${HIVE_UI.border};
-  border-radius: 14px;
-  background: linear-gradient(180deg, #090c11, #080a0e);
+  gap: 5px 6px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,0.065);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #080b10, #06080c);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
 }
 .hive-lower-grid {
-  margin-top: 14px;
+  margin-top: 12px;
   display: grid;
   grid-template-columns: 1.05fr 1.2fr;
-  gap: 14px;
+  gap: 12px;
 }
 .hive-stack {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 .hive-signal-grid {
   display: grid;
@@ -473,7 +494,7 @@ export default function Page() {
           background: `linear-gradient(180deg, ${HIVE_UI.bgTop} 0%, ${HIVE_UI.bg} 35%, #010102 100%)`,
           color: HIVE_UI.text,
           fontFamily: HIVE_UI.font,
-          padding: "16px 16px 30px",
+          padding: "14px 15px 26px",
         }}
       >
         <div className="hive-shell">
@@ -481,10 +502,10 @@ export default function Page() {
             <div className="hive-topbar-left">
               <div
                 style={{
-                  width: 52,
-                  height: 52,
+                  width: 48,
+                  height: 48,
                   position: "relative",
-                  borderRadius: 14,
+                  borderRadius: 12,
                   background:
                     "linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))",
                   border: `1px solid ${HIVE_UI.border}`,
@@ -504,10 +525,10 @@ export default function Page() {
               <div className="hive-topbar-meta">
                 <div
                   style={{
-                    fontSize: 10,
-                    letterSpacing: "0.24em",
-                    fontWeight: 700,
-                    color: HIVE_UI.textMuted,
+                    fontSize: 9,
+                    letterSpacing: "0.26em",
+                    fontWeight: 800,
+                    color: HIVE_UI.textDim,
                     textTransform: "uppercase",
                   }}
                 >
@@ -524,10 +545,10 @@ export default function Page() {
                   <h1
                     style={{
                       margin: 0,
-                      fontSize: 26,
+                      fontSize: 24,
                       lineHeight: 1,
                       fontWeight: 800,
-                      letterSpacing: "0.22em",
+                      letterSpacing: "0.2em",
                       color: HIVE_UI.text,
                     }}
                   >
@@ -535,9 +556,10 @@ export default function Page() {
                   </h1>
                   <span
                     style={{
-                      fontSize: 12,
+                      fontSize: 11,
                       color: HIVE_UI.textMuted,
-                      letterSpacing: "0.08em",
+                      letterSpacing: "0.07em",
+                      lineHeight: 1.35,
                     }}
                   >
                     Mechanical swarm intelligence for SPY volatility trading
@@ -556,7 +578,7 @@ export default function Page() {
                 style={{
                   display: "flex",
                   flexWrap: "wrap",
-                  gap: 6,
+                  gap: 5,
                   alignItems: "center",
                 }}
               >
@@ -715,10 +737,10 @@ export default function Page() {
                 >
                   <div
                     style={{
-                      fontSize: 30,
+                      fontSize: 28,
                       lineHeight: 1,
                       fontWeight: 800,
-                      letterSpacing: "0.12em",
+                      letterSpacing: "0.11em",
                       color: HIVE_UI.text,
                     }}
                   >
@@ -726,9 +748,9 @@ export default function Page() {
                   </div>
                   <div
                     style={{
-                      fontSize: 11,
-                      letterSpacing: "0.24em",
-                      fontWeight: 700,
+                      fontSize: 10,
+                      letterSpacing: "0.26em",
+                      fontWeight: 800,
                       color: HIVE_UI.accent,
                     }}
                   >
@@ -893,12 +915,14 @@ export default function Page() {
           <div className="hive-lower-grid">
             <div className="hive-stack">
               <Panel
+                variant="diagnostics"
                 title="Extended diagnostics"
                 subtitle="Secondary depth · operator deck above"
+                className="hive-diagnostics-slab"
               >
-                <div className="hive-signal-grid">
+                <div className="hive-signal-grid hive-signal-grid--tight">
                   <div>
-                    <PanelSection title="Rationale detail" isFirst>
+                    <PanelSection title="Rationale detail" isFirst subdued>
                       <HiveRow
                         label="Supporting notes"
                         value={
@@ -910,7 +934,7 @@ export default function Page() {
                       />
                     </PanelSection>
 
-                    <PanelSection title="Guardrails">
+                    <PanelSection title="Guardrails" subdued>
                       <HiveRow
                         label="Triggered rules"
                         value={
@@ -932,7 +956,7 @@ export default function Page() {
                   </div>
 
                   <div>
-                    <PanelSection title="Contract signals · notes" isFirst>
+                    <PanelSection title="Contract signals · notes" isFirst subdued>
                       <HiveRow
                         label="Signals"
                         value={
@@ -958,7 +982,7 @@ export default function Page() {
                       />
                     </PanelSection>
 
-                    <PanelSection title="Execution blockers (full)">
+                    <PanelSection title="Execution blockers (full)" subdued>
                       <HiveRow
                         label="Blockers"
                         value={
@@ -971,7 +995,7 @@ export default function Page() {
                   </div>
 
                   <div className="hive-signal-span">
-                    <PanelSection title="In-process context (this run only)">
+                    <PanelSection title="In-process context (this run only)" subdued>
                       <HiveRow
                         label="Signal memory"
                         value={
@@ -1017,7 +1041,11 @@ export default function Page() {
             </div>
 
             <div className="hive-stack">
-              <Panel title="Bee log" subtitle="In-process activity stream (this worker only)">
+              <Panel
+                variant="diagnostics"
+                title="Bee log"
+                subtitle="In-process activity stream (this worker only)"
+              >
                 <div
                   style={{
                     background: "linear-gradient(180deg, #06080b, #040507)",
@@ -1140,50 +1168,50 @@ function TacticalFieldDeck({
   const recActionEmph = gatePromoted && recommended?.action === "trade";
 
   const miniCard = {
-    border: `1px solid ${HIVE_UI.borderDeep}`,
-    borderRadius: 12,
-    padding: "10px 12px",
-    background: "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.014))",
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.028)",
+    border: `1px solid rgba(255,255,255,0.055)`,
+    borderRadius: 10,
+    padding: "9px 11px",
+    background: "linear-gradient(180deg, rgba(255,255,255,0.026), rgba(0,0,0,0.1))",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.02)",
     minWidth: 0,
   } as const;
 
   const miniTitle = {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: 800,
-    letterSpacing: "0.2em",
-    color: HIVE_UI.textMuted,
+    letterSpacing: "0.22em",
+    color: HIVE_UI.textDim,
     textTransform: "uppercase" as const,
-    marginBottom: 8,
+    marginBottom: 7,
   } as const;
 
   return (
     <div>
       <div
         style={{
-          paddingBottom: 14,
-          marginBottom: 14,
-          borderBottom: `1px solid ${HIVE_UI.border}`,
+          paddingBottom: 12,
+          marginBottom: 13,
+          borderBottom: `1px solid rgba(255,255,255,0.09)`,
         }}
       >
         <div
           style={{
-            fontSize: 20,
+            fontSize: 21,
             fontWeight: 800,
-            letterSpacing: "0.1em",
+            letterSpacing: "0.11em",
             color: HIVE_UI.text,
-            marginBottom: 6,
+            marginBottom: 5,
           }}
         >
           {postureTitle}
         </div>
         <div
           style={{
-            fontSize: 13,
-            lineHeight: 1.45,
+            fontSize: 12,
+            lineHeight: 1.48,
             color: HIVE_UI.textSoft,
-            marginBottom: 10,
-            maxWidth: "62ch",
+            marginBottom: 9,
+            maxWidth: "60ch",
           }}
         >
           {postureSub}
@@ -1192,12 +1220,12 @@ function TacticalFieldDeck({
           style={{
             display: "flex",
             flexWrap: "wrap",
-            gap: "8px 16px",
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: "0.12em",
+            gap: "6px 14px",
+            fontSize: 10,
+            fontWeight: 800,
+            letterSpacing: "0.14em",
             textTransform: "uppercase",
-            color: HIVE_UI.textMuted,
+            color: HIVE_UI.textDim,
           }}
         >
           <span>Last cycle {lastCycle}</span>
@@ -1243,24 +1271,26 @@ function TacticalFieldDeck({
         </div>
       ) : null}
 
-      <div className="hive-deck-grid-2" style={{ marginBottom: 14 }}>
+      <div className="hive-deck-grid-2" style={{ marginBottom: 12 }}>
         <div
           style={{
-            border: `1px solid ${HIVE_UI.borderDeep}`,
-            borderRadius: 14,
-            padding: "12px 14px",
-            background: "linear-gradient(180deg, rgba(199,154,49,0.06), rgba(0,0,0,0.12))",
-            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.035)",
+            border: `1px solid rgba(199,154,49,0.28)`,
+            borderRadius: 11,
+            padding: "11px 13px",
+            background: "linear-gradient(180deg, rgba(199,154,49,0.085), rgba(0,0,0,0.16))",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
           }}
         >
-          <div style={{ ...miniTitle, color: "#c9a24a", marginBottom: 10 }}>Top signal · leg</div>
+          <div style={{ ...miniTitle, color: "#c9a24a", marginBottom: 8, letterSpacing: "0.2em" }}>
+            Top signal · leg
+          </div>
           <div
             style={{
-              fontSize: recActionEmph ? 22 : 19,
+              fontSize: recActionEmph ? 23 : 20,
               fontWeight: 800,
               color: recActionEmph ? "#f1deb0" : HIVE_UI.text,
-              marginBottom: 12,
-              letterSpacing: "0.04em",
+              marginBottom: 10,
+              letterSpacing: "0.045em",
             }}
           >
             {formatVal(recommended?.action)}
@@ -1273,13 +1303,13 @@ function TacticalFieldDeck({
         <div
           style={{
             border: `1px solid ${HIVE_UI.borderDeep}`,
-            borderRadius: 14,
-            padding: "12px 14px",
-            background: "linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01))",
-            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+            borderRadius: 11,
+            padding: "11px 13px",
+            background: "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.14))",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.022)",
           }}
         >
-          <div style={{ ...miniTitle, marginBottom: 10 }}>Market · setup</div>
+          <div style={{ ...miniTitle, marginBottom: 8 }}>Market · setup</div>
           <HiveRow
             label="Spot"
             value={formatVal(signal?.spot)}
@@ -1301,27 +1331,27 @@ function TacticalFieldDeck({
         </div>
       </div>
 
-      <div className="hive-deck-mini-row" style={{ marginBottom: 14 }}>
+      <div className="hive-deck-mini-row" style={{ marginBottom: 12 }}>
         <div style={miniCard}>
           <div style={miniTitle}>Contract quality</div>
-          <div style={{ fontSize: 14, fontWeight: 800, color: HIVE_UI.text }}>{cqLine}</div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: HIVE_UI.textSoft }}>{cqLine}</div>
         </div>
         <div style={miniCard}>
           <div style={miniTitle}>Execution edge</div>
-          <div style={{ fontSize: 14, fontWeight: 800, color: HIVE_UI.text }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: HIVE_UI.textSoft }}>
             {formatVal(edge?.status)} · score{" "}
             {edge?.score !== undefined && edge?.score !== null ? String(edge.score) : "—"}
           </div>
-          <div style={{ fontSize: 12, color: HIVE_UI.textMuted, marginTop: 6, lineHeight: 1.4 }}>
+          <div style={{ fontSize: 11, color: HIVE_UI.textDim, marginTop: 5, lineHeight: 1.4 }}>
             Blockers: {edgeBlock}
           </div>
         </div>
         <div style={miniCard}>
           <div style={miniTitle}>Guard · gate</div>
-          <div style={{ fontSize: 14, fontWeight: 800, color: HIVE_UI.text }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: HIVE_UI.textSoft }}>
             {guard?.status ? `${guard.status}${guard.actionable ? " · act" : ""}` : "—"} · {gateShort}
           </div>
-          <div style={{ fontSize: 12, color: HIVE_UI.textMuted, marginTop: 6, lineHeight: 1.4 }}>
+          <div style={{ fontSize: 11, color: HIVE_UI.textDim, marginTop: 5, lineHeight: 1.4 }}>
             {promo && typeof promo.reason === "string" && promo.reason.length
               ? promo.reason.length > 120
                 ? `${promo.reason.slice(0, 120)}…`
@@ -1334,14 +1364,14 @@ function TacticalFieldDeck({
       <div
         style={{
           border: `1px solid ${HIVE_UI.borderDeep}`,
-          borderRadius: 14,
-          padding: "12px 14px",
-          background: "linear-gradient(180deg, rgba(255,255,255,0.022), rgba(0,0,0,0.08))",
-          marginBottom: thesis ? 12 : 0,
+          borderRadius: 11,
+          padding: "11px 13px",
+          background: "linear-gradient(180deg, rgba(255,255,255,0.018), rgba(0,0,0,0.1))",
+          marginBottom: thesis ? 10 : 0,
         }}
       >
-        <div style={{ ...miniTitle, marginBottom: 8 }}>Cycle delta · blockers</div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: HIVE_UI.textSoft, lineHeight: 1.5 }}>
+        <div style={{ ...miniTitle, marginBottom: 7 }}>Cycle delta · blockers</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: HIVE_UI.textSoft, lineHeight: 1.5 }}>
           {deltaLine}
         </div>
         {guardRules ? (
@@ -1406,10 +1436,10 @@ function MetricKicker({
   return (
     <div
       style={{
-        minWidth: 76,
-        border: `1px solid ${accent ? HIVE_UI.accentLine : HIVE_UI.border}`,
-        borderRadius: 10,
-        padding: "6px 9px",
+        minWidth: 72,
+        border: `1px solid ${accent ? HIVE_UI.accentLine : "rgba(255,255,255,0.065)"}`,
+        borderRadius: 8,
+        padding: "5px 8px",
         background: accent
           ? "linear-gradient(180deg, rgba(199,154,49,0.11), rgba(199,154,49,0.04))"
           : "linear-gradient(180deg, rgba(255,255,255,0.028), rgba(255,255,255,0.012))",
@@ -1461,7 +1491,7 @@ function RailRow({
         justifyContent: "space-between",
         gap: 12,
         alignItems: "flex-start",
-        padding: "10px 0",
+        padding: "8px 0",
         borderBottom: `1px solid ${HIVE_UI.borderDeep}`,
       }}
     >
@@ -1507,11 +1537,11 @@ function StatusPill({
 }) {
   const base = {
     borderRadius: 999,
-    padding: dense ? "4px 9px" : "7px 12px",
-    fontSize: dense ? 10.5 : 12,
+    padding: dense ? "3px 8px" : "7px 12px",
+    fontSize: dense ? 10 : 12,
     fontWeight: 700,
-    letterSpacing: dense ? "0.02em" : "0.03em",
-    lineHeight: dense ? 1.25 : 1.3,
+    letterSpacing: dense ? "0.015em" : "0.03em",
+    lineHeight: dense ? 1.22 : 1.3,
     transition: HIVE_UI.motion,
   };
 
@@ -1564,8 +1594,8 @@ function StatusPill({
     <div
       style={{
         ...base,
-        background: active ? HIVE_UI.goodSoft : "rgba(255,255,255,0.03)",
-        border: active ? `1px solid ${HIVE_UI.good}` : `1px solid ${HIVE_UI.border}`,
+        background: active ? HIVE_UI.goodSoft : "rgba(255,255,255,0.02)",
+        border: active ? `1px solid ${HIVE_UI.good}` : `1px solid rgba(255,255,255,0.065)`,
         color: active ? "#dcffe3" : HIVE_UI.textSoft,
       }}
     >
@@ -1598,10 +1628,10 @@ function HiveButton({
         color: active ? "#f1deb0" : HIVE_UI.textSoft,
         border: active ? `1px solid ${HIVE_UI.accentLine}` : `1px solid ${HIVE_UI.border}`,
         borderRadius: compact ? 999 : 12,
-        padding: compact ? "6px 11px" : "11px 14px",
+        padding: compact ? "5px 10px" : "11px 14px",
         fontWeight: 700,
-        fontSize: compact ? 10 : 12,
-        letterSpacing: compact ? "0.07em" : "0.08em",
+        fontSize: compact ? 9.5 : 12,
+        letterSpacing: compact ? "0.065em" : "0.08em",
         textTransform: "uppercase" as const,
         boxShadow: active ? activeShadow : restShadow,
         cursor: "pointer",
@@ -1637,21 +1667,29 @@ function Panel({
   title,
   subtitle,
   children,
+  variant = "default",
+  className,
 }: {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
+  variant?: "default" | "diagnostics";
+  className?: string;
 }) {
+  const isDiag = variant === "diagnostics";
   return (
     <div
+      className={className}
       style={{
-        background:
-          "linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.01)), linear-gradient(180deg, #0b0e13, #090b10)",
-        border: `1px solid ${HIVE_UI.border}`,
-        borderRadius: 16,
-        padding: 14,
-        boxShadow:
-          "inset 0 1px 0 rgba(255,255,255,0.03), 0 10px 30px rgba(0,0,0,0.24)",
+        background: isDiag
+          ? "linear-gradient(180deg, rgba(255,255,255,0.012), rgba(0,0,0,0.04)), linear-gradient(180deg, #080a0e, #050608)"
+          : "linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.01)), linear-gradient(180deg, #0b0e13, #090b10)",
+        border: `1px solid ${isDiag ? HIVE_UI.borderDeep : HIVE_UI.border}`,
+        borderRadius: isDiag ? 14 : 16,
+        padding: isDiag ? 12 : 14,
+        boxShadow: isDiag
+          ? "inset 0 1px 0 rgba(255,255,255,0.018), 0 6px 22px rgba(0,0,0,0.2)"
+          : "inset 0 1px 0 rgba(255,255,255,0.03), 0 10px 30px rgba(0,0,0,0.24)",
       }}
     >
       <div
@@ -1661,16 +1699,16 @@ function Panel({
           alignItems: "baseline",
           justifyContent: "space-between",
           gap: 8,
-          marginBottom: subtitle ? 10 : 8,
+          marginBottom: subtitle ? (isDiag ? 8 : 10) : isDiag ? 6 : 8,
         }}
       >
         <h2
           style={{
             margin: 0,
-            color: HIVE_UI.text,
-            fontSize: 12,
+            color: isDiag ? HIVE_UI.textSoft : HIVE_UI.text,
+            fontSize: isDiag ? 11 : 12,
             fontWeight: 800,
-            letterSpacing: "0.16em",
+            letterSpacing: isDiag ? "0.14em" : "0.16em",
             textTransform: "uppercase",
           }}
         >
@@ -1679,9 +1717,9 @@ function Panel({
         {subtitle ? (
           <div
             style={{
-              fontSize: 10,
-              color: HIVE_UI.textMuted,
-              letterSpacing: "0.12em",
+              fontSize: isDiag ? 9 : 10,
+              color: isDiag ? HIVE_UI.textDim : HIVE_UI.textMuted,
+              letterSpacing: isDiag ? "0.1em" : "0.12em",
               lineHeight: 1.45,
               textTransform: "uppercase",
             }}
@@ -1699,23 +1737,25 @@ function PanelSection({
   title,
   children,
   isFirst,
+  subdued = false,
 }: {
   title: string;
   children: React.ReactNode;
   isFirst?: boolean;
+  subdued?: boolean;
 }) {
   return (
-    <div style={{ marginTop: isFirst ? 0 : 14 }}>
+    <div style={{ marginTop: isFirst ? 0 : subdued ? 11 : 14 }}>
       <div
         style={{
-          fontSize: 10,
-          letterSpacing: "0.18em",
+          fontSize: subdued ? 9 : 10,
+          letterSpacing: subdued ? "0.16em" : "0.18em",
           fontWeight: 800,
-          color: HIVE_UI.textMuted,
+          color: subdued ? HIVE_UI.textDim : HIVE_UI.textMuted,
           textTransform: "uppercase",
-          marginBottom: 10,
-          borderBottom: `1px solid ${HIVE_UI.border}`,
-          paddingBottom: 8,
+          marginBottom: subdued ? 8 : 10,
+          borderBottom: `1px solid ${subdued ? HIVE_UI.borderDeep : HIVE_UI.border}`,
+          paddingBottom: subdued ? 6 : 8,
         }}
       >
         {title}
@@ -1749,7 +1789,7 @@ function HiveRow({
         display: "flex",
         justifyContent: "space-between",
         gap: 14,
-        padding: "10px 0",
+        padding: "8px 0",
         borderBottom: `1px solid ${HIVE_UI.borderDeep}`,
       }}
     >
