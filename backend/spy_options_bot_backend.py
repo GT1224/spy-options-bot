@@ -28,6 +28,8 @@ from alpaca_paper_v1 import (
     AlpacaPaperError,
     load_paper_credentials,
     read_paper_portfolio_snapshot,
+    submit_spy_equity_order,
+    validate_client_order_id,
 )
 
 # Operator-facing stale threshold (must match hive_contract_v1.system_state.freshness.signal_stale_after_ms).
@@ -38,6 +40,9 @@ BROKER_SYNC_TTL_SECONDS = 45.0
 BROKER_MIN_ATTEMPT_INTERVAL_SECONDS = 12.0
 
 _broker_sync_lock = threading.Lock()
+# H1B: serialize manual paper submits + idempotency deque (maxlen in deque ctor).
+_paper_order_lock = threading.Lock()
+_paper_client_order_ids: deque[str] = deque(maxlen=500)
 
 load_dotenv()
 
@@ -94,6 +99,7 @@ state: dict[str, Any] = {
         "enabled": False,
         "use_live_alpaca": False,
         "alpaca_paper_enabled": False,
+        "paper_max_qty": 25,
         "poll_seconds": 10,
     },
 }
@@ -117,6 +123,18 @@ def _reset_demo_portfolio_after_alpaca_off() -> None:
     state["broker_last_sync_ok"] = False
     state["broker_last_error"] = None
     state["broker_open_orders_count"] = 0
+    _paper_client_order_ids.clear()
+
+
+def _spy_net_qty_from_open_position(op: Any) -> float | None:
+    if op is None or not isinstance(op, dict):
+        return None
+    if str(op.get("symbol", "")).upper() != "SPY":
+        return None
+    try:
+        return float(op.get("qty"))
+    except (TypeError, ValueError):
+        return None
 
 
 def maybe_sync_alpaca_paper(*, force: bool) -> None:
@@ -753,6 +771,140 @@ def paper_sync():
     return {"ok": True, "error": None}
 
 
+@app.post("/paper/order")
+def paper_order(payload: dict[str, Any]):
+    """Manual Alpaca paper equity order — SPY only. Admin auth. H1B."""
+    cfg = state.get("config") or {}
+    if not bool(cfg.get("alpaca_paper_enabled")):
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": "alpaca_paper_enabled is false"},
+        )
+    key_id, secret = load_paper_credentials()
+    if not key_id or not secret:
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": "missing ALPACA_PAPER_KEY_ID or ALPACA_PAPER_SECRET_KEY"},
+        )
+
+    if not isinstance(payload, dict):
+        return JSONResponse(status_code=400, content={"ok": False, "error": "JSON object body required"})
+
+    sym = str(payload.get("symbol") or "SPY").strip().upper()
+    if sym != "SPY":
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": "symbol must be SPY (equity only in this build)"},
+        )
+
+    side_raw = payload.get("side")
+    if not isinstance(side_raw, str) or not side_raw.strip():
+        return JSONResponse(status_code=400, content={"ok": False, "error": "side is required (buy or sell)"})
+    side = side_raw.strip().lower()
+    if side not in ("buy", "sell"):
+        return JSONResponse(status_code=400, content={"ok": False, "error": "side must be buy or sell"})
+
+    qty_raw = payload.get("qty")
+    try:
+        qty = int(qty_raw)
+    except (TypeError, ValueError):
+        return JSONResponse(status_code=400, content={"ok": False, "error": "qty must be a positive integer"})
+    if qty < 1:
+        return JSONResponse(status_code=400, content={"ok": False, "error": "qty must be at least 1"})
+
+    try:
+        max_q = int(cfg.get("paper_max_qty", 25))
+    except (TypeError, ValueError):
+        max_q = 25
+    max_q = max(1, min(500, max_q))
+    if qty > max_q:
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": f"qty exceeds paper_max_qty ({max_q})"},
+        )
+
+    ot_raw = payload.get("order_type") or payload.get("type")
+    if not isinstance(ot_raw, str) or not ot_raw.strip():
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": "order_type is required (market or limit)"},
+        )
+    order_type = ot_raw.strip().lower()
+    if order_type not in ("market", "limit"):
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": "order_type must be market or limit"},
+        )
+
+    limit_price: float | None = None
+    if order_type == "limit":
+        lp = payload.get("limit_price")
+        try:
+            limit_price = float(lp)
+        except (TypeError, ValueError):
+            return JSONResponse(
+                status_code=400,
+                content={"ok": False, "error": "limit_price required for limit orders"},
+            )
+        if limit_price <= 0:
+            return JSONResponse(
+                status_code=400,
+                content={"ok": False, "error": "limit_price must be positive"},
+            )
+
+    cid_raw = payload.get("client_order_id")
+    if cid_raw is None:
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": "client_order_id is required"},
+        )
+    cid_err = validate_client_order_id(str(cid_raw).strip())
+    if cid_err:
+        return JSONResponse(status_code=400, content={"ok": False, "error": cid_err})
+    client_order_id = str(cid_raw).strip()
+
+    net = _spy_net_qty_from_open_position(state.get("open_position"))
+    if side == "buy" and net is not None and net > 1e-9:
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": "buy rejected - SPY position already open (no stacking in H1B)"},
+        )
+    if side == "sell" and (net is None or net <= 1e-9):
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": "sell rejected - no SPY long position to reduce"},
+        )
+
+    with _paper_order_lock:
+        if client_order_id in _paper_client_order_ids:
+            return JSONResponse(
+                status_code=409,
+                content={"ok": False, "error": "duplicate client_order_id in local idempotency window"},
+            )
+        try:
+            out = submit_spy_equity_order(
+                key_id,
+                secret,
+                side=side,
+                qty=qty,
+                order_type=order_type,
+                limit_price=limit_price,
+                client_order_id=client_order_id,
+            )
+        except AlpacaPaperError as e:
+            log(f"alpaca paper order failed ({type(e).__name__})")
+            return JSONResponse(
+                status_code=502,
+                content={"ok": False, "error": str(e)[:240]},
+            )
+        _paper_client_order_ids.append(client_order_id)
+
+    log("alpaca paper order submitted")
+    maybe_sync_alpaca_paper(force=True)
+    oid = out.get("id")
+    return {"ok": True, "error": None, "order_id": oid, "client_order_id": client_order_id}
+
+
 @app.post("/bot/start")
 async def start_bot():
     if state["running"]:
@@ -795,6 +947,12 @@ def update_config(patch: dict):
             except (TypeError, ValueError):
                 continue
             state["config"][k] = max(1, min(3600, n))
+        elif k == "paper_max_qty":
+            try:
+                n = int(v)
+            except (TypeError, ValueError):
+                continue
+            state["config"][k] = max(1, min(500, n))
         elif k in ("enabled", "use_live_alpaca", "alpaca_paper_enabled"):
             state["config"][k] = bool(v)
         else:

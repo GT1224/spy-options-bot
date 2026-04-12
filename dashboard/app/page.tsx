@@ -49,6 +49,11 @@ export default function Page() {
   const [fullState, setFullState] = useState<any>(null);
   const [error, setError] = useState("");
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [paperSide, setPaperSide] = useState<"buy" | "sell">("buy");
+  const [paperQty, setPaperQty] = useState<string>("1");
+  const [paperOrderType, setPaperOrderType] = useState<"market" | "limit">("market");
+  const [paperLimit, setPaperLimit] = useState<string>("");
+  const [paperCid, setPaperCid] = useState<string>("");
 
   async function apiCall(path: string, method = "GET", body?: any) {
     const res = await fetch(`${API}${path}`, {
@@ -122,6 +127,46 @@ export default function Page() {
       await loadAll();
     } catch (err: any) {
       const msg = err?.message || "Broker sync failed";
+      setError(msg);
+      await loadAll();
+    }
+  }
+
+  function genPaperCid() {
+    const raw =
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID().replace(/-/g, "")
+        : `${Date.now()}${Math.random().toString(16).slice(2, 12)}`;
+    setPaperCid(`h${raw}`.slice(0, 48));
+  }
+
+  async function submitPaperOrder() {
+    const qty = parseInt(paperQty, 10);
+    if (!Number.isFinite(qty) || qty < 1) {
+      setError("Paper order: qty must be a positive integer");
+      return;
+    }
+    const body: Record<string, unknown> = {
+      symbol: "SPY",
+      side: paperSide,
+      qty,
+      order_type: paperOrderType,
+      client_order_id: paperCid.trim(),
+    };
+    if (paperOrderType === "limit") {
+      const lp = parseFloat(paperLimit);
+      if (!Number.isFinite(lp) || lp <= 0) {
+        setError("Paper order: limit_price must be a positive number");
+        return;
+      }
+      body.limit_price = lp;
+    }
+    try {
+      setError("");
+      await apiCall("/paper/order", "POST", body);
+      await loadAll();
+    } catch (err: any) {
+      const msg = err?.message || "Paper order failed";
       setError(msg);
       await loadAll();
     }
@@ -1030,6 +1075,151 @@ export default function Page() {
               active={autoRefresh}
             />
           </div>
+
+          {fullState?.config?.alpaca_paper_enabled ? (
+            <div
+              style={{
+                marginTop: 14,
+                padding: "12px 14px",
+                borderRadius: 14,
+                border: `1px solid ${HIVE_UI.border}`,
+                background: HIVE_UI.panel,
+                maxWidth: 720,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 9,
+                  letterSpacing: "0.2em",
+                  fontWeight: 800,
+                  color: HIVE_UI.textMuted,
+                  textTransform: "uppercase",
+                  marginBottom: 8,
+                }}
+              >
+                Paper manual order
+              </div>
+              <div style={{ fontSize: 11, color: HIVE_UI.textSoft, marginBottom: 10, lineHeight: 1.45 }}>
+                Alpaca paper · SPY equity only · manual submit (not from signal). Buys blocked while a SPY long is
+                open; sells only reduce an existing long.
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  alignItems: "center",
+                }}
+              >
+                <label style={{ fontSize: 11, color: HIVE_UI.textMuted }}>
+                  Side{" "}
+                  <select
+                    value={paperSide}
+                    onChange={(e) => setPaperSide(e.target.value as "buy" | "sell")}
+                    style={{
+                      marginLeft: 4,
+                      background: HIVE_UI.shell2,
+                      color: HIVE_UI.text,
+                      border: `1px solid ${HIVE_UI.border}`,
+                      borderRadius: 8,
+                      padding: "4px 8px",
+                    }}
+                  >
+                    <option value="buy">buy</option>
+                    <option value="sell">sell</option>
+                  </select>
+                </label>
+                <label style={{ fontSize: 11, color: HIVE_UI.textMuted }}>
+                  Qty{" "}
+                  <input
+                    value={paperQty}
+                    onChange={(e) => setPaperQty(e.target.value)}
+                    inputMode="numeric"
+                    style={{
+                      width: 56,
+                      marginLeft: 4,
+                      background: HIVE_UI.shell2,
+                      color: HIVE_UI.text,
+                      border: `1px solid ${HIVE_UI.border}`,
+                      borderRadius: 8,
+                      padding: "4px 8px",
+                    }}
+                  />
+                </label>
+                <label style={{ fontSize: 11, color: HIVE_UI.textMuted }}>
+                  Type{" "}
+                  <select
+                    value={paperOrderType}
+                    onChange={(e) => setPaperOrderType(e.target.value as "market" | "limit")}
+                    style={{
+                      marginLeft: 4,
+                      background: HIVE_UI.shell2,
+                      color: HIVE_UI.text,
+                      border: `1px solid ${HIVE_UI.border}`,
+                      borderRadius: 8,
+                      padding: "4px 8px",
+                    }}
+                  >
+                    <option value="market">market</option>
+                    <option value="limit">limit</option>
+                  </select>
+                </label>
+                {paperOrderType === "limit" ? (
+                  <label style={{ fontSize: 11, color: HIVE_UI.textMuted }}>
+                    Limit{" "}
+                    <input
+                      value={paperLimit}
+                      onChange={(e) => setPaperLimit(e.target.value)}
+                      inputMode="decimal"
+                      placeholder="0.00"
+                      style={{
+                        width: 88,
+                        marginLeft: 4,
+                        background: HIVE_UI.shell2,
+                        color: HIVE_UI.text,
+                        border: `1px solid ${HIVE_UI.border}`,
+                        borderRadius: 8,
+                        padding: "4px 8px",
+                      }}
+                    />
+                  </label>
+                ) : null}
+                <label
+                  style={{
+                    fontSize: 11,
+                    color: HIVE_UI.textMuted,
+                    flex: "1 1 200px",
+                    minWidth: 0,
+                  }}
+                >
+                  Client order ID{" "}
+                  <input
+                    value={paperCid}
+                    onChange={(e) => setPaperCid(e.target.value)}
+                    placeholder="required"
+                    style={{
+                      width: "min(100%, 220px)",
+                      marginLeft: 4,
+                      background: HIVE_UI.shell2,
+                      color: HIVE_UI.text,
+                      border: `1px solid ${HIVE_UI.border}`,
+                      borderRadius: 8,
+                      padding: "4px 8px",
+                    }}
+                  />
+                </label>
+                <HiveButton compact onClick={genPaperCid} label="Gen ID" />
+                <HiveButton
+                  compact
+                  onClick={() => {
+                    void submitPaperOrder();
+                  }}
+                  label="Submit paper"
+                  active
+                />
+              </div>
+            </div>
+          ) : null}
 
           <div className="hive-lower-grid">
             <div className="hive-stack">

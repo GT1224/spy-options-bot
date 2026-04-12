@@ -1,12 +1,14 @@
 """
-HIVE H1A — Alpaca paper trading API read-only client.
+HIVE H1A/H1B — Alpaca paper trading API client (read + minimal SPY equity submit).
 
 Hard-locked paper host only. No live routing, no env base URL override.
 """
 
 from __future__ import annotations
 
+import json
 import os
+import re
 from typing import Any
 
 import requests
@@ -19,6 +21,10 @@ _ENV_SECRET = "ALPACA_PAPER_SECRET_KEY"
 
 # (connect timeout, read timeout) — keep GET /state responsive.
 DEFAULT_TIMEOUT = (1.5, 2.5)
+# Submit can be slightly slower than read-only snapshots.
+SUBMIT_TIMEOUT = (1.5, 5.0)
+
+_CLIENT_ORDER_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,48}$")
 
 
 class AlpacaPaperError(Exception):
@@ -58,6 +64,88 @@ def _get_json(path: str, key_id: str, secret: str, timeout: tuple[float, float])
         return r.json()
     except ValueError as e:
         raise AlpacaPaperError("broker returned non-JSON") from e
+
+
+def _post_json(
+    path: str,
+    key_id: str,
+    secret: str,
+    payload: dict[str, Any],
+    timeout: tuple[float, float],
+) -> dict[str, Any]:
+    url = f"{ALPACA_PAPER_BASE_URL}{path}"
+    try:
+        r = requests.post(
+            url,
+            headers={**_headers(key_id, secret), "Content-Type": "application/json"},
+            data=json.dumps(payload),
+            timeout=timeout,
+        )
+    except requests.RequestException as e:
+        raise AlpacaPaperError(f"broker request failed ({type(e).__name__})") from e
+
+    if r.status_code >= 400:
+        raise AlpacaPaperError(f"broker HTTP {r.status_code}")
+
+    try:
+        data = r.json()
+    except ValueError as e:
+        raise AlpacaPaperError("broker returned non-JSON") from e
+    if not isinstance(data, dict):
+        raise AlpacaPaperError("broker order payload invalid")
+    return data
+
+
+def validate_client_order_id(client_order_id: str) -> str | None:
+    """Returns error message if invalid, else None."""
+    if not isinstance(client_order_id, str) or not client_order_id.strip():
+        return "client_order_id is required"
+    cid = client_order_id.strip()
+    if not _CLIENT_ORDER_ID_RE.match(cid):
+        return "client_order_id must be 1–48 chars: letters, digits, underscore, hyphen"
+    return None
+
+
+def submit_spy_equity_order(
+    key_id: str,
+    secret: str,
+    *,
+    side: str,
+    qty: int,
+    order_type: str,
+    limit_price: float | None,
+    client_order_id: str,
+    timeout: tuple[float, float] = SUBMIT_TIMEOUT,
+) -> dict[str, Any]:
+    """
+    POST /v2/orders — SPY stock only (equity). No options / multi-leg.
+    """
+    su = side.lower().strip()
+    if su not in ("buy", "sell"):
+        raise AlpacaPaperError("side must be buy or sell")
+    ot = order_type.lower().strip()
+    if ot not in ("market", "limit"):
+        raise AlpacaPaperError("order_type must be market or limit")
+    if qty < 1:
+        raise AlpacaPaperError("qty must be positive")
+    err = validate_client_order_id(client_order_id)
+    if err:
+        raise AlpacaPaperError(err)
+
+    body: dict[str, Any] = {
+        "symbol": "SPY",
+        "qty": str(int(qty)),
+        "side": su,
+        "type": ot,
+        "time_in_force": "day",
+        "client_order_id": client_order_id.strip(),
+    }
+    if ot == "limit":
+        if limit_price is None or limit_price <= 0:
+            raise AlpacaPaperError("limit_price required and positive for limit orders")
+        body["limit_price"] = f"{float(limit_price):.4f}"
+
+    return _post_json("/v2/orders", key_id, secret, body, timeout)
 
 
 def fetch_account(key_id: str, secret: str, timeout: tuple[float, float] = DEFAULT_TIMEOUT) -> dict[str, Any]:
