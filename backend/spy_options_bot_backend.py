@@ -554,6 +554,7 @@ async def auth_middleware(request: Request, call_next):
     return await call_next(request)
 
 
+# Ops: always-on worker required for this loop — see HIVE_RUNTIME_CONTRACT.md (repo root).
 async def bot_loop():
     log("bot started")
 
