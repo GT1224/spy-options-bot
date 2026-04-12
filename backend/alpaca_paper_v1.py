@@ -21,6 +21,8 @@ _ENV_SECRET = "ALPACA_PAPER_SECRET_KEY"
 
 # (connect timeout, read timeout) — keep GET /state responsive.
 DEFAULT_TIMEOUT = (1.5, 2.5)
+# Mandatory broker read before paper submit admission (H3) — tight bounds, fail closed.
+PAPER_ORDER_PREFLIGHT_TIMEOUT = (1.0, 2.5)
 # Submit can be slightly slower than read-only snapshots.
 SUBMIT_TIMEOUT = (1.5, 5.0)
 
@@ -239,7 +241,8 @@ def read_paper_portfolio_snapshot(
 ) -> dict[str, Any]:
     """
     Fetches account + positions + open orders from paper API.
-    Returns dict: cash, equity, open_position (SPY or None), unrealized_pnl, open_orders_count.
+    Returns dict: cash, equity, open_position (SPY or None), unrealized_pnl, open_orders_count,
+    spy_open_order_count (open working orders for symbol SPY).
     """
     acct = fetch_account(key_id, secret, timeout)
     pos = fetch_positions(key_id, secret, timeout)
@@ -255,10 +258,17 @@ def read_paper_portfolio_snapshot(
     upl = sum_unrealized_pl(pos)
     op = aggregate_spy_equity_position(pos)
 
+    spy_open_order_count = sum(
+        1
+        for o in orders
+        if isinstance(o, dict) and str(o.get("symbol", "")).upper() == "SPY"
+    )
+
     return {
         "cash": round(cash, 2),
         "equity": round(equity, 2),
         "open_position": op,
         "unrealized_pnl": upl,
         "open_orders_count": len(orders),
+        "spy_open_order_count": spy_open_order_count,
     }

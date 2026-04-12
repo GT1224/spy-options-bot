@@ -27,6 +27,7 @@ from hive_signal_rank_v1 import compute_hive_rank_v1
 
 from alpaca_paper_v1 import (
     AlpacaPaperError,
+    PAPER_ORDER_PREFLIGHT_TIMEOUT,
     load_paper_credentials,
     read_paper_portfolio_snapshot,
     submit_spy_equity_order,
@@ -902,7 +903,49 @@ def paper_order(payload: dict[str, Any]):
         return JSONResponse(status_code=400, content={"ok": False, "error": cid_err})
     client_order_id = str(cid_raw).strip()
 
-    net = _spy_net_qty_from_open_position(state.get("open_position"))
+    # H3: mandatory broker preflight — admission uses fresh Alpaca truth, not TTL-stale state.
+    try:
+        snap = read_paper_portfolio_snapshot(
+            key_id, secret, timeout=PAPER_ORDER_PREFLIGHT_TIMEOUT
+        )
+    except AlpacaPaperError as e:
+        return JSONResponse(
+            status_code=502,
+            content={"ok": False, "error": f"broker preflight failed: {str(e)[:200]}"},
+        )
+
+    try:
+        spy_open_orders = int(snap["spy_open_order_count"])
+    except (KeyError, TypeError, ValueError):
+        return JSONResponse(
+            status_code=502,
+            content={"ok": False, "error": "broker preflight failed: invalid snapshot"},
+        )
+
+    if spy_open_orders > 0:
+        return JSONResponse(
+            status_code=409,
+            content={
+                "ok": False,
+                "error": "broker preflight: outstanding SPY open orders exist; wait for fills or cancel before submit",
+            },
+        )
+
+    now_pf = datetime.now(timezone.utc)
+    now_iso_pf = now_pf.isoformat()
+    with _broker_sync_lock:
+        state["cash"] = snap["cash"]
+        state["equity"] = snap["equity"]
+        state["open_position"] = snap["open_position"]
+        state["unrealized_pnl"] = snap["unrealized_pnl"]
+        state["broker_open_orders_count"] = int(snap["open_orders_count"])
+        state["broker_last_success_at"] = now_iso_pf
+        state["broker_last_sync_ok"] = True
+        state["broker_last_error"] = None
+        state["performance_source"] = "alpaca_paper"
+        state["broker_last_attempt_at"] = now_iso_pf
+
+    net = _spy_net_qty_from_open_position(snap["open_position"])
     if side == "buy" and net is not None and net > 1e-9:
         return JSONResponse(
             status_code=400,
