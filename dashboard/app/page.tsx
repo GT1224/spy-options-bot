@@ -274,11 +274,11 @@ export default function Page() {
   z-index: 2;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.38) 22%, rgba(0,0,0,0.52) 55%, rgba(0,0,0,0.94) 100%),
-    radial-gradient(ellipse 88% 72% at 50% 44%, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.62) 48%, rgba(0,0,0,0.97) 100%),
-    linear-gradient(118deg, rgba(5,5,6,0.72) 0%, rgba(0,0,0,0) 46%, rgba(8,6,4,0.38) 100%),
-    radial-gradient(ellipse 120% 80% at 78% 18%, rgba(199,154,49,0.07) 0%, rgba(0,0,0,0) 42%);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+    linear-gradient(180deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.36) 22%, rgba(0,0,0,0.52) 55%, rgba(0,0,0,0.94) 100%),
+    radial-gradient(ellipse 82% 68% at 50% 42%, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0.52) 46%, rgba(0,0,0,0.98) 100%),
+    linear-gradient(118deg, rgba(5,5,6,0.68) 0%, rgba(0,0,0,0) 46%, rgba(8,6,4,0.36) 100%),
+    radial-gradient(ellipse 120% 80% at 78% 18%, rgba(199,154,49,0.065) 0%, rgba(0,0,0,0) 42%);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
 }
 .hive-hero-media {
   position: absolute;
@@ -294,7 +294,7 @@ export default function Page() {
   bottom: -11%;
 }
 .hive-hero-media-inner img {
-  filter: saturate(0.86) brightness(0.79) contrast(1.14) hue-rotate(-10deg);
+  filter: saturate(0.88) brightness(0.835) contrast(1.16) hue-rotate(-10deg);
 }
 .hive-hero-theater::after {
   content: "";
@@ -303,8 +303,9 @@ export default function Page() {
   z-index: 3;
   pointer-events: none;
   box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,0.055),
-    inset 0 0 120px rgba(0,0,0,0.35);
+    inset 0 0 0 1px rgba(255,255,255,0.06),
+    inset 0 0 90px rgba(0,0,0,0.28),
+    inset 0 0 200px rgba(0,0,0,0.38);
   border-radius: 22px;
 }
 .hive-hero-chrome-top {
@@ -320,33 +321,33 @@ export default function Page() {
 .hive-hero-caption {
   padding: 11px 16px 13px 14px;
   border-radius: 0 16px 0 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0.58), rgba(0,0,0,0.14));
-  border-left: 2px solid rgba(199,154,49,0.42);
-  box-shadow: 0 18px 48px rgba(0,0,0,0.45);
+  background: linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.12));
+  border-left: 2px solid rgba(199,154,49,0.48);
+  box-shadow: 0 18px 48px rgba(0,0,0,0.48);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
 .hive-stage-shell {
   position: relative;
-  margin-top: 16px;
-  border: 1px solid ${HIVE_UI.border};
+  margin-top: 10px;
+  border: 1px solid ${HIVE_UI.borderStrong};
   border-radius: 22px;
   background:
     ${HIVE_UI.stageGlow},
-    linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.004)),
+    linear-gradient(180deg, rgba(255,255,255,0.016), rgba(255,255,255,0.003)),
     linear-gradient(180deg, #06080c 0%, #030405 100%);
   overflow: hidden;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.028),
-    0 24px 64px rgba(0,0,0,0.48);
+    inset 0 1px 0 rgba(255,255,255,0.03),
+    0 24px 64px rgba(0,0,0,0.5);
 }
 .hive-stage-shell::before {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(255,255,255,0.028), rgba(255,255,255,0) 16%, rgba(255,255,255,0) 84%, rgba(255,255,255,0.02)),
-    linear-gradient(180deg, rgba(255,255,255,0.014), rgba(255,255,255,0));
+    linear-gradient(90deg, rgba(255,255,255,0.024), rgba(255,255,255,0) 16%, rgba(255,255,255,0) 84%, rgba(255,255,255,0.017)),
+    linear-gradient(180deg, rgba(255,255,255,0.012), rgba(255,255,255,0));
   pointer-events: none;
 }
 .hive-stage-header {
@@ -1317,8 +1318,8 @@ function OrbitHive({
             width: 236,
             height: 236,
             zIndex: 2,
-            opacity: 0.34,
-            filter: "saturate(0.55) brightness(0.78)",
+            opacity: 0.44,
+            filter: "saturate(0.72) brightness(0.88)",
             pointerEvents: "none",
           }}
           aria-hidden="true"
@@ -1343,8 +1344,8 @@ function OrbitHive({
             style={{
               width: 200,
               height: 200,
-              opacity: 0.34,
-              filter: "saturate(0.55) brightness(0.78)",
+              opacity: 0.44,
+              filter: "saturate(0.72) brightness(0.88)",
             }}
             aria-hidden="true"
           >
@@ -1429,8 +1430,8 @@ function MechanicalHive({
         <svg viewBox="0 0 300 300" width="100%" height="100%" aria-hidden="true">
           <defs>
             <radialGradient id={gGlow} cx="50%" cy="50%" r="55%">
-              <stop offset="0%" stopColor={HIVE_UI.accent} stopOpacity="0.35" />
-              <stop offset="55%" stopColor={HIVE_UI.accent} stopOpacity="0.08" />
+              <stop offset="0%" stopColor={HIVE_UI.accent} stopOpacity="0.38" />
+              <stop offset="55%" stopColor={HIVE_UI.accent} stopOpacity="0.1" />
               <stop offset="100%" stopColor="#000000" stopOpacity="0" />
             </radialGradient>
           </defs>
@@ -1439,7 +1440,7 @@ function MechanicalHive({
             cy="150"
             r="118"
             fill="none"
-            stroke="rgba(255,255,255,0.06)"
+            stroke="rgba(255,255,255,0.09)"
             strokeWidth="1"
             strokeDasharray="5 14"
           />
@@ -1448,21 +1449,21 @@ function MechanicalHive({
             cy="150"
             r="78"
             fill="none"
-            stroke="rgba(199,154,49,0.22)"
+            stroke="rgba(199,154,49,0.32)"
             strokeWidth="1"
             strokeDasharray="3 10"
           />
-          <circle cx="150" cy="150" r="46" fill={`url(#${gGlow})`} opacity="0.85" />
+          <circle cx="150" cy="150" r="46" fill={`url(#${gGlow})`} opacity="0.88" />
           <circle
             cx="150"
             cy="150"
             r="22"
-            fill="#06080c"
+            fill="#07090e"
             stroke={HIVE_UI.accent}
-            strokeWidth="1.4"
-            opacity="0.95"
+            strokeWidth="1.55"
+            opacity="0.97"
           />
-          <circle cx="150" cy="150" r="6" fill="#020203" opacity="0.9" />
+          <circle cx="150" cy="150" r="6" fill="#030305" opacity="0.92" />
         </svg>
       </div>
     );
