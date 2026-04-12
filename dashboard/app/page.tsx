@@ -115,6 +115,28 @@ export default function Page() {
     await loadAll();
   }
 
+  async function enablePaperBroker() {
+    try {
+      setError("");
+      await apiCall("/config", "POST", { alpaca_paper_enabled: true });
+      await loadAll();
+    } catch (err: any) {
+      setError(err?.message || "Paper on failed");
+      await loadAll();
+    }
+  }
+
+  async function disablePaperBroker() {
+    try {
+      setError("");
+      await apiCall("/config", "POST", { alpaca_paper_enabled: false });
+      await loadAll();
+    } catch (err: any) {
+      setError(err?.message || "Paper off failed");
+      await loadAll();
+    }
+  }
+
   async function syncBroker() {
     try {
       setError("");
@@ -208,6 +230,16 @@ export default function Page() {
       : "Demo seed (not broker-backed)";
   const brokerStale =
     execSurface === "alpaca_paper_degraded" || !!brokerSync?.stale;
+
+  const paperBrokerEnabled = !!fullState?.config?.alpaca_paper_enabled;
+  const paperBrokerPillText = !paperBrokerEnabled
+    ? "Paper broker: off (signal-only)"
+    : execSurface === "alpaca_paper"
+      ? "Paper broker: connected"
+      : execSurface === "alpaca_paper_degraded"
+        ? "Paper broker: on · sync degraded"
+        : "Paper broker: on · keys missing on API host";
+  const paperBrokerPillActive = paperBrokerEnabled && execSurface === "alpaca_paper";
 
   const signal = top?.setup ?? fullState?.signal_snapshot ?? {};
   const recommended = top?.recommended_trade ?? signal?.recommended_trade ?? {};
@@ -701,6 +733,7 @@ export default function Page() {
                   active={running}
                 />
                 <StatusPill dense text={`Trading ${tradingEnabled ? "Armed" : "Safe"}`} />
+                <StatusPill dense text={paperBrokerPillText} active={paperBrokerPillActive} />
                 <StatusPill dense text={surfacePillText} />
                 <StatusPill dense text={gatePillText} tone={gatePillTone} active={gatePromoted} />
                 <StatusPill
@@ -1058,10 +1091,27 @@ export default function Page() {
             <HiveButton
               compact
               onClick={() => {
+                void enablePaperBroker();
+              }}
+              label="Paper on"
+              disabled={paperBrokerEnabled}
+              active={paperBrokerEnabled}
+            />
+            <HiveButton
+              compact
+              onClick={() => {
+                void disablePaperBroker();
+              }}
+              label="Paper off"
+              disabled={!paperBrokerEnabled}
+            />
+            <HiveButton
+              compact
+              onClick={() => {
                 void syncBroker();
               }}
               label="Sync broker"
-              disabled={!fullState?.config?.alpaca_paper_enabled}
+              disabled={!paperBrokerEnabled}
             />
             <HiveButton
               compact
@@ -1070,6 +1120,39 @@ export default function Page() {
               active={autoRefresh}
             />
           </div>
+
+          {!paperBrokerEnabled ? (
+            <div
+              style={{
+                marginTop: 10,
+                fontSize: 11,
+                color: HIVE_UI.textMuted,
+                lineHeight: 1.45,
+                maxWidth: 720,
+              }}
+            >
+              Paper broker is <strong style={{ color: HIVE_UI.textSoft }}>disarmed</strong> — HIVE stays in
+              signal-only observation. Use <strong>Paper on</strong> to enable Alpaca paper sync and manual SPY submit
+              (requires <code style={{ fontSize: 10 }}>ALPACA_PAPER_KEY_ID</code> and{" "}
+              <code style={{ fontSize: 10 }}>ALPACA_PAPER_SECRET_KEY</code> on the FastAPI server). Does not auto-trade.
+            </div>
+          ) : execSurface === "signal_only" ? (
+            <div
+              style={{
+                marginTop: 10,
+                fontSize: 11,
+                color: HIVE_UI.accent,
+                lineHeight: 1.45,
+                maxWidth: 720,
+              }}
+            >
+              Paper broker is armed but execution surface is still signal-only — set Alpaca paper API keys on the
+              backend process, then use <strong>Sync broker</strong>.{" "}
+              {typeof brokerSync?.error === "string" && brokerSync.error.length
+                ? `(${brokerSync.error.length > 140 ? `${brokerSync.error.slice(0, 140)}…` : brokerSync.error})`
+                : null}
+            </div>
+          ) : null}
 
           {fullState?.config?.alpaca_paper_enabled ? (
             <div
