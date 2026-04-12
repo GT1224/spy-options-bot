@@ -41,6 +41,9 @@ app.add_middleware(
         "https://hive-control-ah90ycp6j-grant-turnbows-projects.vercel.app",
         "https://hive-control-2.vercel.app",
     ],
+    # Preview and branch deploys use *.vercel.app hosts not listed above; without this,
+    # browsers surface cross-origin failures as "Failed to fetch".
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
