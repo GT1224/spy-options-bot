@@ -1,6 +1,9 @@
 """
 HIVE Wave 2 — promotion gate: thin combinator over existing rank, guardrails,
 contract quality, and execution_edge. No new scoring brain, no external data.
+
+Factor tag "execution_pass" means execution_edge.status == "pass" (no execution path / sit out),
+not "the gate passed". Prefer reading promotion_gate.status for operator posture.
 """
 
 from __future__ import annotations
@@ -64,13 +67,14 @@ def compute_hive_promotion_gate_v1(
             "passes_minimum": False,
         }
 
+    # execution_edge.status "pass" => no go (e.g. no_trade); factor id is historical, see module docstring.
     if es == "pass":
         blockers = execution_edge.get("blockers") or []
-        first = blockers[0] if isinstance(blockers, list) and blockers else "Execution path not cleared."
-        tail = first if isinstance(first, str) else "Execution path not cleared."
+        first = blockers[0] if isinstance(blockers, list) and blockers else "Nothing to execute on this snapshot."
+        tail = first if isinstance(first, str) else "Nothing to execute on this snapshot."
         return {
             "status": "suppressed",
-            "reason": f"Suppressed — execution not cleared: {tail}",
+            "reason": f"Suppressed — {tail}",
             "factors": ["execution_pass"],
             "passes_minimum": False,
         }

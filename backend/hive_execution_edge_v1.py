@@ -79,7 +79,7 @@ def compute_hive_execution_edge_v1(
             "score": None,
             "reasons": [],
             "blockers": ["No signal context — execution readiness undefined."],
-            "notes": ["Run Pulse Cycle when the hive has data."],
+            "notes": ["Run Pulse Cycle to refresh snapshot data."],
         }
 
     if action != "trade":
@@ -88,7 +88,7 @@ def compute_hive_execution_edge_v1(
             "score": None,
             "reasons": [],
             "blockers": [
-                "Recommendation is no_trade — nothing to execute (no broker routing in this process).",
+                "no_trade — nothing to execute (signal_only; no broker routing in this process).",
             ],
         }
 

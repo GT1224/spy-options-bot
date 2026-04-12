@@ -52,10 +52,11 @@ def compute_hive_contract_quality_v1(
 
     if action != "trade":
         return {
+            # N/A for scoring, not an error — guardrails already describe posture.
             "status": "unknown",
             "score": None,
             "signals": [],
-            "warnings": ["Recommendation is no_trade — no contract to score."],
+            "warnings": ["no_trade — contract quality not scored (no structure leg)."],
         }
 
     if not struct:

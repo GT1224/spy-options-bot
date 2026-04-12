@@ -9,9 +9,6 @@ from collections import deque
 from datetime import datetime, timezone
 from typing import Any
 
-# Operator-facing stale threshold (aligned with hive_contract_v1.system_state.freshness).
-SIGNAL_STALE_AFTER_MS = 25 * 60 * 1000
-
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,6 +23,9 @@ from hive_promotion_gate_v1 import compute_hive_promotion_gate_v1
 from hive_session_regime_v1 import compute_hive_session_regime_v1
 from hive_signal_memory_v1 import compute_hive_signal_memory_v1
 from hive_signal_rank_v1 import compute_hive_rank_v1
+
+# Operator-facing stale threshold (must match hive_contract_v1.system_state.freshness.signal_stale_after_ms).
+SIGNAL_STALE_AFTER_MS = 25 * 60 * 1000
 
 load_dotenv()
 
@@ -53,13 +53,14 @@ _signal_cycle_lock = threading.Lock()
 
 state: dict[str, Any] = {
     "running": False,
-    # Duplicates config["enabled"] for raw /state; kept in sync in update_config only.
+    # Mirrors config["enabled"] for legacy raw /state JSON; authoritative toggle is state["config"]["enabled"].
     "enabled": False,
     "provider_mode": "mock",
     "cash": 15000,
     "equity": 15000,
     "realized_pnl_today": 0,
     "consecutive_losses": 0,
+    # Pulse timestamp (UTC ISO); hive_contract_v1 exposes the same instant as system_state.last_cycle_at.
     "last_loop_at": None,
     "signal_cycle_count": 0,
     "recent_signal_flow": [],
@@ -289,7 +290,11 @@ def _derive_direction_from_trade(trade: dict[str, Any], bias: str | None) -> str
 
 
 def build_hive_contract_v1() -> dict[str, Any]:
-    """Wave-1 HIVE contract: FastAPI-owned JSON for Next.js (no external services)."""
+    """Wave-1 HIVE contract: FastAPI-owned JSON for Next.js (no external services).
+
+    Raw /state still uses last_loop_at; hive_contract_v1.system_state.last_cycle_at is the same clock for operators.
+    top_signal.warnings duplicates guardrails.warnings for simple consumers that only read top_signal.
+    """
     snap = state.get("signal_snapshot") or {}
     cfg = state.get("config") or {}
     trade = snap.get("recommended_trade") or {}
@@ -447,6 +452,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "mode": "live" if use_live else "paper",
             "execution_surface": "signal_only",
             "provider_mode": state.get("provider_mode"),
+            # Same instant as raw state["last_loop_at"] (operator-facing name).
             "last_cycle_at": state.get("last_loop_at"),
             # Broker order queue only (always zero in this stack); not “pending hive ideas”.
             "pending_signals_count": 0,
@@ -479,6 +485,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "cycle_delta": cycle_delta,
             "recommended_trade": trade,
             "setup": setup_payload,
+            # Denormalized from guardrails.warnings (identical list).
             "warnings": list(guardrails.get("warnings") or []),
         },
         "market_intel": {
@@ -493,6 +500,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "consecutive_losses": state.get("consecutive_losses"),
             "unrealized_pnl": None,
         },
+        # Hints for UIs/docs only — not enforced when serializing the contract.
         "ui_visibility": {
             "core": [
                 "system_state",

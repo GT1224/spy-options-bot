@@ -84,11 +84,11 @@ def compute_hive_guardrails_v1(
 
     if action == "no_trade" or not struct:
         triggered.append("no_qualified_trade")
-        warnings.append("Recommended action is no_trade or structure is missing.")
+        warnings.append("No qualified trade leg (no_trade or missing structure).")
 
     if age is None and spot is not None:
         triggered.append("unknown_freshness")
-        warnings.append("Cannot assess signal age (no last_cycle_at).")
+        warnings.append("Cannot assess signal age — pulse timestamp missing.")
     elif age is not None:
         if age > 3600:
             triggered.append("stale_signal_severe")
