@@ -31,6 +31,7 @@ from alpaca_paper_v1 import (
     compact_paper_order_observability,
     load_paper_credentials,
     read_paper_portfolio_snapshot,
+    reconcile_paper_order_observability,
     submit_spy_equity_order,
     validate_client_order_id,
 )
@@ -227,6 +228,10 @@ def maybe_sync_alpaca_paper(*, force: bool) -> None:
             state["broker_last_sync_ok"] = True
             state["broker_last_error"] = None
             state["performance_source"] = "alpaca_paper"
+            last_obs = state.get("last_paper_order_observability")
+            oo = snap.get("open_orders")
+            if isinstance(last_obs, dict) and isinstance(oo, list):
+                state["last_paper_order_observability"] = reconcile_paper_order_observability(last_obs, oo)
             log("alpaca paper broker sync ok")
         except AlpacaPaperError as e:
             state["broker_last_sync_ok"] = False
@@ -1010,6 +1015,10 @@ def paper_order(payload: dict[str, Any]):
     oid = out.get("id")
     obs = compact_paper_order_observability(out) if isinstance(out, dict) else None
     if isinstance(obs, dict):
+        obs["snapshot_freshness"] = "SUBMIT SNAPSHOT"
+        obs["truth_note"] = (
+            "Captured from Alpaca submit response; reconciles on the next successful broker read (GET /state, Sync broker, or post-submit sync)."
+        )
         state["last_paper_order_observability"] = obs
     return {
         "ok": True,

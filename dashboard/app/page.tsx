@@ -16,6 +16,7 @@ type PaperOrderObservability = {
   side?: string | null;
   order_type?: string | null;
   broker_status?: string | null;
+  prior_broker_status?: string | null;
   hive_lifecycle_label?: string | null;
   qty?: number | null;
   filled_qty?: number | null;
@@ -24,6 +25,8 @@ type PaperOrderObservability = {
   filled_at?: string | null;
   canceled_at?: string | null;
   expired_at?: string | null;
+  snapshot_freshness?: string | null;
+  truth_note?: string | null;
 };
 
 function formatHiveObsTime(iso: string | null | undefined): string {
@@ -1449,6 +1452,16 @@ export default function Page() {
                   >
                     <span
                       style={{
+                        fontSize: 9,
+                        fontWeight: 800,
+                        letterSpacing: "0.14em",
+                        color: HIVE_UI.textDim,
+                      }}
+                    >
+                      {paperOrderObs.snapshot_freshness ?? "STALE / LAST KNOWN"}
+                    </span>
+                    <span
+                      style={{
                         fontSize: 10,
                         fontWeight: 800,
                         letterSpacing: "0.12em",
@@ -1462,6 +1475,13 @@ export default function Page() {
                         Alpaca:{" "}
                         <span style={{ color: HIVE_UI.textSoft }}>
                           {String(paperOrderObs.broker_status)}
+                        </span>
+                      </span>
+                    ) : paperOrderObs.prior_broker_status ? (
+                      <span style={{ color: HIVE_UI.textMuted }}>
+                        Last known Alpaca status:{" "}
+                        <span style={{ color: HIVE_UI.textSoft }}>
+                          {String(paperOrderObs.prior_broker_status)}
                         </span>
                       </span>
                     ) : null}
@@ -1526,9 +1546,14 @@ export default function Page() {
                       : "—"}
                   </div>
                   <div style={{ marginTop: 6, fontSize: 9, color: HIVE_UI.textDim, lineHeight: 1.4 }}>
-                    Broker snapshot from the submit response (stale after fills/cancels). Use{" "}
-                    <strong style={{ color: HIVE_UI.textMuted }}>Sync broker</strong>, pending count above, or Alpaca
-                    for live state. <strong style={{ color: HIVE_UI.textMuted }}>Accepted / working ≠ filled.</strong>
+                    {paperOrderObs.truth_note ? (
+                      <>
+                        {paperOrderObs.truth_note}{" "}
+                      </>
+                    ) : null}
+                    <strong style={{ color: HIVE_UI.textMuted }}>Sync broker</strong> or load{" "}
+                    <strong style={{ color: HIVE_UI.textMuted }}>/state</strong> reconciles against Alpaca open orders
+                    (no extra polling). <strong style={{ color: HIVE_UI.textMuted }}>Accepted / working ≠ filled.</strong>
                   </div>
                 </div>
               ) : null}

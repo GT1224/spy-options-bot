@@ -220,6 +220,63 @@ def compact_paper_order_observability(raw: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def reconcile_paper_order_observability(
+    last: dict[str, Any],
+    open_orders: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """
+    Re-read-only: match last manual paper order to Alpaca open orders from an existing snapshot fetch.
+    Never infers FILLED; if absent from open list, label truthfully as not open (terminal state unknown).
+    """
+    oid = last.get("order_id")
+    cid = last.get("client_order_id")
+    match: dict[str, Any] | None = None
+    for o in open_orders:
+        if not isinstance(o, dict):
+            continue
+        if oid is not None and str(o.get("id") or "") == str(oid):
+            match = o
+            break
+        if cid is not None and str(o.get("client_order_id") or "") == str(cid):
+            match = o
+            break
+
+    if match is not None:
+        out = compact_paper_order_observability(match)
+        out["snapshot_freshness"] = "REFRESHED FROM OPEN ORDERS"
+        out["truth_note"] = (
+            "Row matched Alpaca open orders on the last broker read; still working until Alpaca shows a terminal state."
+        )
+        return out
+
+    prior = last.get("broker_status")
+    if prior is None:
+        prior = last.get("prior_broker_status")
+
+    return {
+        "order_id": last.get("order_id"),
+        "client_order_id": last.get("client_order_id"),
+        "symbol": last.get("symbol"),
+        "side": last.get("side"),
+        "order_type": last.get("order_type"),
+        "broker_status": None,
+        "prior_broker_status": prior,
+        "hive_lifecycle_label": "NOT IN OPEN ORDERS",
+        "qty": last.get("qty"),
+        "filled_qty": last.get("filled_qty"),
+        "filled_avg_price": last.get("filled_avg_price"),
+        "submitted_at": last.get("submitted_at"),
+        "filled_at": last.get("filled_at"),
+        "canceled_at": last.get("canceled_at"),
+        "expired_at": last.get("expired_at"),
+        "snapshot_freshness": "NOT IN OPEN ORDERS",
+        "truth_note": (
+            "This order ID is not on Alpaca's open-order list after the last broker read. "
+            "That does not prove a fill; it may be filled, canceled, expired, or otherwise closed; confirm in Alpaca."
+        ),
+    }
+
+
 def fetch_account(key_id: str, secret: str, timeout: tuple[float, float] = DEFAULT_TIMEOUT) -> dict[str, Any]:
     data = _get_json("/v2/account", key_id, secret, timeout)
     if not isinstance(data, dict):
@@ -341,4 +398,6 @@ def read_paper_portfolio_snapshot(
         "unrealized_pnl": upl,
         "open_orders_count": len(orders),
         "spy_open_order_count": spy_open_order_count,
+        # Same GET as open_orders_count — exposed only for in-process reconcile (no extra broker round-trip).
+        "open_orders": orders,
     }
