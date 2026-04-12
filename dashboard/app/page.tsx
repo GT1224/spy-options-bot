@@ -3,12 +3,8 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 
-const API = (
-  (typeof process.env.NEXT_PUBLIC_API_URL === "string"
-    ? process.env.NEXT_PUBLIC_API_URL.trim()
-    : "") || "http://127.0.0.1:8000"
-).replace(/\/+$/, "");
-const ADMIN_KEY = "mysecret123";
+/** Same-origin BFF — admin key never in the browser (H2). */
+const HIVE_API = "/api/hive";
 
 type PillTone = "neutral" | "promoted" | "hold" | "suppressed";
 
@@ -56,11 +52,10 @@ export default function Page() {
   const [paperCid, setPaperCid] = useState<string>("");
 
   async function apiCall(path: string, method = "GET", body?: any) {
-    const res = await fetch(`${API}${path}`, {
+    const res = await fetch(`${HIVE_API}${path}`, {
       method,
       headers: {
         "Content-Type": "application/json",
-        "x-bot-admin-key": ADMIN_KEY,
       },
       body: body ? JSON.stringify(body) : undefined,
     });
@@ -76,7 +71,7 @@ export default function Page() {
   async function loadAll() {
     try {
       setError("");
-      const healthRes = await fetch(`${API}/health`);
+      const healthRes = await fetch(`${HIVE_API}/health`);
       const healthData = await healthRes.json();
       const stateData = await apiCall("/state");
       setHealth(healthData);
@@ -89,7 +84,7 @@ export default function Page() {
         );
       setError(
         looksNetwork
-          ? `${msg} — set NEXT_PUBLIC_API_URL in dashboard/.env.local to your bot API origin (no trailing slash) and restart next dev.`
+          ? `${msg} — ensure FastAPI is running and dashboard/.env.local sets HIVE_API_ORIGIN (e.g. http://127.0.0.1:8000) and BOT_ADMIN_KEY (min 32 chars, match backend); restart next dev.`
           : msg
       );
     }
