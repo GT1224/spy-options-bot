@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 
 const API = (
@@ -184,22 +184,6 @@ export default function Page() {
           : "neutral";
   const guardPillActive = guard?.status === "viable" && !!guard?.actionable;
 
-  const cards = useMemo(
-    () => [
-      { label: "Spot", value: signal.spot, featured: true },
-      { label: "Bias", value: signal.bias, featured: true },
-      { label: "Score", value: signal.setup_score, featured: true },
-      { label: "VWAP", value: signal.vwap },
-      { label: "EMA 8", value: signal.ema8 },
-      { label: "EMA 21", value: signal.ema21 },
-      { label: "Volume", value: signal.volume_ratio },
-      { label: "OR High", value: signal.opening_range_high },
-      { label: "OR Low", value: signal.opening_range_low },
-      { label: "Provider", value: health?.provider },
-    ],
-    [signal, health]
-  );
-
   return (
     <>
       <style
@@ -363,10 +347,40 @@ export default function Page() {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr) 280px;
-  gap: 16px;
-  padding: 16px 16px 16px;
+  grid-template-columns: minmax(200px, 238px) minmax(0, 1fr) minmax(200px, 238px);
+  gap: 14px;
+  padding: 14px 14px 16px;
   align-items: stretch;
+}
+.hive-tactical-deck {
+  min-width: 0;
+  border: 1px solid ${HIVE_UI.border};
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.032), rgba(255,255,255,0.008)),
+    linear-gradient(180deg, #0a0d12, #07090e);
+  padding: 14px 16px 16px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 10px 36px rgba(0,0,0,0.28);
+}
+.hive-deck-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.hive-deck-mini-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 1100px) {
+  .hive-deck-grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .hive-deck-mini-row {
+    grid-template-columns: 1fr;
+  }
 }
 .hive-side-rail {
   display: flex;
@@ -713,7 +727,7 @@ export default function Page() {
                       color: HIVE_UI.accent,
                     }}
                   >
-                    SWARM
+                    OPERATOR DECK
                   </div>
                 </div>
               </div>
@@ -815,18 +829,25 @@ export default function Page() {
                 </div>
               </div>
 
-              <div
-                style={{
-                  minWidth: 0,
-                  border: `1px solid ${HIVE_UI.borderDeep}`,
-                  borderRadius: 20,
-                  background:
-                    "linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.01))",
-                  padding: 10,
-                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.025)",
-                }}
-              >
-                <OrbitHive cards={cards} autoRefresh={autoRefresh} running={running} />
+              <div className="hive-tactical-deck">
+                <TacticalFieldDeck
+                  running={running}
+                  tradingEnabled={tradingEnabled}
+                  system={system}
+                  signal={signal}
+                  top={top}
+                  recommended={recommended}
+                  guard={guard}
+                  promo={promo}
+                  cq={cq}
+                  edge={edge}
+                  delta={delta}
+                  regime={regime}
+                  gatePromoted={gatePromoted}
+                  gateSuppressed={gateSuppressed}
+                  gateHold={gateHold}
+                  gatePillText={gatePillText}
+                />
               </div>
 
               <div className="hive-side-rail">
@@ -1212,487 +1233,352 @@ export default function Page() {
     </>
   );
 }
-function OrbitHive({
-  cards,
-  autoRefresh,
+function TacticalFieldDeck({
   running,
+  tradingEnabled,
+  system,
+  signal,
+  top,
+  recommended,
+  guard,
+  promo,
+  cq,
+  edge,
+  delta,
+  regime,
+  gatePromoted,
+  gateSuppressed,
+  gateHold,
+  gatePillText,
 }: {
-  cards: { label: string; value: any; featured?: boolean }[];
-  autoRefresh: boolean;
   running: boolean;
+  tradingEnabled: boolean;
+  system: any;
+  signal: any;
+  top: any;
+  recommended: any;
+  guard: any;
+  promo: any;
+  cq: any;
+  edge: any;
+  delta: any;
+  regime: any;
+  gatePromoted: boolean;
+  gateSuppressed: boolean;
+  gateHold: boolean;
+  gatePillText: string;
 }) {
-  const cx = 420;
-  const cy = 430;
-  const cardW = 136;
-  const cardH = 114;
-  const radius = 320;
-  const orbitH = 860;
+  const postureTitle = !running
+    ? "SWARM IDLE"
+    : tradingEnabled
+      ? "SWARM ACTIVE · ARMED"
+      : "SWARM ACTIVE · DISARMED";
 
-  const positions = cards.map((card, i) => {
-    const angle = (-90 + i * (360 / cards.length)) * (Math.PI / 180);
-    return {
-      left: cx + Math.cos(angle) * radius - cardW / 2,
-      top: cy + Math.sin(angle) * radius - cardH / 2,
-      ...card,
-    };
-  });
+  const postureSub =
+    typeof system?.operator_posture_hint === "string" && system.operator_posture_hint.length
+      ? system.operator_posture_hint
+      : typeof system?.lifecycle_phase === "string"
+        ? `${system.lifecycle_phase}${
+            typeof system.lifecycle_hint === "string" && system.lifecycle_hint.length
+              ? ` — ${system.lifecycle_hint}`
+              : ""
+          }`
+        : running
+          ? "Loop online — awaiting structured posture from hive core."
+          : "No active loop. Launch bees or pulse cycle to run a tactical refresh.";
+
+  const lastCycle = formatVal(system?.last_cycle_at);
+  const pulseAge =
+    system?.signal_age_seconds !== undefined && system?.signal_age_seconds !== null
+      ? `${system.signal_age_seconds}s`
+      : "—";
+
+  const sessionLine = regime?.code ? String(regime.code) : "—";
+  const rth = regime?.market_hours ? "RTH on" : "RTH off";
+
+  const gateShort = gatePillText.replace(/^Gate:\s*/i, "").trim() || "—";
+
+  const cqWarnings =
+    Array.isArray(cq?.warnings) && cq.warnings.length ? cq.warnings.slice(0, 2).join(" · ") : "";
+  const cqLine =
+    `${formatVal(cq?.status)} · score ${cq?.score !== undefined && cq?.score !== null ? String(cq.score) : "—"}` +
+    (cqWarnings ? ` · ${cqWarnings}` : "");
+
+  const edgeBlock =
+    Array.isArray(edge?.blockers) && edge.blockers.length
+      ? edge.blockers.slice(0, 2).join(" · ")
+      : "none";
+
+  const guardRules =
+    Array.isArray(guard?.triggered_rules) && guard.triggered_rules.length
+      ? guard.triggered_rules.slice(0, 4).join(", ")
+      : "";
+
+  const deltaLine = delta
+    ? `${delta.status} · ${typeof delta.detail === "string" && delta.detail.length ? delta.detail : "—"}`
+    : "—";
+
+  const thesis =
+    typeof top?.rationale?.thesis === "string" && top.rationale.thesis.length
+      ? top.rationale.thesis.length > 160
+        ? `${top.rationale.thesis.slice(0, 160)}…`
+        : top.rationale.thesis
+      : "";
+
+  const recActionEmph = gatePromoted && recommended?.action === "trade";
+
+  const miniCard = {
+    border: `1px solid ${HIVE_UI.borderDeep}`,
+    borderRadius: 12,
+    padding: "10px 12px",
+    background: "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.014))",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.028)",
+    minWidth: 0,
+  } as const;
+
+  const miniTitle = {
+    fontSize: 9,
+    fontWeight: 800,
+    letterSpacing: "0.2em",
+    color: HIVE_UI.textMuted,
+    textTransform: "uppercase" as const,
+    marginBottom: 8,
+  } as const;
 
   return (
-    <>
-      <div className="orbit-desktop" style={{ position: "relative", height: orbitH }}>
+    <div>
+      <div
+        style={{
+          paddingBottom: 14,
+          marginBottom: 14,
+          borderBottom: `1px solid ${HIVE_UI.border}`,
+        }}
+      >
         <div
           style={{
-            position: "absolute",
-            inset: 0,
-            borderRadius: 18,
-            background:
-              "radial-gradient(circle at 50% 46%, rgba(199,154,49,0.04), rgba(255,255,255,0.01) 18%, rgba(0,0,0,0) 62%)",
+            fontSize: 20,
+            fontWeight: 800,
+            letterSpacing: "0.1em",
+            color: HIVE_UI.text,
+            marginBottom: 6,
           }}
-        />
-
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            opacity: 0.06,
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)",
-            backgroundSize: "28px 28px",
-            maskImage:
-              "radial-gradient(circle at 50% 43%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 28%, rgba(0,0,0,0.45) 52%, rgba(0,0,0,0) 74%)",
-            WebkitMaskImage:
-              "radial-gradient(circle at 50% 43%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 28%, rgba(0,0,0,0.45) 52%, rgba(0,0,0,0) 74%)",
-          }}
-        />
-
-        <svg
-          viewBox={`0 0 840 ${orbitH}`}
-          width="100%"
-          height="100%"
-          style={{ position: "absolute", inset: 0, opacity: 0.75 }}
         >
-          <circle
-            cx={cx}
-            cy={cy}
-            r={radius + 4}
-            fill="none"
-            stroke="rgba(255,255,255,0.12)"
-            strokeWidth="1"
-            strokeDasharray="6 12"
-          />
-          <circle
-            cx={cx}
-            cy={cy}
-            r={radius - 84}
-            fill="none"
-            stroke="rgba(255,255,255,0.06)"
-            strokeWidth="1"
-            strokeDasharray="4 12"
-          />
-        </svg>
+          {postureTitle}
+        </div>
+        <div
+          style={{
+            fontSize: 13,
+            lineHeight: 1.45,
+            color: HIVE_UI.textSoft,
+            marginBottom: 10,
+            maxWidth: "62ch",
+          }}
+        >
+          {postureSub}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "8px 16px",
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: HIVE_UI.textMuted,
+          }}
+        >
+          <span>Last cycle {lastCycle}</span>
+          <span>Pulse age {pulseAge}</span>
+          <span>Session {sessionLine}</span>
+          <span>{rth}</span>
+        </div>
+      </div>
 
-        {positions.map((card) => (
+      {gateSuppressed ? (
+        <div
+          style={{
+            fontSize: 12,
+            lineHeight: 1.5,
+            color: "#ffdede",
+            marginBottom: 12,
+            padding: "10px 12px",
+            background: "linear-gradient(180deg, rgba(217,107,107,0.14), rgba(217,107,107,0.07))",
+            borderRadius: 12,
+            border: `1px solid ${HIVE_UI.danger}`,
+          }}
+        >
+          <strong>Gate suppressed.</strong> Tactical readouts below are for awareness only — not a green light to
+          size risk from the trade leg.
+        </div>
+      ) : null}
+      {gateHold && !gateSuppressed ? (
+        <div
+          style={{
+            fontSize: 12,
+            lineHeight: 1.5,
+            color: HIVE_UI.textSoft,
+            marginBottom: 12,
+            padding: "10px 12px",
+            background: "linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.012))",
+            borderRadius: 12,
+            border: `1px solid ${HIVE_UI.border}`,
+            borderLeft: `3px solid ${HIVE_UI.accent}`,
+          }}
+        >
+          <strong>Gate on hold.</strong> Confirm guardrails and execution edge before treating any trade leg as
+          actionable.
+        </div>
+      ) : null}
+
+      <div className="hive-deck-grid-2" style={{ marginBottom: 14 }}>
+        <div
+          style={{
+            border: `1px solid ${HIVE_UI.borderDeep}`,
+            borderRadius: 14,
+            padding: "12px 14px",
+            background: "linear-gradient(180deg, rgba(199,154,49,0.06), rgba(0,0,0,0.12))",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.035)",
+          }}
+        >
+          <div style={{ ...miniTitle, color: "#c9a24a", marginBottom: 10 }}>Top signal · leg</div>
           <div
-            key={card.label}
             style={{
-              position: "absolute",
-              left: card.left,
-              top: card.top,
-              width: cardW,
-              height: cardH,
+              fontSize: recActionEmph ? 22 : 19,
+              fontWeight: 800,
+              color: recActionEmph ? "#f1deb0" : HIVE_UI.text,
+              marginBottom: 12,
+              letterSpacing: "0.04em",
             }}
           >
-            <HoneyHex
-              label={card.label}
-              value={formatVal(card.value)}
-              featured={!!card.featured}
-            />
+            {formatVal(recommended?.action)}
           </div>
-        ))}
+          <HiveRow label="Structure" value={formatVal(recommended?.structure)} muted={gateSuppressed || gateHold} />
+          <HiveRow label="DTE" value={formatVal(recommended?.dte)} muted={gateSuppressed} />
+          <HiveRow label="Delta (leg)" value={formatVal(recommended?.delta)} muted={gateSuppressed} />
+        </div>
 
         <div
           style={{
-            position: "absolute",
-            left: cx - 118,
-            top: cy - 118,
-            width: 236,
-            height: 236,
-            zIndex: 2,
-            opacity: 0.44,
-            filter: "saturate(0.72) brightness(0.88)",
-            pointerEvents: "none",
+            border: `1px solid ${HIVE_UI.borderDeep}`,
+            borderRadius: 14,
+            padding: "12px 14px",
+            background: "linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01))",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
           }}
-          aria-hidden="true"
         >
-          <MechanicalHive active={running} fieldBackdrop />
+          <div style={{ ...miniTitle, marginBottom: 10 }}>Market · setup</div>
+          <HiveRow
+            label="Spot"
+            value={formatVal(signal?.spot)}
+            emphasized={!!signal?.spot}
+          />
+          <HiveRow label="Bias" value={formatVal(signal?.bias)} emphasized={!!signal?.bias} />
+          <HiveRow
+            label="Score"
+            value={formatVal(signal?.setup_score)}
+            emphasized={signal?.setup_score !== undefined && signal?.setup_score !== null}
+          />
+          <HiveRow
+            label="Hive rank"
+            value={
+              top?.rank_score !== undefined && top?.rank_score !== null ? String(top.rank_score) : "—"
+            }
+          />
+          <HiveRow label="VWAP" value={formatVal(signal?.vwap)} muted />
         </div>
+      </div>
 
-        {autoRefresh ? (
-          <>
-            <OrbitBee size={34} cx={cx} cy={cy} radius={174} duration="7.6s" delay="0s" />
-            <OrbitBee size={28} cx={cx} cy={cy} radius={208} duration="8.9s" delay="-1.2s" />
-            <OrbitBee size={30} cx={cx} cy={cy} radius={242} duration="10.1s" delay="-2.1s" />
-            <OrbitBee size={26} cx={cx} cy={cy} radius={274} duration="6.8s" delay="-0.7s" />
-            <OrbitBee size={24} cx={cx} cy={cy} radius={192} duration="11.2s" delay="-3.2s" />
-          </>
+      <div className="hive-deck-mini-row" style={{ marginBottom: 14 }}>
+        <div style={miniCard}>
+          <div style={miniTitle}>Contract quality</div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: HIVE_UI.text }}>{cqLine}</div>
+        </div>
+        <div style={miniCard}>
+          <div style={miniTitle}>Execution edge</div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: HIVE_UI.text }}>
+            {formatVal(edge?.status)} · score{" "}
+            {edge?.score !== undefined && edge?.score !== null ? String(edge.score) : "—"}
+          </div>
+          <div style={{ fontSize: 12, color: HIVE_UI.textMuted, marginTop: 6, lineHeight: 1.4 }}>
+            Blockers: {edgeBlock}
+          </div>
+        </div>
+        <div style={miniCard}>
+          <div style={miniTitle}>Guard · gate</div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: HIVE_UI.text }}>
+            {guard?.status ? `${guard.status}${guard.actionable ? " · act" : ""}` : "—"} · {gateShort}
+          </div>
+          <div style={{ fontSize: 12, color: HIVE_UI.textMuted, marginTop: 6, lineHeight: 1.4 }}>
+            {promo && typeof promo.reason === "string" && promo.reason.length
+              ? promo.reason.length > 120
+                ? `${promo.reason.slice(0, 120)}…`
+                : promo.reason
+              : "—"}
+          </div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          border: `1px solid ${HIVE_UI.borderDeep}`,
+          borderRadius: 14,
+          padding: "12px 14px",
+          background: "linear-gradient(180deg, rgba(255,255,255,0.022), rgba(0,0,0,0.08))",
+          marginBottom: thesis ? 12 : 0,
+        }}
+      >
+        <div style={{ ...miniTitle, marginBottom: 8 }}>Cycle delta · blockers</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: HIVE_UI.textSoft, lineHeight: 1.5 }}>
+          {deltaLine}
+        </div>
+        {guardRules ? (
+          <div style={{ fontSize: 12, color: "#ffcdcd", marginTop: 8, lineHeight: 1.45 }}>
+            Rules: {guardRules}
+          </div>
+        ) : (
+          <div style={{ fontSize: 12, color: HIVE_UI.textDim, marginTop: 8 }}>
+            No guard rule flags on this pulse.
+          </div>
+        )}
+        {Array.isArray(guard?.warnings) && guard.warnings.length ? (
+          <div style={{ fontSize: 12, color: HIVE_UI.textSoft, marginTop: 8, lineHeight: 1.45 }}>
+            Warnings: {guard.warnings.slice(0, 3).join(" · ")}
+          </div>
         ) : null}
       </div>
 
-      <div className="orbit-mobile" style={{ display: "none" }}>
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}>
-          <div
-            style={{
-              width: 200,
-              height: 200,
-              opacity: 0.44,
-              filter: "saturate(0.72) brightness(0.88)",
-            }}
-            aria-hidden="true"
-          >
-            <MechanicalHive active={running} fieldBackdrop />
-          </div>
-        </div>
+      {thesis ? (
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(2, minmax(136px, 136px))",
-            gap: 12,
-            justifyContent: "center",
+            fontSize: 12,
+            lineHeight: 1.55,
+            color: HIVE_UI.textMuted,
+            paddingTop: 4,
+            borderTop: `1px solid ${HIVE_UI.borderDeep}`,
           }}
         >
-          {cards.map((card) => (
-            <HoneyHex
-              key={card.label}
-              label={card.label}
-              value={formatVal(card.value)}
-              featured={!!card.featured}
-            />
-          ))}
+          <span style={{ fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase" }}>
+            Thesis ·{" "}
+          </span>
+          {thesis}
         </div>
-      </div>
-
-      <style jsx>{`
-        @media (max-width: 920px) {
-          .orbit-desktop {
-            display: none;
-          }
-          .orbit-mobile {
-            display: block !important;
-          }
-        }
-        @keyframes orbitSpin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-        @keyframes beeBob {
-          0% {
-            transform: translateY(0px);
-          }
-          50% {
-            transform: translateY(-4px);
-          }
-          100% {
-            transform: translateY(0px);
-          }
-        }
-      `}</style>
-    </>
-  );
-}
-
-function MechanicalHive({
-  active = false,
-  fieldBackdrop = false,
-}: {
-  active?: boolean;
-  /** Smaller, cooler schematic when the photographic hero is primary */
-  fieldBackdrop?: boolean;
-}) {
-  const rid = useId().replace(/:/g, "");
-  const gOuter = `hive-om-${rid}`;
-  const gInner = `hive-is-${rid}`;
-  const gGlow = `hive-eg-${rid}`;
-  if (fieldBackdrop) {
-    return (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          minHeight: 120,
-          transform: active ? "scale(1.02)" : "scale(1)",
-          transition: HIVE_UI.motion,
-        }}
-      >
-        <svg viewBox="0 0 300 300" width="100%" height="100%" aria-hidden="true">
-          <defs>
-            <radialGradient id={gGlow} cx="50%" cy="50%" r="55%">
-              <stop offset="0%" stopColor={HIVE_UI.accent} stopOpacity="0.38" />
-              <stop offset="55%" stopColor={HIVE_UI.accent} stopOpacity="0.1" />
-              <stop offset="100%" stopColor="#000000" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-          <circle
-            cx="150"
-            cy="150"
-            r="118"
-            fill="none"
-            stroke="rgba(255,255,255,0.09)"
-            strokeWidth="1"
-            strokeDasharray="5 14"
-          />
-          <circle
-            cx="150"
-            cy="150"
-            r="78"
-            fill="none"
-            stroke="rgba(199,154,49,0.32)"
-            strokeWidth="1"
-            strokeDasharray="3 10"
-          />
-          <circle cx="150" cy="150" r="46" fill={`url(#${gGlow})`} opacity="0.88" />
-          <circle
-            cx="150"
-            cy="150"
-            r="22"
-            fill="#07090e"
-            stroke={HIVE_UI.accent}
-            strokeWidth="1.55"
-            opacity="0.97"
-          />
-          <circle cx="150" cy="150" r="6" fill="#030305" opacity="0.92" />
-        </svg>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      style={{
-        width: "100%",
-        height: "100%",
-        minHeight: 220,
-        transform: active ? "scale(1.01)" : "scale(1)",
-        filter: active ? "brightness(1.07)" : "none",
-        transition: HIVE_UI.motion,
-      }}
-    >
-      <svg viewBox="0 0 300 340" width="100%" height="100%" aria-hidden="true">
-        <defs>
-          <linearGradient id={gOuter} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#9aa3ad" />
-            <stop offset="45%" stopColor="#3a4048" />
-            <stop offset="100%" stopColor="#161a1f" />
-          </linearGradient>
-          <linearGradient id={gInner} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#2e2c2a" />
-            <stop offset="50%" stopColor="#1a1918" />
-            <stop offset="100%" stopColor="#0c0b0a" />
-          </linearGradient>
-          <radialGradient id={gGlow} cx="50%" cy="50%" r="60%">
-            <stop offset="0%" stopColor={HIVE_UI.accent} stopOpacity="0.22" />
-            <stop offset="50%" stopColor={HIVE_UI.accent} stopOpacity="0.06" />
-            <stop offset="100%" stopColor="#000000" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-
-        <ellipse cx="150" cy="312" rx="82" ry="12" fill="rgba(0,0,0,0.35)" />
-        <HiveBand gidOuter={gOuter} gidInner={gInner} cx={150} cy={82} rx={52} ry={24} innerRx={40} innerRy={16} />
-        <HiveBand gidOuter={gOuter} gidInner={gInner} cx={150} cy={120} rx={76} ry={30} innerRx={60} innerRy={20} />
-        <HiveBand gidOuter={gOuter} gidInner={gInner} cx={150} cy={166} rx={92} ry={36} innerRx={74} innerRy={24} />
-        <HiveBand gidOuter={gOuter} gidInner={gInner} cx={150} cy={214} rx={78} ry={30} innerRx={61} innerRy={20} />
-        <HiveBand gidOuter={gOuter} gidInner={gInner} cx={150} cy={252} rx={54} ry={22} innerRx={42} innerRy={14} />
-
-        <g opacity="0.4">
-          <path d="M100 82 Q150 68 200 82" fill="none" stroke="#2a2d32" strokeWidth="2.5" />
-          <path d="M76 120 Q150 100 224 120" fill="none" stroke="#2a2d32" strokeWidth="2.5" />
-          <path d="M58 166 Q150 140 242 166" fill="none" stroke="#2a2d32" strokeWidth="2.5" />
-          <path d="M72 214 Q150 194 228 214" fill="none" stroke="#2a2d32" strokeWidth="2.5" />
-          <path d="M96 252 Q150 238 204 252" fill="none" stroke="#2a2d32" strokeWidth="2.5" />
-        </g>
-
-        <g>
-          <ellipse cx="150" cy="226" rx="34" ry="18" fill={`url(#${gGlow})`} opacity="0.9" />
-          <ellipse cx="150" cy="226" rx="24" ry="14" fill="#08090a" stroke={HIVE_UI.accent} strokeWidth="1.8" />
-          <ellipse cx="150" cy="226" rx="10" ry="6" fill="#020203" />
-        </g>
-
-        <g>
-          <HiveVentCluster x={116} y={165} />
-          <HiveVentCluster x={150} y={152} />
-          <HiveVentCluster x={184} y={165} />
-        </g>
-      </svg>
+      ) : (
+        <div
+          style={{
+            fontSize: 11,
+            letterSpacing: "0.14em",
+            fontWeight: 700,
+            textTransform: "uppercase",
+            color: HIVE_UI.textDim,
+            paddingTop: 8,
+            borderTop: `1px solid ${HIVE_UI.borderDeep}`,
+          }}
+        >
+          Thesis not published on this pulse
+        </div>
+      )}
     </div>
-  );
-}
-
-function HiveBand({
-  gidOuter,
-  gidInner,
-  cx,
-  cy,
-  rx,
-  ry,
-  innerRx,
-  innerRy,
-}: {
-  gidOuter: string;
-  gidInner: string;
-  cx: number;
-  cy: number;
-  rx: number;
-  ry: number;
-  innerRx: number;
-  innerRy: number;
-}) {
-  return (
-    <g>
-      <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={`url(#${gidOuter})`} stroke="rgba(255,255,255,0.1)" strokeWidth="1.5" />
-      <ellipse cx={cx} cy={cy} rx={innerRx} ry={innerRy} fill={`url(#${gidInner})`} stroke="#141312" strokeWidth="1.2" />
-      <ellipse
-        cx={cx}
-        cy={cy + 2}
-        rx={Math.max(innerRx - 10, 8)}
-        ry={Math.max(innerRy - 5, 6)}
-        fill="#050506"
-        opacity="0.55"
-      />
-      <HiveBolt x={cx - rx * 0.62} y={cy} />
-      <HiveBolt x={cx + rx * 0.62} y={cy} />
-      <HiveBolt x={cx} y={cy - ry * 0.68} />
-    </g>
-  );
-}
-
-function HiveVentCluster({ x, y }: { x: number; y: number }) {
-  return (
-    <g>
-      <HiveHexVent x={x} y={y} />
-      <HiveHexVent x={x + 14} y={y + 8} small />
-      <HiveHexVent x={x - 14} y={y + 8} small />
-    </g>
-  );
-}
-
-function HiveHexVent({ x, y, small = false }: { x: number; y: number; small?: boolean }) {
-  const r = small ? 7 : 9;
-  const h = r * 0.866;
-  const points = [
-    `${x},${y - r}`,
-    `${x + h},${y - r / 2}`,
-    `${x + h},${y + r / 2}`,
-    `${x},${y + r}`,
-    `${x - h},${y + r / 2}`,
-    `${x - h},${y - r / 2}`,
-  ].join(" ");
-
-  return (
-    <polygon
-      points={points}
-      fill="#080809"
-      stroke="rgba(199,154,49,0.45)"
-      strokeWidth={small ? 1.2 : 1.5}
-    />
-  );
-}
-
-function HiveBolt({ x, y }: { x: number; y: number }) {
-  return (
-    <g>
-      <circle cx={x} cy={y} r="5" fill="#14181c" stroke="#9aa3ad" strokeWidth="1.4" />
-      <circle cx={x} cy={y} r="1.6" fill="#7a828a" />
-    </g>
-  );
-}
-
-function OrbitBee({
-  size,
-  radius,
-  duration,
-  delay,
-  cx,
-  cy,
-}: {
-  size: number;
-  radius: number;
-  duration: string;
-  delay: string;
-  cx: number;
-  cy: number;
-}) {
-  return (
-    <div
-      style={{
-        position: "absolute",
-        left: cx,
-        top: cy,
-        width: 0,
-        height: 0,
-        animation: `orbitSpin ${duration} linear infinite`,
-        animationDelay: delay,
-      }}
-    >
-      <div
-        style={{
-          transform: `translateX(${radius}px)`,
-          width: size,
-          height: size,
-          marginLeft: -size / 2,
-          marginTop: -size / 2,
-          animation: "beeBob 1.2s ease-in-out infinite",
-        }}
-      >
-        <RobotBee />
-      </div>
-    </div>
-  );
-}
-
-function RobotBee() {
-  return (
-    <svg viewBox="0 0 100 100" width="100%" height="100%">
-      <ellipse
-        cx="34"
-        cy="30"
-        rx="16"
-        ry="9"
-        fill="rgba(226,233,241,0.75)"
-        stroke="#57616c"
-        strokeWidth="3"
-      />
-      <ellipse
-        cx="66"
-        cy="30"
-        rx="16"
-        ry="9"
-        fill="rgba(226,233,241,0.75)"
-        stroke="#57616c"
-        strokeWidth="3"
-      />
-      <circle cx="50" cy="42" r="12" fill="#97a3af" stroke="#1c2128" strokeWidth="5" />
-      <rect
-        x="29"
-        y="46"
-        width="42"
-        height="28"
-        rx="14"
-        fill="#232933"
-        stroke="#171b21"
-        strokeWidth="5"
-      />
-      <line x1="37" y1="54" x2="63" y2="54" stroke="#11151a" strokeWidth="6" />
-      <line x1="40" y1="64" x2="60" y2="64" stroke="#11151a" strokeWidth="6" />
-      <circle cx="45" cy="40" r="2.6" fill="#d49b2c" />
-      <circle cx="55" cy="40" r="2.6" fill="#d49b2c" />
-      <path d="M42 28 L34 18" stroke="#a8b3bf" strokeWidth="4" strokeLinecap="round" />
-      <path d="M58 28 L66 18" stroke="#a8b3bf" strokeWidth="4" strokeLinecap="round" />
-      <circle cx="33" cy="17" r="3" fill="#c79a31" />
-      <circle cx="67" cy="17" r="3" fill="#c79a31" />
-    </svg>
   );
 }
 
@@ -1926,68 +1812,6 @@ function HiveButton({
     >
       {label}
     </button>
-  );
-}
-
-function HoneyHex({
-  label,
-  value,
-  featured = false,
-}: {
-  label: string;
-  value: string;
-  featured?: boolean;
-}) {
-  return (
-    <div style={{ width: 136, height: 114 }}>
-      <div
-        style={{
-          width: 136,
-          height: 114,
-          clipPath:
-            "polygon(25% 6%, 75% 6%, 100% 50%, 75% 94%, 25% 94%, 0% 50%)",
-          background: featured
-            ? "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))"
-            : "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))",
-          border: featured
-            ? `1px solid ${HIVE_UI.accentLine}`
-            : `1px solid ${HIVE_UI.borderDeep}`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          textAlign: "center",
-          padding: 12,
-          transition: HIVE_UI.motion,
-          boxShadow: featured
-            ? "0 0 0 1px rgba(199,154,49,0.06)"
-            : "none",
-        }}
-      >
-        <div>
-          <div
-            style={{
-              fontSize: 11,
-              color: featured ? "#bca56c" : HIVE_UI.textMuted,
-              textTransform: "uppercase",
-              letterSpacing: 1.2,
-              marginBottom: 8,
-              fontWeight: 700,
-            }}
-          >
-            {label}
-          </div>
-          <div
-            style={{
-              fontSize: featured ? 24 : 20,
-              fontWeight: 800,
-              color: featured ? HIVE_UI.text : HIVE_UI.textSoft,
-            }}
-          >
-            {value}
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }
 
