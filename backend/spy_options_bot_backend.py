@@ -957,6 +957,23 @@ def paper_order(payload: dict[str, Any]):
             content={"ok": False, "error": "sell rejected - no SPY long position to reduce"},
         )
 
+    if order_type == "market":
+        regime_submit = compute_hive_session_regime_v1()
+        if not bool(regime_submit.get("market_hours")):
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "ok": False,
+                    "error": (
+                        "Manual SPY market orders are blocked outside NYSE regular trading hours (RTH). "
+                        "Use a limit order, or submit during Mon–Fri 9:30–16:00 ET, or manage working orders in Alpaca."
+                    ),
+                    "reason": "outside_regular_trading_hours",
+                    "session_code": regime_submit.get("code"),
+                    "session_label": regime_submit.get("label"),
+                },
+            )
+
     with _paper_order_lock:
         if client_order_id in _paper_client_order_ids:
             return JSONResponse(
@@ -984,7 +1001,17 @@ def paper_order(payload: dict[str, Any]):
     log("alpaca paper order submitted")
     maybe_sync_alpaca_paper(force=True)
     oid = out.get("id")
-    return {"ok": True, "error": None, "order_id": oid, "client_order_id": client_order_id}
+    return {
+        "ok": True,
+        "error": None,
+        "order_id": oid,
+        "client_order_id": client_order_id,
+        "broker_stage": "accepted_by_broker",
+        "message": (
+            "Alpaca accepted the order — not a fill. Working orders can remain open until fill, expiry, or cancel; "
+            "check Alpaca for status."
+        ),
+    }
 
 
 @app.post("/bot/start")

@@ -50,6 +50,7 @@ export default function Page() {
   const [paperOrderType, setPaperOrderType] = useState<"market" | "limit">("market");
   const [paperLimit, setPaperLimit] = useState<string>("");
   const [paperCid, setPaperCid] = useState<string>("");
+  const [paperOrderHint, setPaperOrderHint] = useState<string | null>(null);
 
   async function apiCall(path: string, method = "GET", body?: any) {
     const res = await fetch(`${HIVE_API}${path}`, {
@@ -158,6 +159,7 @@ export default function Page() {
   }
 
   async function submitPaperOrder() {
+    setPaperOrderHint(null);
     const qty = parseInt(paperQty, 10);
     if (!Number.isFinite(qty) || qty < 1) {
       setError("Paper order: qty must be a positive integer");
@@ -180,10 +182,38 @@ export default function Page() {
     }
     try {
       setError("");
-      await apiCall("/paper/order", "POST", body);
+      const data = (await apiCall("/paper/order", "POST", body)) as {
+        ok?: boolean;
+        message?: string;
+        order_id?: string;
+        reason?: string;
+        session_label?: string;
+      };
+      if (data?.ok && data?.message) {
+        const oid = data.order_id ? String(data.order_id).slice(0, 12) : "—";
+        setPaperOrderHint(`${data.message} (ref ${oid})`);
+      }
       await loadAll();
     } catch (err: any) {
-      const msg = err?.message || "Paper order failed";
+      const raw = String(err?.message || "Paper order failed");
+      let msg = raw;
+      if (raw.startsWith("400 ")) {
+        try {
+          const j = JSON.parse(raw.slice(4).trim()) as {
+            error?: string;
+            reason?: string;
+            session_label?: string;
+          };
+          if (typeof j.error === "string") {
+            msg = j.error;
+            if (j.reason === "outside_regular_trading_hours" && j.session_label) {
+              msg += ` — session: ${j.session_label}`;
+            }
+          }
+        } catch {
+          /* keep raw */
+        }
+      }
       setError(msg);
       await loadAll();
     }
@@ -211,6 +241,10 @@ export default function Page() {
   const flow = top?.flow_context;
   const delta = top?.cycle_delta;
   const regime = system?.session_regime;
+  const paperMarketBlockedOffRth =
+    paperOrderType === "market" &&
+    typeof regime?.market_hours === "boolean" &&
+    !regime.market_hours;
   const execSurface = system?.execution_surface as string | undefined;
   const brokerSync = system?.broker_sync;
   const surfacePillText =
@@ -1179,8 +1213,37 @@ export default function Page() {
               </div>
               <div style={{ fontSize: 11, color: HIVE_UI.textSoft, marginBottom: 10, lineHeight: 1.45 }}>
                 Alpaca paper · SPY equity only · manual submit (not from signal). Buys blocked while a SPY long is
-                open; sells only reduce an existing long.
+                open; sells only reduce an existing long.{" "}
+                <strong style={{ color: HIVE_UI.textMuted }}>Market</strong> submit is allowed only during{" "}
+                <strong style={{ color: HIVE_UI.textMuted }}>RTH on</strong> (see stage header pills);{" "}
+                <strong style={{ color: HIVE_UI.textMuted }}>limit</strong> may still be sent outside RTH but may rest
+                as a working order. <strong>Accepted by broker ≠ filled.</strong>
               </div>
+              {typeof system?.pending_signals_count === "number" && system.pending_signals_count > 0 ? (
+                <div
+                  style={{
+                    fontSize: 10,
+                    color: HIVE_UI.accent,
+                    marginBottom: 10,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  Pending {system.pending_signals_count} broker order(s) — working/accepted is not a fill; may be
+                  session-related; cancel or monitor in Alpaca.
+                </div>
+              ) : null}
+              {paperOrderType === "market" && typeof regime?.market_hours === "boolean" && !regime.market_hours ? (
+                <div
+                  style={{
+                    fontSize: 10,
+                    color: HIVE_UI.danger,
+                    marginBottom: 10,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  Market blocked: RTH off ({regime?.label ?? regime?.code ?? "session"}). Use limit or wait for RTH.
+                </div>
+              ) : null}
               <div
                 style={{
                   display: "flex",
@@ -1294,8 +1357,21 @@ export default function Page() {
                   }}
                   label="Submit paper"
                   active
+                  disabled={paperMarketBlockedOffRth}
                 />
               </div>
+              {paperOrderHint ? (
+                <div
+                  style={{
+                    marginTop: 10,
+                    fontSize: 10,
+                    color: HIVE_UI.textMuted,
+                    lineHeight: 1.45,
+                  }}
+                >
+                  {paperOrderHint}
+                </div>
+              ) : null}
             </div>
           ) : null}
 
