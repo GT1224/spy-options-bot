@@ -11,32 +11,34 @@ const ADMIN_KEY = "mysecret123";
 
 type PillTone = "neutral" | "promoted" | "hold" | "suppressed";
 
-/** W4-L3 — shared visual tokens (inline only; no new deps). */
+/** W4-L3 — black tactical shell; amber accents only (not Excalibur cyan). */
 const HIVE_UI = {
-  bg: "radial-gradient(circle at top, #2b2100 0%, #15120a 42%, #0b0a08 100%)",
-  text: "#f9ecb8",
-  textMuted: "#a89050",
-  textSection: "#9a8344",
-  textLabel: "#c5ab5b",
-  accent: "#ffd55c",
-  accentSoft: "#f3df9d",
-  borderHero: "#6c5416",
-  borderPanel: "#5f4a15",
-  borderDeep: "#4f3d12",
-  surfaceHero: "rgba(255,213,92,0.06)",
-  surfaceLive: "linear-gradient(180deg, rgba(255,213,92,0.06) 0%, rgba(255,213,92,0.02) 100%)",
-  panelBg: "linear-gradient(180deg, #1d1708 0%, #12100a 100%)",
-  shadowCard: "0 10px 28px rgba(0,0,0,0.28)",
-  shadowLift: "0 10px 24px rgba(0,0,0,0.24)",
-  shadowSoft: "0 10px 24px rgba(0,0,0,0.22)",
+  bg: "radial-gradient(ellipse 140% 90% at 50% -8%, #141416 0%, #0a0a0c 42%, #050506 100%)",
+  text: "#ebe8e2",
+  textMuted: "#7d7a74",
+  textSection: "#8f8a82",
+  textLabel: "#a39a8c",
+  accent: "#d4a84a",
+  accentSoft: "#9e917c",
+  borderHero: "#2e2c28",
+  borderPanel: "#252528",
+  borderDeep: "#161618",
+  surfaceHero:
+    "linear-gradient(180deg, rgba(18,18,20,0.98) 0%, rgba(10,10,12,0.99) 100%), radial-gradient(ellipse 70% 50% at 50% 0%, rgba(212,168,74,0.07) 0%, transparent 55%)",
+  surfaceLive:
+    "linear-gradient(180deg, #0e0e11 0%, #060607 100%), radial-gradient(ellipse 65% 55% at 50% 45%, rgba(212,168,74,0.06) 0%, transparent 60%)",
+  panelBg: "linear-gradient(180deg, #111114 0%, #0b0b0d 100%)",
+  shadowCard: "0 12px 40px rgba(0,0,0,0.55)",
+  shadowLift: "0 10px 28px rgba(0,0,0,0.45)",
+  shadowSoft: "0 8px 24px rgba(0,0,0,0.4)",
   rXl: 24,
   rLg: 20,
   rMd: 14,
   rSm: 12,
   font: "Arial, sans-serif",
   motion: "background-color 165ms ease, border-color 165ms ease, box-shadow 165ms ease, opacity 165ms ease, transform 165ms ease, filter 165ms ease",
-  divider: "rgba(255,213,92,0.1)",
-  dividerStrong: "rgba(255,213,92,0.12)",
+  divider: "rgba(212,168,74,0.08)",
+  dividerStrong: "rgba(212,168,74,0.1)",
   spaceXs: 8,
   spaceSm: 12,
   spaceMd: 16,
@@ -49,9 +51,8 @@ const HIVE_UI = {
   calloutSuppressed: { bg: "rgba(140,60,60,0.14)", border: "rgba(180,90,90,0.42)", text: "#f0d4d4" },
   calloutHold: { bg: "rgba(200,140,40,0.12)", border: "rgba(210,150,50,0.42)", text: "#ffe8c8" },
   errorBanner: { bg: "rgba(255,120,120,0.12)", border: "#a34c4c", text: "#ffd8d8" },
-  /** HIVE-VIS-1A — command deck chrome (amber tactical shell only). */
-  surfaceCommand: "linear-gradient(180deg, rgba(22,18,10,0.95) 0%, rgba(10,9,6,0.98) 100%)",
-  railAccent: "#c9a227",
+  surfaceCommand: "linear-gradient(180deg, #121214 0%, #0a0a0c 100%)",
+  railAccent: "#9a7d2e",
 } as const;
 
 export default function Page() {
@@ -195,7 +196,7 @@ export default function Page() {
   }
 }
 [data-hive-dashboard] button:focus-visible {
-  outline: 2px solid #ffd55c;
+  outline: 2px solid #d4a84a;
   outline-offset: 2px;
 }
 .hive-shell { max-width: 1240px; margin: 0 auto; }
@@ -209,8 +210,8 @@ export default function Page() {
   .hive-cockpit { grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); align-items: start; }
 }
 .hive-live-deck {
-  border-left: 3px solid #c9a227;
-  box-shadow: inset 1px 0 0 rgba(255,213,92,0.08);
+  border-left: 2px solid #9a7d2e;
+  box-shadow: inset 1px 0 0 rgba(212,168,74,0.12), inset 0 0 100px rgba(0,0,0,0.35);
 }
 .hive-signal-grid {
   display: grid;
@@ -239,19 +240,34 @@ export default function Page() {
           style={{
             background: HIVE_UI.surfaceHero,
             border: `1px solid ${HIVE_UI.borderHero}`,
-            borderTop: `3px solid ${HIVE_UI.accent}`,
+            borderTop: `2px solid ${HIVE_UI.accent}`,
             borderRadius: HIVE_UI.rXl,
             padding: HIVE_UI.spaceXl,
             marginBottom: HIVE_UI.spaceLg,
-            boxShadow: `${HIVE_UI.shadowCard}, inset 0 1px 0 rgba(255,213,92,0.12)`,
+            boxShadow: `${HIVE_UI.shadowCard}, inset 0 1px 0 rgba(255,255,255,0.04)`,
           }}
         >
-          <div style={{ display: "flex", gap: HIVE_UI.spaceLg, alignItems: "center", flexWrap: "wrap" }}>
-            <div style={{ width: 132, height: 132, position: "relative", flex: "0 0 auto" }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              textAlign: "center",
+              gap: HIVE_UI.spaceMd,
+            }}
+          >
+            <div
+              style={{
+                width: 220,
+                height: 220,
+                position: "relative",
+                flexShrink: 0,
+                filter: "drop-shadow(0 0 40px rgba(212,168,74,0.12))",
+              }}
+            >
               <Image src="/hive-logo.png" alt="HIVE Logo" fill style={{ objectFit: "contain" }} priority />
             </div>
-
-            <div style={{ flex: 1, minWidth: 260 }}>
+            <div style={{ maxWidth: 640 }}>
               <div
                 style={{
                   fontSize: HIVE_UI.overline.fontSize,
@@ -264,68 +280,78 @@ export default function Page() {
               >
                 Hyper-Intelligent Volatility Execution
               </div>
-              <h1 style={{ margin: 0, fontSize: 44, color: HIVE_UI.accent, letterSpacing: 1.2, fontWeight: 800 }}>HIVE</h1>
-              <div style={{ marginTop: HIVE_UI.spaceSm, fontSize: 15, lineHeight: 1.45, color: HIVE_UI.accentSoft }}>
+              <h1 style={{ margin: 0, fontSize: 46, color: HIVE_UI.accent, letterSpacing: 1.2, fontWeight: 800 }}>HIVE</h1>
+              <div style={{ marginTop: HIVE_UI.spaceSm, fontSize: 15, lineHeight: 1.5, color: HIVE_UI.accentSoft }}>
                 Mechanical swarm intelligence for SPY volatility trading
               </div>
-              <div style={{ marginTop: HIVE_UI.spaceMd, display: "flex", flexDirection: "column", gap: HIVE_UI.spaceSm }}>
-                <div
-                  style={{
-                    fontSize: HIVE_UI.overline.fontSize,
-                    letterSpacing: HIVE_UI.overline.letterSpacing,
-                    fontWeight: HIVE_UI.overline.fontWeight,
-                    color: HIVE_UI.textSection,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Ops
-                </div>
-                <div style={{ display: "flex", gap: HIVE_UI.spaceSm, flexWrap: "wrap" }}>
-                  <StatusPill text={running ? "Swarm Active" : "Swarm Idle"} active={running} />
-                  <StatusPill text={`Trading ${tradingEnabled ? "Armed" : "Safe"}`} />
-                  <StatusPill text={surfacePillText} />
-                  <StatusPill text={`Bias ${formatVal(signal?.bias)}`} />
-                  <StatusPill text={`Score ${formatVal(signal?.setup_score)}`} />
-                  <StatusPill text={autoRefresh ? "Auto refresh on" : "Auto refresh off"} active={autoRefresh} />
-                </div>
-                <div
-                  style={{
-                    fontSize: HIVE_UI.overline.fontSize,
-                    letterSpacing: HIVE_UI.overline.letterSpacing,
-                    fontWeight: HIVE_UI.overline.fontWeight,
-                    color: HIVE_UI.textSection,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Governance (at a glance)
-                </div>
-                <div style={{ display: "flex", gap: HIVE_UI.spaceSm, flexWrap: "wrap" }}>
-                  <StatusPill
-                    text={
-                      guard?.status
-                        ? `Guard: ${guard.status}${guard.actionable ? " · act" : " · hold"}`
-                        : "Guard: —"
-                    }
-                    tone={guardTone}
-                    active={guardPillActive}
-                  />
-                  <StatusPill text={gatePillText} tone={gatePillTone} active={gatePromoted} />
-                  <StatusPill
-                    text={
-                      !delta?.status
-                        ? "Δ: —"
-                        : delta.status === "none"
-                          ? "Δ: no prior pulse"
-                          : delta.status === "unchanged"
-                            ? "Δ: unchanged"
-                            : delta.status === "minor_change"
-                              ? "Δ: minor"
-                              : "Δ: meaningful"
-                    }
-                    tone={delta?.status === "meaningful_change" ? "hold" : "neutral"}
-                    active={delta?.status === "unchanged"}
-                  />
-                </div>
+            </div>
+            <div
+              style={{
+                width: "100%",
+                maxWidth: 920,
+                marginTop: HIVE_UI.spaceSm,
+                textAlign: "left",
+                display: "flex",
+                flexDirection: "column",
+                gap: HIVE_UI.spaceSm,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: HIVE_UI.overline.fontSize,
+                  letterSpacing: HIVE_UI.overline.letterSpacing,
+                  fontWeight: HIVE_UI.overline.fontWeight,
+                  color: HIVE_UI.textSection,
+                  textTransform: "uppercase",
+                }}
+              >
+                Ops
+              </div>
+              <div style={{ display: "flex", gap: HIVE_UI.spaceSm, flexWrap: "wrap" }}>
+                <StatusPill text={running ? "Swarm Active" : "Swarm Idle"} active={running} />
+                <StatusPill text={`Trading ${tradingEnabled ? "Armed" : "Safe"}`} />
+                <StatusPill text={surfacePillText} />
+                <StatusPill text={`Bias ${formatVal(signal?.bias)}`} />
+                <StatusPill text={`Score ${formatVal(signal?.setup_score)}`} />
+                <StatusPill text={autoRefresh ? "Auto refresh on" : "Auto refresh off"} active={autoRefresh} />
+              </div>
+              <div
+                style={{
+                  fontSize: HIVE_UI.overline.fontSize,
+                  letterSpacing: HIVE_UI.overline.letterSpacing,
+                  fontWeight: HIVE_UI.overline.fontWeight,
+                  color: HIVE_UI.textSection,
+                  textTransform: "uppercase",
+                }}
+              >
+                Governance (at a glance)
+              </div>
+              <div style={{ display: "flex", gap: HIVE_UI.spaceSm, flexWrap: "wrap" }}>
+                <StatusPill
+                  text={
+                    guard?.status
+                      ? `Guard: ${guard.status}${guard.actionable ? " · act" : " · hold"}`
+                      : "Guard: —"
+                  }
+                  tone={guardTone}
+                  active={guardPillActive}
+                />
+                <StatusPill text={gatePillText} tone={gatePillTone} active={gatePromoted} />
+                <StatusPill
+                  text={
+                    !delta?.status
+                      ? "Δ: —"
+                      : delta.status === "none"
+                        ? "Δ: no prior pulse"
+                        : delta.status === "unchanged"
+                          ? "Δ: unchanged"
+                          : delta.status === "minor_change"
+                            ? "Δ: minor"
+                            : "Δ: meaningful"
+                  }
+                  tone={delta?.status === "meaningful_change" ? "hold" : "neutral"}
+                  active={delta?.status === "unchanged"}
+                />
               </div>
             </div>
           </div>
@@ -387,7 +413,7 @@ export default function Page() {
               border: `1px solid ${HIVE_UI.borderPanel}`,
               borderRadius: HIVE_UI.rXl,
               padding: HIVE_UI.spaceLg,
-              boxShadow: HIVE_UI.shadowSoft,
+              boxShadow: `${HIVE_UI.shadowSoft}, inset 0 0 90px rgba(0,0,0,0.45)`,
             }}
           >
             <div
@@ -654,7 +680,7 @@ export default function Page() {
           <Panel title="Bee log" subtitle="In-process activity stream (this worker only)">
             <div
               style={{
-                background: "rgba(0,0,0,0.25)",
+                background: "rgba(0,0,0,0.45)",
                 border: `1px solid ${HIVE_UI.borderDeep}`,
                 borderRadius: HIVE_UI.rMd,
                 padding: HIVE_UI.spaceSm,
@@ -662,7 +688,7 @@ export default function Page() {
                 overflowY: "auto",
                 fontSize: 13,
                 lineHeight: 1.5,
-                color: "#f2e4a0",
+                color: "#c4c0b8",
                 whiteSpace: "pre-wrap",
               }}
             >
@@ -694,10 +720,32 @@ function OrbitHive({ cards, autoRefresh, running }: { cards: { label: string; va
   return (
     <>
       <div className="orbit-desktop" style={{ position: "relative", height: 720 }}>
-        <div style={{ position: "absolute", inset: 0, opacity: 0.12, backgroundImage: "radial-gradient(#5f4a15 1px, transparent 1px)", backgroundSize: "26px 26px" }} />
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            opacity: 0.2,
+            backgroundImage: "radial-gradient(#3d3d44 1px, transparent 1px)",
+            backgroundSize: "26px 26px",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: "50%",
+            width: 420,
+            height: 420,
+            marginLeft: -210,
+            marginTop: -210,
+            borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(212,168,74,0.09) 0%, transparent 62%)",
+            pointerEvents: "none",
+          }}
+        />
 
-        <svg viewBox="0 0 720 720" width="100%" height="100%" style={{ position: "absolute", inset: 0, opacity: 0.18 }}>
-          <circle cx="360" cy="360" r="248" fill="none" stroke="#7a5d17" strokeWidth="1.5" strokeDasharray="7 10" />
+        <svg viewBox="0 0 720 720" width="100%" height="100%" style={{ position: "absolute", inset: 0, opacity: 0.22 }}>
+          <circle cx="360" cy="360" r="248" fill="none" stroke="#4a4538" strokeWidth="1.5" strokeDasharray="7 10" />
         </svg>
 
         {positions.map((card) => (
@@ -718,10 +766,11 @@ function OrbitHive({ cards, autoRefresh, running }: { cards: { label: string; va
         <div
           style={{
             position: "absolute",
-            left: center - 140,
-            top: center - 160,
-            width: 280,
-            height: 320,
+            left: center - 155,
+            top: center - 175,
+            width: 310,
+            height: 350,
+            zIndex: 2,
             animation: running ? "hiveGlow 3.4s ease-in-out infinite" : undefined,
           }}
         >
@@ -741,7 +790,14 @@ function OrbitHive({ cards, autoRefresh, running }: { cards: { label: string; va
 
       <div className="orbit-mobile" style={{ display: "none" }}>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-          <div style={{ width: 220, height: 250, animation: running ? "hiveGlow 3.4s ease-in-out infinite" : undefined }}>
+          <div
+            style={{
+              width: 260,
+              height: 295,
+              animation: running ? "hiveGlow 3.4s ease-in-out infinite" : undefined,
+              filter: "drop-shadow(0 0 28px rgba(212,168,74,0.1))",
+            }}
+          >
             <MechanicalHive active={running} />
           </div>
         </div>
@@ -758,9 +814,9 @@ function OrbitHive({ cards, autoRefresh, running }: { cards: { label: string; va
           .orbit-mobile { display: block !important; }
         }
         @keyframes hiveGlow {
-          0% { filter: drop-shadow(0 0 0 rgba(255,213,92,0)); }
-          50% { filter: drop-shadow(0 0 18px rgba(255,213,92,0.35)); }
-          100% { filter: drop-shadow(0 0 0 rgba(255,213,92,0)); }
+          0% { filter: drop-shadow(0 0 0 rgba(212,168,74,0)); }
+          50% { filter: drop-shadow(0 0 22px rgba(212,168,74,0.28)); }
+          100% { filter: drop-shadow(0 0 0 rgba(212,168,74,0)); }
         }
         @keyframes orbitSpin {
           from { transform: rotate(0deg); }
@@ -780,10 +836,11 @@ function MechanicalHive({ active = false }: { active?: boolean }) {
   return (
     <div
       style={{
-        width: 280,
-        height: 320,
-        transform: active ? "scale(1.01)" : "scale(1)",
-        filter: active ? "drop-shadow(0 0 16px rgba(255,180,43,0.32))" : "none",
+        width: "100%",
+        height: "100%",
+        minHeight: 280,
+        transform: active ? "scale(1.02)" : "scale(1)",
+        filter: active ? "drop-shadow(0 0 20px rgba(212,168,74,0.25))" : "drop-shadow(0 0 12px rgba(212,168,74,0.06))",
         transition: HIVE_UI.motion,
       }}
     >
@@ -813,12 +870,12 @@ function MechanicalHive({ active = false }: { active?: boolean }) {
         <Band cx={150} cy={214} rx={78} ry={30} innerRx={61} innerRy={20} />
         <Band cx={150} cy={252} rx={54} ry={22} innerRx={42} innerRy={14} />
 
-        <g opacity="0.55">
-          <path d="M100 82 Q150 68 200 82" fill="none" stroke="#3a2a12" strokeWidth="3" />
-          <path d="M76 120 Q150 100 224 120" fill="none" stroke="#3a2a12" strokeWidth="3" />
-          <path d="M58 166 Q150 140 242 166" fill="none" stroke="#3a2a12" strokeWidth="3" />
-          <path d="M72 214 Q150 194 228 214" fill="none" stroke="#3a2a12" strokeWidth="3" />
-          <path d="M96 252 Q150 238 204 252" fill="none" stroke="#3a2a12" strokeWidth="3" />
+        <g opacity="0.45">
+          <path d="M100 82 Q150 68 200 82" fill="none" stroke="#2c2c32" strokeWidth="3" />
+          <path d="M76 120 Q150 100 224 120" fill="none" stroke="#2c2c32" strokeWidth="3" />
+          <path d="M58 166 Q150 140 242 166" fill="none" stroke="#2c2c32" strokeWidth="3" />
+          <path d="M72 214 Q150 194 228 214" fill="none" stroke="#2c2c32" strokeWidth="3" />
+          <path d="M96 252 Q150 238 204 252" fill="none" stroke="#2c2c32" strokeWidth="3" />
         </g>
 
         <g>
@@ -986,9 +1043,9 @@ function StatusPill({
     <div
       style={{
         ...base,
-        background: active ? "rgba(86,211,100,0.18)" : "rgba(255,213,92,0.08)",
-        border: active ? "1px solid #56d364" : `1px solid ${HIVE_UI.borderHero}`,
-        color: active ? "#d8ffd8" : "#f5e2a3",
+        background: active ? "rgba(86,211,100,0.16)" : "rgba(212,168,74,0.06)",
+        border: active ? "1px solid #56d364" : `1px solid ${HIVE_UI.borderPanel}`,
+        color: active ? "#d8ffd8" : "#d8cfba",
       }}
     >
       {text}
@@ -997,47 +1054,51 @@ function StatusPill({
 }
 
 function HiveButton({ onClick, label, active = false }: { onClick: () => void; label: string; active?: boolean }) {
+  const restShadow = "0 4px 14px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)";
+  const activeShadow = "inset 0 2px 12px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,168,74,0.35)";
   return (
     <button
       type="button"
       onClick={onClick}
       style={{
-        background: active ? "linear-gradient(180deg, #d1a51f 0%, #9b7110 100%)" : "linear-gradient(180deg, #ffd55c 0%, #d9a620 100%)",
-        color: "#251b00",
-        border: "none",
+        background: active
+          ? "linear-gradient(180deg, #3d3420 0%, #1f1c14 100%)"
+          : "linear-gradient(180deg, #242428 0%, #141416 100%)",
+        color: active ? "#f0d78c" : "#c9b896",
+        border: active ? "1px solid rgba(212,168,74,0.55)" : "1px solid #333338",
         borderRadius: 999,
         padding: `${HIVE_UI.spaceSm}px ${HIVE_UI.spaceMd}px`,
         fontWeight: 700,
         fontSize: 14,
         letterSpacing: "0.02em",
-        boxShadow: active ? "inset 0 3px 10px rgba(0,0,0,0.25)" : "0 6px 18px rgba(217,166,32,0.25)",
+        boxShadow: active ? activeShadow : restShadow,
         cursor: "pointer",
         transition: HIVE_UI.motion,
       }}
       onMouseDown={(e) => {
-        e.currentTarget.style.filter = "brightness(0.84)";
+        e.currentTarget.style.filter = "brightness(0.88)";
         e.currentTarget.style.transform = "translateY(1px) scale(0.99)";
-        e.currentTarget.style.boxShadow = "inset 0 4px 10px rgba(0,0,0,0.28)";
+        e.currentTarget.style.boxShadow = "inset 0 4px 10px rgba(0,0,0,0.4)";
       }}
       onMouseUp={(e) => {
         e.currentTarget.style.filter = "brightness(1)";
         e.currentTarget.style.transform = "translateY(0) scale(1)";
-        e.currentTarget.style.boxShadow = active ? "inset 0 3px 10px rgba(0,0,0,0.25)" : "0 6px 18px rgba(217,166,32,0.25)";
+        e.currentTarget.style.boxShadow = active ? activeShadow : restShadow;
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.filter = "brightness(1)";
         e.currentTarget.style.transform = "translateY(0) scale(1)";
-        e.currentTarget.style.boxShadow = active ? "inset 0 3px 10px rgba(0,0,0,0.25)" : "0 6px 18px rgba(217,166,32,0.25)";
+        e.currentTarget.style.boxShadow = active ? activeShadow : restShadow;
       }}
       onTouchStart={(e) => {
-        e.currentTarget.style.filter = "brightness(0.84)";
+        e.currentTarget.style.filter = "brightness(0.88)";
         e.currentTarget.style.transform = "translateY(1px) scale(0.99)";
-        e.currentTarget.style.boxShadow = "inset 0 4px 10px rgba(0,0,0,0.28)";
+        e.currentTarget.style.boxShadow = "inset 0 4px 10px rgba(0,0,0,0.4)";
       }}
       onTouchEnd={(e) => {
         e.currentTarget.style.filter = "brightness(1)";
         e.currentTarget.style.transform = "translateY(0) scale(1)";
-        e.currentTarget.style.boxShadow = active ? "inset 0 3px 10px rgba(0,0,0,0.25)" : "0 6px 18px rgba(217,166,32,0.25)";
+        e.currentTarget.style.boxShadow = active ? activeShadow : restShadow;
       }}
     >
       {label}
@@ -1054,10 +1115,10 @@ function HoneyHex({ label, value, featured = false }: { label: string; value: st
           height: 108,
           clipPath: "polygon(25% 6%, 75% 6%, 100% 50%, 75% 94%, 25% 94%, 0% 50%)",
           background: featured
-            ? "linear-gradient(180deg, rgba(255,213,92,0.18) 0%, rgba(255,170,40,0.08) 100%)"
-            : "linear-gradient(180deg, rgba(255,213,92,0.10) 0%, rgba(255,213,92,0.04) 100%)",
-          border: featured ? "1px solid #d9a620" : `1px solid ${HIVE_UI.borderHero}`,
-          boxShadow: featured ? "0 0 24px rgba(255,213,92,0.12)" : "0 8px 20px rgba(0,0,0,0.25)",
+            ? "linear-gradient(180deg, rgba(212,168,74,0.12) 0%, rgba(20,20,24,0.95) 100%)"
+            : "linear-gradient(180deg, rgba(30,30,34,0.95) 0%, rgba(12,12,14,0.98) 100%)",
+          border: featured ? "1px solid rgba(212,168,74,0.45)" : `1px solid ${HIVE_UI.borderPanel}`,
+          boxShadow: featured ? "0 0 28px rgba(212,168,74,0.08)" : "0 8px 22px rgba(0,0,0,0.4)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -1079,7 +1140,7 @@ function HoneyHex({ label, value, featured = false }: { label: string; value: st
           >
             {label}
           </div>
-          <div style={{ fontSize: featured ? 23 : 19, fontWeight: 700, color: "#fff1b8" }}>{value}</div>
+          <div style={{ fontSize: featured ? 23 : 19, fontWeight: 700, color: "#ebe4d4" }}>{value}</div>
         </div>
       </div>
     </div>
@@ -1161,7 +1222,7 @@ function HiveRow({
   emphasized?: boolean;
   muted?: boolean;
 }) {
-  const valueColor = muted ? "#8f8268" : emphasized ? "#ffd55c" : "#fff1b8";
+  const valueColor = muted ? "#6e6a62" : emphasized ? HIVE_UI.accent : "#e2ddd2";
   const fontSize = emphasized && !muted ? 18 : muted ? 15 : 16;
   return (
     <div
@@ -1173,7 +1234,7 @@ function HiveRow({
         borderBottom: `1px solid ${HIVE_UI.divider}`,
       }}
     >
-      <div style={{ color: muted ? "#9a8b65" : HIVE_UI.textLabel }}>{label}</div>
+      <div style={{ color: muted ? "#6b665c" : HIVE_UI.textLabel }}>{label}</div>
       <div style={{ color: valueColor, fontWeight: 700, textAlign: "right", fontSize }}>
         {value}
       </div>
