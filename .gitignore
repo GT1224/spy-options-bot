@@ -8,4 +8,5 @@ __pycache__/
 backend/__pycache__/
 .env
 backend/.env
+dashboard/.env.local
 *.pyc

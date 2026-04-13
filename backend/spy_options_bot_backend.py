@@ -265,6 +265,22 @@ def _compute_execution_surface() -> str:
     return "alpaca_paper_degraded"
 
 
+def _compute_canonical_provider() -> str:
+    """
+    Single operator-facing provider string aligned with execution_surface (HIVE-R1).
+    Legacy state['provider_mode'] is not updated; this is derived at read time.
+    """
+    surface = _compute_execution_surface()
+    if surface == "alpaca_paper":
+        return "alpaca_paper"
+    if surface == "alpaca_paper_degraded":
+        return "alpaca_paper_degraded"
+    cfg = state.get("config") or {}
+    if not bool(cfg.get("alpaca_paper_enabled")):
+        return "mock"
+    return "alpaca_paper_missing_creds"
+
+
 def _broker_sync_contract_block() -> dict[str, Any]:
     surface = _compute_execution_surface()
     succ_at = state.get("broker_last_success_at") if isinstance(state.get("broker_last_success_at"), str) else None
@@ -668,7 +684,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
             # use_live_alpaca is rejected in /config (True); still not a live execution path in H1A.
             "mode": "live" if use_live else "paper",
             "execution_surface": execution_surface,
-            "provider_mode": state.get("provider_mode"),
+            "provider_mode": _compute_canonical_provider(),
             # Same instant as raw state["last_loop_at"] (operator-facing name).
             "last_cycle_at": state.get("last_loop_at"),
             "pending_signals_count": pending_ct,
@@ -767,6 +783,10 @@ async def auth_middleware(request: Request, call_next):
     key = request.headers.get("x-bot-admin-key")
 
     if key != BOT_ADMIN_KEY:
+        if not key:
+            print("401 unauthorized: missing x-bot-admin-key header", file=sys.stderr)
+        else:
+            print("401 unauthorized: x-bot-admin-key mismatch", file=sys.stderr)
         return JSONResponse(
             status_code=401,
             content={"error": "unauthorized"}
@@ -797,7 +817,7 @@ def health():
     return {
         "ok": True,
         "running": state["running"],
-        "provider": state["provider_mode"]
+        "provider": _compute_canonical_provider(),
     }
 
 
@@ -805,6 +825,7 @@ def health():
 def get_state():
     maybe_sync_alpaca_paper(force=False)
     body = dict(state)
+    body["provider_mode"] = _compute_canonical_provider()
     body["hive_contract_v1"] = build_hive_contract_v1()
     return body
 
