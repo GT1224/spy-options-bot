@@ -29,11 +29,16 @@ from alpaca_paper_v1 import (
     AlpacaPaperError,
     PAPER_ORDER_PREFLIGHT_TIMEOUT,
     compact_paper_order_observability,
+    fetch_open_orders,
+    fetch_positions,
     load_paper_credentials,
     read_paper_portfolio_snapshot,
     reconcile_paper_order_observability,
+    resolve_spy_paper_option_contract_v1,
     resolve_terminal_manual_paper_order_observability,
+    spy_option_exposure_preflight,
     submit_spy_equity_order,
+    submit_spy_option_limit_buy_open,
     validate_client_order_id,
 )
 
@@ -48,6 +53,12 @@ _broker_sync_lock = threading.Lock()
 # H1B: serialize manual paper submits + idempotency deque (maxlen in deque ctor).
 _paper_order_lock = threading.Lock()
 _paper_client_order_ids: deque[str] = deque(maxlen=500)
+# OPTIONS-PAPER-EXEC-1: one auto submit at a time; no overlap with manual equity submit lock.
+_auto_options_exec_lock = threading.Lock()
+# Fingerprints (structure/bias/scores without last_loop_at) already auto-submitted this process lifetime.
+_auto_options_submitted_fingerprints: deque[str] = deque(maxlen=200)
+# Minimum wall-clock gap between any two auto option submits (seconds).
+_OPTIONS_AUTO_SUBMIT_COOLDOWN_SEC = 600.0
 
 load_dotenv()
 
@@ -144,8 +155,21 @@ state: dict[str, Any] = {
         "enabled": False,
         "use_live_alpaca": False,
         "alpaca_paper_enabled": False,
+        "alpaca_options_auto_enabled": False,
         "paper_max_qty": 25,
         "poll_seconds": 10,
+    },
+    # OPTIONS-PAPER-EXEC-1 observability (in-process; surfaced on raw GET /state).
+    "auto_options_paper_exec": {
+        "last_signal_id": None,
+        "last_trade_fingerprint": None,
+        "last_order_id": None,
+        "last_client_order_id": None,
+        "last_contract_symbol": None,
+        "last_outcome": None,
+        "last_reason": None,
+        "last_at": None,
+        "last_submit_wallclock_at": None,
     },
 }
 
@@ -170,6 +194,18 @@ def _reset_demo_portfolio_after_alpaca_off() -> None:
     state["broker_open_orders_count"] = 0
     state["last_paper_order_observability"] = None
     _paper_client_order_ids.clear()
+    state["auto_options_paper_exec"] = {
+        "last_signal_id": None,
+        "last_trade_fingerprint": None,
+        "last_order_id": None,
+        "last_client_order_id": None,
+        "last_contract_symbol": None,
+        "last_outcome": None,
+        "last_reason": None,
+        "last_at": None,
+        "last_submit_wallclock_at": None,
+    }
+    _auto_options_submitted_fingerprints.clear()
 
 
 def _spy_net_qty_from_open_position(op: Any) -> float | None:
@@ -508,19 +544,14 @@ def _derive_direction_from_trade(trade: dict[str, Any], bias: str | None) -> str
     return None
 
 
-def build_hive_contract_v1() -> dict[str, Any]:
-    """Wave-1 HIVE contract: FastAPI-owned JSON for Next.js (no external services).
-
-    Raw /state still uses last_loop_at; hive_contract_v1.system_state.last_cycle_at is the same clock for operators.
-    top_signal.warnings duplicates guardrails.warnings for simple consumers that only read top_signal.
-    """
+def _compute_hive_rank_through_promotion() -> dict[str, Any]:
+    """Shared rank → promotion_gate chain for hive_contract_v1 and OPTIONS-PAPER-EXEC-1."""
     snap = state.get("signal_snapshot") or {}
     cfg = state.get("config") or {}
     trade = snap.get("recommended_trade") or {}
     bias = snap.get("bias")
     setup_score = snap.get("setup_score")
 
-    confidence: float | None
     if setup_score is None:
         confidence = None
     else:
@@ -607,6 +638,290 @@ def build_hive_contract_v1() -> dict[str, Any]:
         contract_quality=contract_quality,
         execution_edge=execution_edge,
     )
+
+    return {
+        "snap": snap,
+        "cfg": cfg,
+        "trade": trade,
+        "bias": bias,
+        "setup_score": setup_score,
+        "confidence": confidence,
+        "signal_id": signal_id,
+        "trading_enabled": trading_enabled,
+        "use_live": use_live,
+        "direction": direction,
+        "setup_payload": setup_payload,
+        "rank_bundle": rank_bundle,
+        "guardrails": guardrails,
+        "contract_quality": contract_quality,
+        "execution_edge": execution_edge,
+        "promotion_gate": promotion_gate,
+    }
+
+
+def _set_auto_options_exec_record(**kwargs: Any) -> None:
+    cur = state.get("auto_options_paper_exec")
+    if not isinstance(cur, dict):
+        cur = {}
+    nxt = dict(cur)
+    for k, v in kwargs.items():
+        nxt[k] = v
+    nxt["last_at"] = datetime.now(timezone.utc).isoformat()
+    state["auto_options_paper_exec"] = nxt
+
+
+def maybe_auto_execute_options_paper() -> None:
+    """
+    OPTIONS-PAPER-EXEC-1: after a signal pulse, optionally submit one SPY option limit BTO on Alpaca paper.
+    Kill switch: config alpaca_options_auto_enabled (default false). Uses same gate stack as hive_contract_v1.
+    """
+    cfg = state.get("config") or {}
+    if not bool(cfg.get("alpaca_options_auto_enabled")):
+        return
+    if not bool(state.get("running")) or not bool(cfg.get("enabled")):
+        return
+    if not bool(cfg.get("alpaca_paper_enabled")):
+        _set_auto_options_exec_record(
+            last_outcome="skipped",
+            last_reason="alpaca_paper_enabled is false",
+        )
+        return
+
+    surface = _compute_execution_surface()
+    if surface != "alpaca_paper":
+        _set_auto_options_exec_record(
+            last_outcome="skipped",
+            last_reason=f"execution_surface is {surface!r} (need fresh alpaca_paper sync)",
+        )
+        return
+
+    key_id, secret = load_paper_credentials()
+    if not key_id or not secret:
+        _set_auto_options_exec_record(
+            last_outcome="skipped",
+            last_reason="missing ALPACA_PAPER_KEY_ID or ALPACA_PAPER_SECRET_KEY",
+        )
+        return
+
+    layers = _compute_hive_rank_through_promotion()
+    trade = layers["trade"]
+    snap = layers["snap"]
+    pg = layers["promotion_gate"]
+    ee = layers["execution_edge"]
+    cq = layers["contract_quality"]
+    signal_id = layers["signal_id"]
+
+    if trade.get("action") != "trade":
+        return
+    struct = trade.get("structure")
+    if struct not in ("long_call", "long_put"):
+        return
+
+    if not isinstance(pg, dict) or pg.get("status") != "promoted":
+        return
+    if not isinstance(ee, dict) or ee.get("status") != "go":
+        return
+    cq_st = cq.get("status") if isinstance(cq, dict) else None
+    if cq_st not in ("strong", "acceptable"):
+        return
+
+    fp_payload = json.dumps(
+        {
+            "structure": trade.get("structure"),
+            "bias": snap.get("bias"),
+            "action": trade.get("action"),
+            "setup_score": layers["setup_score"],
+            "rank_score": layers["rank_bundle"].get("rank_score"),
+            "dte": trade.get("dte"),
+            "delta": trade.get("delta"),
+        },
+        sort_keys=True,
+        default=str,
+    )
+    trade_fp = hashlib.sha256(fp_payload.encode()).hexdigest()[:24]
+
+    rec = state.get("auto_options_paper_exec")
+    if isinstance(rec, dict):
+        wall = rec.get("last_submit_wallclock_at")
+        age = _utc_age_seconds(wall if isinstance(wall, str) else None)
+        if age is not None and age < _OPTIONS_AUTO_SUBMIT_COOLDOWN_SEC:
+            _set_auto_options_exec_record(
+                last_outcome="skipped",
+                last_reason="cooldown: recent auto options submit",
+                last_signal_id=signal_id,
+                last_trade_fingerprint=trade_fp,
+            )
+            return
+
+    if trade_fp in _auto_options_submitted_fingerprints:
+        _set_auto_options_exec_record(
+            last_outcome="skipped",
+            last_reason="duplicate trade fingerprint already auto-submitted this session",
+            last_signal_id=signal_id,
+            last_trade_fingerprint=trade_fp,
+        )
+        return
+
+    spot = snap.get("spot")
+    try:
+        spot_f = float(spot)
+    except (TypeError, ValueError):
+        _set_auto_options_exec_record(
+            last_outcome="skipped",
+            last_reason="missing or invalid spot for option resolve",
+            last_signal_id=signal_id,
+            last_trade_fingerprint=trade_fp,
+        )
+        return
+
+    dte_raw = trade.get("dte")
+    delta_raw = trade.get("delta")
+    try:
+        dte_i = int(dte_raw) if dte_raw is not None else 4
+    except (TypeError, ValueError):
+        dte_i = 4
+    try:
+        delta_f = float(delta_raw) if delta_raw is not None else 0.40
+    except (TypeError, ValueError):
+        delta_f = 0.40
+
+    client_order_id = f"a{trade_fp}"[:48]
+    if len(client_order_id) < 3:
+        client_order_id = f"a{signal_id}"[:48]
+
+    with _auto_options_exec_lock:
+        if trade_fp in _auto_options_submitted_fingerprints:
+            return
+        wall2 = state.get("auto_options_paper_exec", {}).get("last_submit_wallclock_at")
+        age2 = _utc_age_seconds(wall2 if isinstance(wall2, str) else None)
+        if age2 is not None and age2 < _OPTIONS_AUTO_SUBMIT_COOLDOWN_SEC:
+            return
+
+        try:
+            pos = fetch_positions(key_id, secret, PAPER_ORDER_PREFLIGHT_TIMEOUT)
+            oo = fetch_open_orders(key_id, secret, PAPER_ORDER_PREFLIGHT_TIMEOUT)
+        except AlpacaPaperError as e:
+            _set_auto_options_exec_record(
+                last_outcome="error",
+                last_reason=f"positions/orders preflight: {str(e)[:200]}",
+                last_signal_id=signal_id,
+                last_trade_fingerprint=trade_fp,
+            )
+            log(f"auto options preflight failed ({type(e).__name__})")
+            return
+
+        bad, why = spy_option_exposure_preflight(pos, oo)
+        if bad:
+            _set_auto_options_exec_record(
+                last_outcome="skipped",
+                last_reason=why,
+                last_signal_id=signal_id,
+                last_trade_fingerprint=trade_fp,
+            )
+            return
+
+        try:
+            resolved = resolve_spy_paper_option_contract_v1(
+                key_id,
+                secret,
+                structure=str(struct),
+                target_dte=dte_i,
+                target_delta=delta_f,
+                underlying_spot=spot_f,
+                timeout=PAPER_ORDER_PREFLIGHT_TIMEOUT,
+            )
+        except AlpacaPaperError as e:
+            _set_auto_options_exec_record(
+                last_outcome="error",
+                last_reason=f"resolve: {str(e)[:200]}",
+                last_signal_id=signal_id,
+                last_trade_fingerprint=trade_fp,
+            )
+            log(f"auto options resolve failed ({type(e).__name__})")
+            return
+
+        close_px = resolved.get("close_price")
+        try:
+            base = float(close_px)
+        except (TypeError, ValueError):
+            _set_auto_options_exec_record(
+                last_outcome="error",
+                last_reason="resolved contract missing close_price",
+                last_signal_id=signal_id,
+                last_trade_fingerprint=trade_fp,
+            )
+            return
+        limit_px = round(base * 1.12, 2)
+        if limit_px < 0.01:
+            _set_auto_options_exec_record(
+                last_outcome="skipped",
+                last_reason="limit_price too small after markup",
+                last_signal_id=signal_id,
+                last_trade_fingerprint=trade_fp,
+            )
+            return
+
+        try:
+            out = submit_spy_option_limit_buy_open(
+                key_id,
+                secret,
+                symbol=str(resolved["symbol"]),
+                qty=1,
+                limit_price=limit_px,
+                client_order_id=client_order_id,
+            )
+        except AlpacaPaperError as e:
+            _set_auto_options_exec_record(
+                last_outcome="error",
+                last_reason=f"submit: {str(e)[:200]}",
+                last_signal_id=signal_id,
+                last_trade_fingerprint=trade_fp,
+            )
+            log(f"auto options submit failed ({type(e).__name__})")
+            return
+
+        _auto_options_submitted_fingerprints.append(trade_fp)
+        now_iso = datetime.now(timezone.utc).isoformat()
+        _set_auto_options_exec_record(
+            last_outcome="submitted",
+            last_reason="Alpaca accepted options limit order (not a fill)",
+            last_signal_id=signal_id,
+            last_trade_fingerprint=trade_fp,
+            last_order_id=out.get("id"),
+            last_client_order_id=client_order_id,
+            last_contract_symbol=str(resolved.get("symbol")),
+            last_submit_wallclock_at=now_iso,
+        )
+        log(
+            f"auto options paper submitted | id={out.get('id')} | sym={resolved.get('symbol')} | "
+            f"limit={limit_px} | fp={trade_fp}"
+        )
+        maybe_sync_alpaca_paper(force=True)
+
+
+def build_hive_contract_v1() -> dict[str, Any]:
+    """Wave-1 HIVE contract: FastAPI-owned JSON for Next.js (no external services).
+
+    Raw /state still uses last_loop_at; hive_contract_v1.system_state.last_cycle_at is the same clock for operators.
+    top_signal.warnings duplicates guardrails.warnings for simple consumers that only read top_signal.
+    """
+    layers = _compute_hive_rank_through_promotion()
+    snap = layers["snap"]
+    trade = layers["trade"]
+    bias = layers["bias"]
+    setup_score = layers["setup_score"]
+    confidence = layers["confidence"]
+    signal_id = layers["signal_id"]
+    trading_enabled = layers["trading_enabled"]
+    use_live = layers["use_live"]
+    direction = layers["direction"]
+    setup_payload = layers["setup_payload"]
+    rank_bundle = layers["rank_bundle"]
+    guardrails = layers["guardrails"]
+    contract_quality = layers["contract_quality"]
+    execution_edge = layers["execution_edge"]
+    promotion_gate = layers["promotion_gate"]
+    rank_score = rank_bundle["rank_score"]
 
     signal_memory = compute_hive_signal_memory_v1(
         signal_cycle_count=int(state.get("signal_cycle_count") or 0),
@@ -802,6 +1117,7 @@ async def bot_loop():
     while state["running"]:
         if state["config"]["enabled"]:
             run_signal_cycle()
+            maybe_auto_execute_options_paper()
 
         try:
             poll = int(state["config"]["poll_seconds"])
@@ -1085,6 +1401,7 @@ def stop_bot():
 @app.post("/cycle")
 async def run_cycle():
     run_signal_cycle()
+    maybe_auto_execute_options_paper()
     return {"message": "cycle done"}
 
 
@@ -1113,7 +1430,7 @@ def update_config(patch: dict):
             except (TypeError, ValueError):
                 continue
             state["config"][k] = max(1, min(500, n))
-        elif k in ("enabled", "use_live_alpaca", "alpaca_paper_enabled"):
+        elif k in ("enabled", "use_live_alpaca", "alpaca_paper_enabled", "alpaca_options_auto_enabled"):
             state["config"][k] = bool(v)
         else:
             state["config"][k] = v
