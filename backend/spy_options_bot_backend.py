@@ -243,13 +243,25 @@ def maybe_sync_alpaca_paper(*, force: bool) -> None:
             succ_age = _utc_age_seconds(
                 state["broker_last_success_at"] if isinstance(state.get("broker_last_success_at"), str) else None
             )
-            if succ_age is not None and succ_age < BROKER_SYNC_TTL_SECONDS:
+            # Only throttle on fresh success — otherwise a prior failure (or missing-keys attempt)
+            # leaves broker_last_sync_ok false while success_at may still look "fresh", and we never retry.
+            if (
+                succ_age is not None
+                and succ_age < BROKER_SYNC_TTL_SECONDS
+                and bool(state.get("broker_last_sync_ok"))
+            ):
                 return
 
             att_age = _utc_age_seconds(
                 state["broker_last_attempt_at"] if isinstance(state.get("broker_last_attempt_at"), str) else None
             )
-            if att_age is not None and att_age < BROKER_MIN_ATTEMPT_INTERVAL_SECONDS:
+            # Do not throttle failed / missing-cred recovery: last attempt may be seconds ago but we never
+            # reached a successful read, so broker_last_error would stay stale forever.
+            if (
+                att_age is not None
+                and att_age < BROKER_MIN_ATTEMPT_INTERVAL_SECONDS
+                and bool(state.get("broker_last_sync_ok"))
+            ):
                 return
         # force=True bypasses TTL and min-interval throttles (POST /paper/sync).
 
