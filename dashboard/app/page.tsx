@@ -189,6 +189,26 @@ export default function Page() {
     }
   }
 
+  async function syncLiveRead() {
+    try {
+      setError("");
+      const data = (await apiCall("/live/sync", "POST")) as {
+        ok?: boolean;
+        error?: string;
+        blocker?: string | null;
+        live_readiness?: { operator_hint?: string; summary_code?: string };
+      };
+      if (data.ok === false && data.blocker === "live_broker_request_failed") {
+        setError(typeof data.error === "string" ? data.error : "Live broker read failed");
+      }
+      await loadAll();
+    } catch (err: any) {
+      const msg = err?.message || "Live read sync failed";
+      setError(msg);
+      await loadAll();
+    }
+  }
+
   function genPaperCid() {
     const raw =
       typeof crypto !== "undefined" && crypto.randomUUID
@@ -329,6 +349,37 @@ export default function Page() {
         ? "Paper broker: on · sync degraded"
         : "Paper broker: on · keys missing on API host";
   const paperBrokerPillActive = paperBrokerEnabled && execSurface === "alpaca_paper";
+
+  const liveRead = (system?.live_readiness ?? fullState?.live_readiness) as
+    | {
+        summary_code?: string;
+        credentials_present?: boolean;
+        submit_armed?: boolean;
+        live_broker_last_sync_ok?: boolean;
+        operator_hint?: string;
+      }
+    | undefined;
+  const liveReadSummary = liveRead?.summary_code;
+  const liveLanePillText =
+    liveReadSummary === "missing_credentials"
+      ? "Live lane: BLOCKED (no live keys)"
+      : liveReadSummary === "live_read_ready"
+        ? "Live lane: read OK"
+        : liveReadSummary === "live_sync_failed"
+          ? "Live lane: read DEGRADED"
+          : liveReadSummary === "live_credentials_ok_not_synced"
+            ? "Live lane: keys OK · sync pending"
+            : "Live lane: —";
+  const liveLanePillTone: PillTone =
+    liveReadSummary === "missing_credentials"
+      ? "hold"
+      : liveReadSummary === "live_read_ready"
+        ? "promoted"
+        : liveReadSummary === "live_sync_failed"
+          ? "suppressed"
+          : liveReadSummary === "live_credentials_ok_not_synced"
+            ? "neutral"
+            : "neutral";
 
   const signal = top?.setup ?? fullState?.signal_snapshot ?? {};
   const recommended = top?.recommended_trade ?? signal?.recommended_trade ?? {};
@@ -823,6 +874,7 @@ export default function Page() {
                 />
                 <StatusPill dense text={`Trading ${tradingEnabled ? "Armed" : "Safe"}`} />
                 <StatusPill dense text={paperBrokerPillText} active={paperBrokerPillActive} />
+                <StatusPill dense text={liveLanePillText} tone={liveLanePillTone} />
                 <StatusPill dense text={surfacePillText} />
                 <StatusPill dense text={gatePillText} tone={gatePillTone} active={gatePromoted} />
                 <StatusPill
@@ -876,6 +928,32 @@ export default function Page() {
               }}
             >
               <strong>Hive warning:</strong> {error}
+            </div>
+          ) : null}
+
+          {liveRead && typeof liveRead.operator_hint === "string" && liveRead.operator_hint.length ? (
+            <div
+              style={{
+                marginTop: 14,
+                padding: "12px 14px",
+                borderRadius: 14,
+                border: `1px solid ${
+                  liveReadSummary === "live_sync_failed" ? HIVE_UI.danger : HIVE_UI.border
+                }`,
+                background:
+                  liveReadSummary === "live_sync_failed"
+                    ? "linear-gradient(180deg, rgba(217,107,107,0.12), rgba(217,107,107,0.06))"
+                    : HIVE_UI.panel,
+                maxWidth: 900,
+                fontSize: 11,
+                color: liveReadSummary === "live_sync_failed" ? "#ffe8e8" : HIVE_UI.textSoft,
+                lineHeight: 1.5,
+              }}
+            >
+              <strong style={{ color: HIVE_UI.textMuted, letterSpacing: "0.12em", fontSize: 9 }}>
+                LIVE OPERATOR
+              </strong>
+              <div style={{ marginTop: 6 }}>{liveRead.operator_hint}</div>
             </div>
           ) : null}
 
@@ -1201,6 +1279,13 @@ export default function Page() {
               }}
               label="Sync broker"
               disabled={!paperBrokerEnabled}
+            />
+            <HiveButton
+              compact
+              onClick={() => {
+                void syncLiveRead();
+              }}
+              label="Sync live read"
             />
             <HiveButton
               compact

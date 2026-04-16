@@ -472,6 +472,63 @@ def _live_broker_sync_contract_block() -> dict[str, Any]:
     }
 
 
+def _compute_live_readiness() -> dict[str, Any]:
+    """
+    Operator-facing live lane status (read-side only). Never implies paper routing.
+    Distinct states: missing credentials, read-ready, sync-failed, never synced with creds present.
+    """
+    key_id, secret = load_live_credentials()
+    credentials_present = bool(key_id and secret)
+    submit_armed = os.getenv("HIVE_LIVE_SUBMIT_ARMED", "").strip() == "1"
+    sync_ok = bool(state.get("live_broker_last_sync_ok"))
+    att = state.get("live_broker_last_attempt_at") if isinstance(state.get("live_broker_last_attempt_at"), str) else None
+    succ = state.get("live_broker_last_success_at") if isinstance(state.get("live_broker_last_success_at"), str) else None
+    err = state.get("live_broker_last_error") if isinstance(state.get("live_broker_last_error"), str) else None
+    has_live_obs = isinstance(state.get("last_live_order_observability"), dict)
+
+    if not credentials_present:
+        summary_code = "missing_credentials"
+        hint = (
+            "LIVE BLOCKED — Alpaca live API keys are not configured on this worker "
+            "(ALPACA_LIVE_KEY_ID / ALPACA_LIVE_SECRET_KEY). Awaiting Alpaca live credential provisioning. "
+            "Paper HIVE is unchanged; there is no live money read until keys exist."
+        )
+        if submit_armed:
+            hint += (
+                " HIVE_LIVE_SUBMIT_ARMED is set but live keys are missing — do not treat this as ready for live submit."
+            )
+    elif sync_ok:
+        summary_code = "live_read_ready"
+        hint = (
+            "LIVE READ READY — last live broker read succeeded. Treasury rows in /state remain paper-backed unless "
+            "documented otherwise; use live_broker_sync and last_live_order_observability for live order truth."
+        )
+    elif att is not None and not sync_ok:
+        summary_code = "live_sync_failed"
+        hint = (
+            "LIVE READ DEGRADED — last forced or throttled live sync failed. "
+            "Use POST /live/sync after fixing keys or connectivity; see live_broker_last_error."
+        )
+    else:
+        summary_code = "live_credentials_ok_not_synced"
+        hint = (
+            "LIVE KEYS PRESENT — no successful live read yet this process (use POST /live/sync to pull live open "
+            "orders and reconcile last_live_order_observability)."
+        )
+
+    return {
+        "credentials_present": credentials_present,
+        "submit_armed": submit_armed,
+        "summary_code": summary_code,
+        "operator_hint": hint,
+        "live_broker_last_sync_ok": sync_ok,
+        "live_broker_last_error": err,
+        "live_broker_last_attempt_at": att,
+        "live_broker_last_success_at": succ,
+        "last_live_order_observability_present": has_live_obs,
+    }
+
+
 def _utc_age_seconds(iso_ts: str | None) -> float | None:
     """Age of last_cycle_at / last_loop_at in seconds (UTC), or None if unparsable."""
     if not iso_ts or not isinstance(iso_ts, str):
@@ -1155,6 +1212,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
             if isinstance(state.get("last_live_order_observability"), dict)
             else None,
             "live_broker_sync": _live_broker_sync_contract_block(),
+            "live_readiness": _compute_live_readiness(),
         },
         "top_signal": {
             "signal_id": signal_id,
@@ -1195,6 +1253,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "core": [
                 "system_state",
                 "system_state.broker_sync",
+                "system_state.live_readiness",
                 "system_state.session_regime",
                 "system_state.execution_surface",
                 "system_state.lifecycle_phase",
@@ -1284,6 +1343,7 @@ def get_state():
     maybe_sync_alpaca_live(force=False)
     body = dict(state)
     body["provider_mode"] = _compute_canonical_provider()
+    body["live_readiness"] = _compute_live_readiness()
     body["hive_contract_v1"] = build_hive_contract_v1()
     return body
 
@@ -1315,21 +1375,37 @@ def paper_sync():
 @app.post("/live/sync")
 def live_sync():
     """Force Alpaca live read sync (admin). Read-only — no order placement; refreshes live observability."""
+    maybe_sync_alpaca_live(force=True)
+    readiness = _compute_live_readiness()
     key_id, secret = load_live_credentials()
     if not key_id or not secret:
-        return JSONResponse(
-            status_code=400,
-            content={"ok": False, "error": "missing ALPACA_LIVE_KEY_ID or ALPACA_LIVE_SECRET_KEY"},
-        )
+        return {
+            "ok": False,
+            "error": "missing ALPACA_LIVE_KEY_ID or ALPACA_LIVE_SECRET_KEY",
+            "blocker": "missing_live_credentials",
+            "live_readiness": readiness,
+            "spy_open_order_count": None,
+            "live_open_orders_count": None,
+            "last_live_order_observability": state.get("last_live_order_observability"),
+        }
 
-    maybe_sync_alpaca_live(force=True)
     if not bool(state.get("live_broker_last_sync_ok")):
         err = state.get("live_broker_last_error")
         msg = err if isinstance(err, str) else "live broker sync failed"
-        return JSONResponse(status_code=502, content={"ok": False, "error": str(msg)[:240]})
+        return {
+            "ok": False,
+            "error": str(msg)[:240],
+            "blocker": "live_broker_request_failed",
+            "live_readiness": readiness,
+            "spy_open_order_count": state.get("live_snapshot_spy_open_order_count"),
+            "live_open_orders_count": state.get("live_snapshot_open_orders_count"),
+            "last_live_order_observability": state.get("last_live_order_observability"),
+        }
     return {
         "ok": True,
         "error": None,
+        "blocker": None,
+        "live_readiness": readiness,
         "live_broker_last_sync_ok": True,
         "spy_open_order_count": state.get("live_snapshot_spy_open_order_count"),
         "live_open_orders_count": state.get("live_snapshot_open_orders_count"),
