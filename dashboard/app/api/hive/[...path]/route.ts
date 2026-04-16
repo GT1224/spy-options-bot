@@ -10,6 +10,7 @@ const ALLOWED: Record<string, Set<string>> = {
   POST: new Set([
     "paper/sync",
     "paper/order",
+    "live/equity/order",
     "config",
     "bot/start",
     "bot/stop",

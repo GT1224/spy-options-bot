@@ -25,6 +25,15 @@ from hive_session_regime_v1 import compute_hive_session_regime_v1
 from hive_signal_memory_v1 import compute_hive_signal_memory_v1
 from hive_signal_rank_v1 import compute_hive_rank_v1
 
+from alpaca_live_v1 import (
+    AlpacaLiveError,
+    LIVE_ORDER_PREFLIGHT_TIMEOUT,
+    compact_live_order_observability,
+    load_live_credentials,
+    read_live_portfolio_snapshot,
+    submit_spy_equity_live_order,
+    validate_live_client_order_id,
+)
 from alpaca_paper_v1 import (
     AlpacaPaperError,
     PAPER_ORDER_PREFLIGHT_TIMEOUT,
@@ -53,6 +62,9 @@ _broker_sync_lock = threading.Lock()
 # H1B: serialize manual paper submits + idempotency deque (maxlen in deque ctor).
 _paper_order_lock = threading.Lock()
 _paper_client_order_ids: deque[str] = deque(maxlen=500)
+# W5-LIVE-1: isolated manual live equity — separate lock + idempotency from paper.
+_live_equity_order_lock = threading.Lock()
+_live_client_order_ids: deque[str] = deque(maxlen=500)
 # OPTIONS-PAPER-EXEC-1: one auto submit at a time; no overlap with manual equity submit lock.
 _auto_options_exec_lock = threading.Lock()
 # Fingerprints (structure/bias/scores without last_loop_at) already auto-submitted this process lifetime.
@@ -149,6 +161,8 @@ state: dict[str, Any] = {
     "broker_open_orders_count": 0,
     # Last manual paper submit broker snapshot (in-process; cleared when paper broker is disabled).
     "last_paper_order_observability": None,
+    # W5-LIVE-1: last manual live equity submit only — never mixed with paper observability.
+    "last_live_order_observability": None,
     "logs": [],
     "signal_snapshot": {},
     "config": {
@@ -1028,6 +1042,9 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "manual_paper_last_broker_snapshot": state.get("last_paper_order_observability")
             if isinstance(state.get("last_paper_order_observability"), dict)
             else None,
+            "manual_live_last_broker_snapshot": state.get("last_live_order_observability")
+            if isinstance(state.get("last_live_order_observability"), dict)
+            else None,
         },
         "top_signal": {
             "signal_id": signal_id,
@@ -1081,6 +1098,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
                 "performance_state",
             ],
             "advanced": [
+                "system_state.manual_live_last_broker_snapshot",
                 "top_signal.rank_score",
                 "top_signal.rank_factors",
                 "top_signal.rationale",
@@ -1389,6 +1407,190 @@ def paper_order(payload: dict[str, Any]):
         "message": (
             "Alpaca accepted the order — not a fill. Working orders can remain open until fill, expiry, or cancel; "
             "check Alpaca for status."
+        ),
+    }
+
+
+def _hive_live_submit_armed() -> bool:
+    return os.getenv("HIVE_LIVE_SUBMIT_ARMED", "").strip() == "1"
+
+
+@app.post("/live/equity/order")
+def live_equity_order(payload: dict[str, Any]):
+    """
+    Manual Alpaca live SPY equity limit order — qty 1 only. Admin auth + HIVE_LIVE_SUBMIT_ARMED=1.
+    Does not touch paper sync, performance_source, or last_paper_order_observability.
+    """
+    if not _hive_live_submit_armed():
+        return JSONResponse(
+            status_code=403,
+            content={
+                "ok": False,
+                "error": "live submit not armed: set HIVE_LIVE_SUBMIT_ARMED=1 on the worker (no live order without explicit env)",
+            },
+        )
+
+    if not isinstance(payload, dict):
+        return JSONResponse(status_code=400, content={"ok": False, "error": "JSON object body required"})
+
+    key_id, secret = load_live_credentials()
+    if not key_id or not secret:
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": "missing ALPACA_LIVE_KEY_ID or ALPACA_LIVE_SECRET_KEY"},
+        )
+
+    regime = compute_hive_session_regime_v1()
+    if not bool(regime.get("market_hours")):
+        return JSONResponse(
+            status_code=400,
+            content={
+                "ok": False,
+                "error": (
+                    "Live probation slice: orders only during NYSE regular trading hours (RTH). "
+                    "Retry Mon–Fri 9:30–16:00 ET."
+                ),
+                "reason": "outside_regular_trading_hours",
+                "session_code": regime.get("code"),
+                "session_label": regime.get("label"),
+            },
+        )
+
+    try:
+        snap = read_live_portfolio_snapshot(key_id, secret, timeout=LIVE_ORDER_PREFLIGHT_TIMEOUT)
+    except AlpacaLiveError as e:
+        return JSONResponse(
+            status_code=502,
+            content={"ok": False, "error": f"live broker preflight failed: {str(e)[:200]}"},
+        )
+
+    try:
+        spy_open_orders = int(snap["spy_open_order_count"])
+    except (KeyError, TypeError, ValueError):
+        return JSONResponse(
+            status_code=502,
+            content={"ok": False, "error": "live broker preflight failed: invalid snapshot"},
+        )
+
+    if spy_open_orders > 0:
+        return JSONResponse(
+            status_code=409,
+            content={
+                "ok": False,
+                "error": (
+                    "live broker preflight: outstanding SPY open orders exist; "
+                    "wait for fills or cancel before submit"
+                ),
+            },
+        )
+
+    sym = str(payload.get("symbol") or "SPY").strip().upper()
+    if sym != "SPY":
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": "symbol must be SPY (equity only in this slice)"},
+        )
+
+    qty_raw = payload.get("qty")
+    try:
+        qty = int(qty_raw)
+    except (TypeError, ValueError):
+        return JSONResponse(status_code=400, content={"ok": False, "error": "qty must be integer 1"})
+    if qty != 1:
+        return JSONResponse(status_code=400, content={"ok": False, "error": "qty must be exactly 1 for live probation"})
+
+    ot_raw = payload.get("order_type") or payload.get("type")
+    if not isinstance(ot_raw, str) or not ot_raw.strip():
+        return JSONResponse(status_code=400, content={"ok": False, "error": "order_type is required"})
+    if ot_raw.strip().lower() != "limit":
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": "order_type must be limit only for live probation"},
+        )
+
+    lp = payload.get("limit_price")
+    try:
+        limit_price = float(lp)
+    except (TypeError, ValueError):
+        return JSONResponse(status_code=400, content={"ok": False, "error": "limit_price required for limit orders"})
+    if limit_price <= 0:
+        return JSONResponse(status_code=400, content={"ok": False, "error": "limit_price must be positive"})
+
+    side_raw = payload.get("side")
+    if not isinstance(side_raw, str) or not side_raw.strip():
+        return JSONResponse(status_code=400, content={"ok": False, "error": "side is required (buy or sell)"})
+    side = side_raw.strip().lower()
+    if side not in ("buy", "sell"):
+        return JSONResponse(status_code=400, content={"ok": False, "error": "side must be buy or sell"})
+
+    cid_raw = payload.get("client_order_id")
+    if cid_raw is None:
+        return JSONResponse(status_code=400, content={"ok": False, "error": "client_order_id is required"})
+    cid_err = validate_live_client_order_id(str(cid_raw).strip())
+    if cid_err:
+        return JSONResponse(status_code=400, content={"ok": False, "error": cid_err})
+    client_order_id = str(cid_raw).strip()
+
+    net = _spy_net_qty_from_open_position(snap["open_position"])
+    if side == "buy" and net is not None and net > 1e-9:
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": "buy rejected - SPY position already open (no stacking)"},
+        )
+    if side == "sell" and (net is None or net <= 1e-9):
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": "sell rejected - no SPY long position to reduce"},
+        )
+
+    if client_order_id in _live_client_order_ids:
+        return JSONResponse(
+            status_code=409,
+            content={"ok": False, "error": "duplicate client_order_id in live idempotency window"},
+        )
+
+    with _live_equity_order_lock:
+        if client_order_id in _live_client_order_ids:
+            return JSONResponse(
+                status_code=409,
+                content={"ok": False, "error": "duplicate client_order_id in live idempotency window"},
+            )
+        try:
+            out = submit_spy_equity_live_order(
+                key_id,
+                secret,
+                side=side,
+                qty=1,
+                limit_price=limit_price,
+                client_order_id=client_order_id,
+            )
+        except AlpacaLiveError as e:
+            log(f"alpaca live equity order failed ({type(e).__name__})")
+            return JSONResponse(
+                status_code=502,
+                content={"ok": False, "error": str(e)[:240]},
+            )
+        _live_client_order_ids.append(client_order_id)
+
+    log("alpaca live equity order submitted")
+    oid = out.get("id")
+    obs = compact_live_order_observability(out) if isinstance(out, dict) else None
+    if isinstance(obs, dict):
+        obs["snapshot_freshness"] = "SUBMIT SNAPSHOT"
+        obs["truth_note"] = (
+            "Live: captured from Alpaca submit response; confirm status in Alpaca live dashboard."
+        )
+        state["last_live_order_observability"] = obs
+    return {
+        "ok": True,
+        "error": None,
+        "order_id": oid,
+        "client_order_id": client_order_id,
+        "broker_stage": "accepted_by_broker",
+        "live_order_observability": obs,
+        "message": (
+            "Alpaca live accepted the order — not a fill. Working orders remain risk until closed; "
+            "check Alpaca live for status."
         ),
     }
 
