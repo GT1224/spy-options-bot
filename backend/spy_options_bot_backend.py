@@ -31,6 +31,8 @@ from alpaca_live_v1 import (
     compact_live_order_observability,
     load_live_credentials,
     read_live_portfolio_snapshot,
+    reconcile_live_order_observability,
+    resolve_terminal_manual_live_order_observability,
     submit_spy_equity_live_order,
     validate_live_client_order_id,
 )
@@ -57,8 +59,12 @@ SIGNAL_STALE_AFTER_MS = 25 * 60 * 1000
 # H1A: throttle broker reads so GET /state stays responsive and Alpaca is not hammered.
 BROKER_SYNC_TTL_SECONDS = 45.0
 BROKER_MIN_ATTEMPT_INTERVAL_SECONDS = 12.0
+# W5-LIVE-2: live read sync TTL — isolated from paper throttles.
+LIVE_BROKER_SYNC_TTL_SECONDS = 45.0
+LIVE_BROKER_MIN_ATTEMPT_INTERVAL_SECONDS = 12.0
 
 _broker_sync_lock = threading.Lock()
+_live_broker_sync_lock = threading.Lock()
 # H1B: serialize manual paper submits + idempotency deque (maxlen in deque ctor).
 _paper_order_lock = threading.Lock()
 _paper_client_order_ids: deque[str] = deque(maxlen=500)
@@ -163,6 +169,13 @@ state: dict[str, Any] = {
     "last_paper_order_observability": None,
     # W5-LIVE-1: last manual live equity submit only — never mixed with paper observability.
     "last_live_order_observability": None,
+    # W5-LIVE-2: live broker read sync telemetry (never used for paper performance_source).
+    "live_broker_last_success_at": None,
+    "live_broker_last_attempt_at": None,
+    "live_broker_last_sync_ok": False,
+    "live_broker_last_error": None,
+    "live_snapshot_spy_open_order_count": None,
+    "live_snapshot_open_orders_count": None,
     "logs": [],
     "signal_snapshot": {},
     "config": {
@@ -311,6 +324,81 @@ def maybe_sync_alpaca_paper(*, force: bool) -> None:
             log(f"alpaca paper broker sync failed ({type(e).__name__})")
 
 
+def maybe_sync_alpaca_live(*, force: bool) -> None:
+    """
+    TTL-throttled read sync from Alpaca live (read-only). Updates last_live_order_observability only;
+    never touches paper fields, performance_source, or execution_surface.
+    """
+    key_id, secret = load_live_credentials()
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+
+    if not key_id or not secret:
+        if force:
+            with _live_broker_sync_lock:
+                state["live_broker_last_attempt_at"] = now_iso
+                state["live_broker_last_sync_ok"] = False
+                state["live_broker_last_error"] = "missing ALPACA_LIVE_KEY_ID or ALPACA_LIVE_SECRET_KEY"
+        return
+
+    with _live_broker_sync_lock:
+        last_obs = state.get("last_live_order_observability")
+        if not force and not isinstance(last_obs, dict):
+            return
+
+        if not force:
+            succ_age = _utc_age_seconds(
+                state["live_broker_last_success_at"]
+                if isinstance(state.get("live_broker_last_success_at"), str)
+                else None
+            )
+            if (
+                succ_age is not None
+                and succ_age < LIVE_BROKER_SYNC_TTL_SECONDS
+                and bool(state.get("live_broker_last_sync_ok"))
+            ):
+                return
+
+            att_age = _utc_age_seconds(
+                state["live_broker_last_attempt_at"]
+                if isinstance(state.get("live_broker_last_attempt_at"), str)
+                else None
+            )
+            if (
+                att_age is not None
+                and att_age < LIVE_BROKER_MIN_ATTEMPT_INTERVAL_SECONDS
+                and bool(state.get("live_broker_last_sync_ok"))
+            ):
+                return
+
+        state["live_broker_last_attempt_at"] = now_iso
+        try:
+            snap = read_live_portfolio_snapshot(key_id, secret)
+            state["live_snapshot_spy_open_order_count"] = int(snap["spy_open_order_count"])
+            state["live_snapshot_open_orders_count"] = int(snap["open_orders_count"])
+            oo = snap.get("open_orders")
+            last_obs = state.get("last_live_order_observability")
+            if isinstance(last_obs, dict) and isinstance(oo, list):
+                state["last_live_order_observability"] = reconcile_live_order_observability(last_obs, oo)
+                obs2 = state.get("last_live_order_observability")
+                if (
+                    isinstance(obs2, dict)
+                    and obs2.get("snapshot_freshness") == "NOT IN OPEN ORDERS"
+                    and obs2.get("order_id")
+                ):
+                    state["last_live_order_observability"] = resolve_terminal_manual_live_order_observability(
+                        key_id, secret, obs2
+                    )
+            state["live_broker_last_success_at"] = now_iso
+            state["live_broker_last_sync_ok"] = True
+            state["live_broker_last_error"] = None
+            log("alpaca live broker sync ok")
+        except AlpacaLiveError as e:
+            state["live_broker_last_sync_ok"] = False
+            state["live_broker_last_error"] = str(e)[:240]
+            log(f"alpaca live broker sync failed ({type(e).__name__})")
+
+
 def _compute_execution_surface() -> str:
     cfg = state.get("config") or {}
     if not bool(cfg.get("alpaca_paper_enabled")):
@@ -360,6 +448,27 @@ def _broker_sync_contract_block() -> dict[str, Any]:
         "performance_source": state.get("performance_source")
         if state.get("performance_source") in ("demo_seed", "alpaca_paper")
         else "demo_seed",
+    }
+
+
+def _live_broker_sync_contract_block() -> dict[str, Any]:
+    """Additive contract slice for live read sync — never labels alpaca_paper."""
+    succ_at = (
+        state.get("live_broker_last_success_at")
+        if isinstance(state.get("live_broker_last_success_at"), str)
+        else None
+    )
+    err = state.get("live_broker_last_error")
+    ok = bool(state.get("live_broker_last_sync_ok"))
+    return {
+        "last_sync_at": succ_at,
+        "last_attempt_at": state.get("live_broker_last_attempt_at")
+        if isinstance(state.get("live_broker_last_attempt_at"), str)
+        else None,
+        "ok": ok,
+        "error": err if isinstance(err, str) else None,
+        "stale": not ok,
+        "execution_context": "alpaca_live",
     }
 
 
@@ -1045,6 +1154,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "manual_live_last_broker_snapshot": state.get("last_live_order_observability")
             if isinstance(state.get("last_live_order_observability"), dict)
             else None,
+            "live_broker_sync": _live_broker_sync_contract_block(),
         },
         "top_signal": {
             "signal_id": signal_id,
@@ -1099,6 +1209,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
             ],
             "advanced": [
                 "system_state.manual_live_last_broker_snapshot",
+                "system_state.live_broker_sync",
                 "top_signal.rank_score",
                 "top_signal.rank_factors",
                 "top_signal.rationale",
@@ -1170,6 +1281,7 @@ def health():
 @app.get("/state")
 def get_state():
     maybe_sync_alpaca_paper(force=False)
+    maybe_sync_alpaca_live(force=False)
     body = dict(state)
     body["provider_mode"] = _compute_canonical_provider()
     body["hive_contract_v1"] = build_hive_contract_v1()
@@ -1198,6 +1310,31 @@ def paper_sync():
         msg = err if isinstance(err, str) else "broker sync failed"
         return JSONResponse(status_code=502, content={"ok": False, "error": msg[:240]})
     return {"ok": True, "error": None}
+
+
+@app.post("/live/sync")
+def live_sync():
+    """Force Alpaca live read sync (admin). Read-only — no order placement; refreshes live observability."""
+    key_id, secret = load_live_credentials()
+    if not key_id or not secret:
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": "missing ALPACA_LIVE_KEY_ID or ALPACA_LIVE_SECRET_KEY"},
+        )
+
+    maybe_sync_alpaca_live(force=True)
+    if not bool(state.get("live_broker_last_sync_ok")):
+        err = state.get("live_broker_last_error")
+        msg = err if isinstance(err, str) else "live broker sync failed"
+        return JSONResponse(status_code=502, content={"ok": False, "error": str(msg)[:240]})
+    return {
+        "ok": True,
+        "error": None,
+        "live_broker_last_sync_ok": True,
+        "spy_open_order_count": state.get("live_snapshot_spy_open_order_count"),
+        "live_open_orders_count": state.get("live_snapshot_open_orders_count"),
+        "last_live_order_observability": state.get("last_live_order_observability"),
+    }
 
 
 @app.post("/paper/order")
@@ -1581,13 +1718,15 @@ def live_equity_order(payload: dict[str, Any]):
             "Live: captured from Alpaca submit response; confirm status in Alpaca live dashboard."
         )
         state["last_live_order_observability"] = obs
+    maybe_sync_alpaca_live(force=True)
+    obs_out = state.get("last_live_order_observability")
     return {
         "ok": True,
         "error": None,
         "order_id": oid,
         "client_order_id": client_order_id,
         "broker_stage": "accepted_by_broker",
-        "live_order_observability": obs,
+        "live_order_observability": obs_out,
         "message": (
             "Alpaca live accepted the order — not a fill. Working orders remain risk until closed; "
             "check Alpaca live for status."

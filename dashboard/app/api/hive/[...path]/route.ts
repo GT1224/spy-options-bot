@@ -11,6 +11,7 @@ const ALLOWED: Record<string, Set<string>> = {
     "paper/sync",
     "paper/order",
     "live/equity/order",
+    "live/sync",
     "config",
     "bot/start",
     "bot/stop",
