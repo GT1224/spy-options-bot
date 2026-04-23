@@ -1607,14 +1607,14 @@ export default function Page() {
                       {paperOrderObs.qty != null ? paperOrderObs.qty : "—"}
                     </span>
                     {" · "}
-                    Filled{" "}
+                    Broker filled qty{" "}
                     <span style={{ color: HIVE_UI.textSoft }}>
                       {paperOrderObs.filled_qty != null ? paperOrderObs.filled_qty : "—"}
                     </span>
                     {paperOrderObs.filled_avg_price != null ? (
                       <>
                         {" · "}
-                        Avg fill{" "}
+                        Avg fill price (broker){" "}
                         <span style={{ color: HIVE_UI.textSoft }}>
                           {paperOrderObs.filled_avg_price}
                         </span>
@@ -1629,7 +1629,7 @@ export default function Page() {
                     {paperOrderObs.filled_at ? (
                       <>
                         {" · "}
-                        Filled{" "}
+                        Filled at (broker){" "}
                         <span style={{ color: HIVE_UI.textSoft }}>
                           {formatHiveObsTime(paperOrderObs.filled_at)}
                         </span>
