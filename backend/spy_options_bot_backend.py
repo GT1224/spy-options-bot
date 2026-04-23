@@ -1196,6 +1196,8 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "last_cycle_at": state.get("last_loop_at"),
             "pending_signals_count": pending_ct,
             "pending_signals_semantics": "broker_orders_only",
+            # Count is len(Alpaca open orders), not SPY-filtered; not positions or fills.
+            "pending_open_orders_scope": "all_symbols_alpaca_status_open",
             "lifecycle_phase": lifecycle_phase,
             "lifecycle_hint": lifecycle_hint,
             "signal_age_seconds": int(round(age_sec)) if age_sec is not None else None,
@@ -1246,6 +1248,9 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "open_position": state.get("open_position"),
             "consecutive_losses": state.get("consecutive_losses"),
             "unrealized_pnl": unrealized_out,
+            # Never written from Alpaca reads in this build — only init + risk reset (POST /risk/reset).
+            "realized_pnl_today_source": "hive_internal_only_not_alpaca_account_sync",
+            "consecutive_losses_source": "hive_internal_only_not_alpaca_account_sync",
         },
         # Hints for UIs/docs only — not enforced when serializing the contract.
         "ui_visibility": {

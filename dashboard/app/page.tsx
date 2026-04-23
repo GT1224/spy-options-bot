@@ -1192,7 +1192,7 @@ export default function Page() {
                       system?.pending_signals_semantics === "broker_orders_only"
                         ? `${formatVal(
                             system?.pending_signals_count ?? 0
-                          )} — broker only`
+                          )} — Alpaca open orders (all symbols; not fills or positions)`
                         : formatVal(system?.pending_signals_count ?? "—")
                     }
                   />
@@ -1214,14 +1214,14 @@ export default function Page() {
                     value={formatVal(perf?.equity ?? fullState?.equity)}
                   />
                   <RailRow
-                    label="Daily P&L"
+                    label="Daily P&L (HIVE internal)"
                     value={formatVal(
                       perf?.realized_pnl_today ?? fullState?.realized_pnl_today
                     )}
                     accent
                   />
                   <RailRow
-                    label="Loss Streak"
+                    label="Loss streak (HIVE internal)"
                     value={formatVal(
                       perf?.consecutive_losses ?? fullState?.consecutive_losses
                     )}
@@ -1392,7 +1392,7 @@ export default function Page() {
                     lineHeight: 1.4,
                   }}
                 >
-                  Pending {system.pending_signals_count} broker order(s) — working/accepted is not a fill; may be
+                  Pending {system.pending_signals_count} Alpaca open order(s) (any symbol) — working/accepted is not a fill; may be
                   session-related; cancel or monitor in Alpaca.
                 </div>
               ) : null}
