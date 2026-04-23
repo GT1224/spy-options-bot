@@ -112,9 +112,16 @@ export default function Page() {
     try {
       setError("");
       const healthRes = await fetch(`${HIVE_API}/health`);
-      const healthData = await healthRes.json();
+      let healthData: unknown = null;
+      try {
+        healthData = await healthRes.json();
+      } catch {
+        healthData = null;
+      }
+      const healthOk = healthRes.ok;
       const stateData = await apiCall("/state");
-      setHealth(healthData);
+      // Do not treat a failed health probe body as authoritative runtime truth (avoids false "idle").
+      setHealth(healthOk && healthData && typeof healthData === "object" ? healthData : null);
       setFullState(stateData);
     } catch (err: any) {
       const msg = err?.message || "Could not connect to backend";
@@ -383,10 +390,16 @@ export default function Page() {
 
   const signal = top?.setup ?? fullState?.signal_snapshot ?? {};
   const recommended = top?.recommended_trade ?? signal?.recommended_trade ?? {};
-  const running =
+  const swarmFromContract =
     system?.bot_running !== undefined && system?.bot_running !== null
       ? !!system.bot_running
-      : !!health?.running;
+      : undefined;
+  const swarmFromHealth =
+    health && typeof health === "object" && "running" in health && health.running !== undefined && health.running !== null
+      ? !!health.running
+      : undefined;
+  const swarmKnown = swarmFromContract !== undefined || swarmFromHealth !== undefined;
+  const running = swarmKnown ? !!(swarmFromContract ?? swarmFromHealth) : null;
   const tradingEnabled =
     system?.trading_enabled !== undefined && system?.trading_enabled !== null
       ? !!system.trading_enabled
@@ -869,8 +882,14 @@ export default function Page() {
               >
                 <StatusPill
                   dense
-                  text={running ? "Swarm Active" : "Swarm Idle"}
-                  active={running}
+                  text={
+                    running === null
+                      ? "Swarm: unknown (health/state mismatch)"
+                      : running
+                        ? "Swarm Active"
+                        : "Swarm Idle"
+                  }
+                  active={running === true}
                 />
                 <StatusPill dense text={`Trading ${tradingEnabled ? "Armed" : "Safe"}`} />
                 <StatusPill dense text={paperBrokerPillText} active={paperBrokerPillActive} />
@@ -1105,8 +1124,10 @@ export default function Page() {
                   text={
                     system?.signal_age_seconds !== undefined &&
                     system?.signal_age_seconds !== null
-                      ? `Pulse age ${system.signal_age_seconds}s`
-                      : "Pulse age —"
+                      ? `Pulse age ${system.signal_age_seconds}s${system?.signal_stale ? " · stale" : ""}`
+                      : system?.signal_stale
+                        ? "Pulse age — · stale"
+                        : "Pulse age —"
                   }
                 />
               </div>
@@ -1177,7 +1198,9 @@ export default function Page() {
                   />
                   <RailRow
                     label="Provider"
-                    value={formatVal(health?.provider)}
+                    value={formatVal(
+                      system?.provider_mode ?? fullState?.provider_mode ?? health?.provider
+                    )}
                     muted
                   />
                 </div>
@@ -1211,7 +1234,8 @@ export default function Page() {
 
               <div className="hive-tactical-deck">
                 <TacticalFieldDeck
-                  running={running}
+                  running={running === true}
+                  swarmRunningKnown={swarmKnown}
                   tradingEnabled={tradingEnabled}
                   system={system}
                   signal={signal}
@@ -1803,6 +1827,7 @@ export default function Page() {
 }
 function TacticalFieldDeck({
   running,
+  swarmRunningKnown,
   tradingEnabled,
   system,
   signal,
@@ -1820,6 +1845,7 @@ function TacticalFieldDeck({
   gatePillText,
 }: {
   running: boolean;
+  swarmRunningKnown: boolean;
   tradingEnabled: boolean;
   system: any;
   signal: any;
@@ -1836,11 +1862,13 @@ function TacticalFieldDeck({
   gateHold: boolean;
   gatePillText: string;
 }) {
-  const postureTitle = !running
-    ? "SWARM IDLE"
-    : tradingEnabled
-      ? "SWARM ACTIVE · ARMED"
-      : "SWARM ACTIVE · DISARMED";
+  const postureTitle = !swarmRunningKnown
+    ? "SWARM RUNTIME UNKNOWN"
+    : !running
+      ? "SWARM IDLE"
+      : tradingEnabled
+        ? "SWARM ACTIVE · ARMED"
+        : "SWARM ACTIVE · DISARMED";
 
   const postureSub =
     typeof system?.operator_posture_hint === "string" && system.operator_posture_hint.length
@@ -1851,9 +1879,11 @@ function TacticalFieldDeck({
               ? ` — ${system.lifecycle_hint}`
               : ""
           }`
-        : running
-          ? "Loop online — awaiting structured posture from hive core."
-          : "No active loop. Launch bees or pulse cycle to run a tactical refresh.";
+        : !swarmRunningKnown
+          ? "Health probe failed or returned a non-object while structured contract fields were missing — do not infer loop state from pills alone; fix /api/hive/health or confirm /state."
+          : running
+            ? "Loop online — awaiting structured posture from hive core."
+            : "No active loop. Launch bees or pulse cycle to run a tactical refresh.";
 
   const lastCycle = formatVal(system?.last_cycle_at);
   const pulseAge =
