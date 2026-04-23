@@ -1201,7 +1201,6 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "signal_age_seconds": int(round(age_sec)) if age_sec is not None else None,
             "signal_stale": signal_stale,
             "operator_posture_hint": posture_hint,
-            "health": {"ok": True},
             "freshness": {"signal_stale_after_ms": SIGNAL_STALE_AFTER_MS},
             "session_regime": session_regime,
             "broker_sync": broker_sync,
