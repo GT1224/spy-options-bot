@@ -830,7 +830,7 @@ export default function Page() {
   inset: 0;
   width: 100%;
   height: 100%;
-  background-image: url(/hive-hero.jpg);
+  background-image: url(/hive-hero-v2.png);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
