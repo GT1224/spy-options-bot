@@ -499,7 +499,7 @@ export default function Page() {
 }
 .hive-topbar {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr;
   gap: 12px;
   align-items: center;
   padding: 10px 14px;
@@ -530,12 +530,62 @@ export default function Page() {
   gap: 6px;
   justify-content: flex-end;
 }
+.hive-ops-primary-shell {
+  margin-top: 12px;
+  padding: 10px 14px 12px;
+  border: 1px solid ${HIVE_UI.borderStrong};
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.12)),
+    linear-gradient(180deg, #0a0c11, #07090d);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.035),
+    0 10px 28px rgba(0,0,0,0.35);
+}
+.hive-ops-primary-shell .hive-command-rail {
+  margin-top: 8px;
+}
+.hive-signal-context-bar {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid ${HIVE_UI.border};
+  border-radius: 12px;
+  background: ${HIVE_UI.panel};
+}
+.hive-signal-context-bar .hive-signal-context-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: ${HIVE_UI.textDim};
+  margin-right: 8px;
+  width: 100%;
+}
+@media (min-width: 640px) {
+  .hive-signal-context-bar .hive-signal-context-label {
+    width: auto;
+  }
+}
+.hive-account-paper-band {
+  margin-top: 12px;
+  padding: 0 13px 14px;
+}
+.hive-lower-stack-ops2 {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 .hive-hero-theater {
   position: relative;
-  margin-top: 14px;
-  min-height: min(48vh, 500px);
-  max-height: 528px;
-  border-radius: 20px;
+  margin-top: 12px;
+  min-height: min(18vh, 140px);
+  max-height: 200px;
+  border-radius: 16px;
   border: 1px solid ${HIVE_UI.borderStrong};
   overflow: hidden;
   background: #010101;
@@ -582,7 +632,7 @@ export default function Page() {
     inset 0 0 0 1px rgba(255,255,255,0.06),
     inset 0 0 90px rgba(0,0,0,0.28),
     inset 0 0 200px rgba(0,0,0,0.38);
-  border-radius: 20px;
+  border-radius: 16px;
 }
 .hive-hero-chrome-top {
   position: absolute;
@@ -653,9 +703,9 @@ export default function Page() {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(200px, 244px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 280px);
   gap: 12px;
-  padding: 12px 13px 14px;
+  padding: 12px 13px 0;
   align-items: stretch;
 }
 .hive-tactical-deck {
@@ -920,30 +970,11 @@ export default function Page() {
                 />
                 <StatusPill
                   dense
-                  text={autoRefresh ? "Page refresh on" : "Page refresh off"}
-                  active={autoRefresh}
+                  text={alpacaOptionsAutoEnabled ? "Options AUTO on" : "Options AUTO off"}
+                  tone={alpacaOptionsAutoEnabled ? "promoted" : "hold"}
+                  active={alpacaOptionsAutoEnabled}
                 />
               </div>
-            </div>
-
-            <div className="hive-topbar-kickers">
-              <MetricKicker label="Bias" value={formatVal(signal?.bias)} />
-              <MetricKicker label="Score" value={formatVal(signal?.setup_score)} />
-              <MetricKicker
-                label="Delta"
-                value={
-                  !delta?.status
-                    ? "—"
-                    : delta.status === "none"
-                      ? "no prior pulse"
-                      : delta.status === "unchanged"
-                        ? "unchanged"
-                        : delta.status === "minor_change"
-                          ? "minor"
-                          : "meaningful"
-                }
-                accent={delta?.status === "meaningful_change"}
-              />
             </div>
           </header>
 
@@ -988,6 +1019,112 @@ export default function Page() {
             </div>
           ) : null}
 
+          <div className="hive-signal-context-bar" aria-label="Pulse context">
+            <span className="hive-signal-context-label">Pulse context</span>
+            <MetricKicker label="Bias" value={formatVal(signal?.bias)} />
+            <MetricKicker label="Score" value={formatVal(signal?.setup_score)} />
+            <MetricKicker
+              label="Delta"
+              value={
+                !delta?.status
+                  ? "—"
+                  : delta.status === "none"
+                    ? "no prior pulse"
+                    : delta.status === "unchanged"
+                      ? "unchanged"
+                      : delta.status === "minor_change"
+                        ? "minor"
+                        : "meaningful"
+              }
+              accent={delta?.status === "meaningful_change"}
+            />
+          </div>
+
+          <section className="hive-ops-primary-shell" aria-label="Operator controls">
+            <div
+              style={{
+                fontSize: 9,
+                letterSpacing: "0.22em",
+                fontWeight: 800,
+                color: HIVE_UI.textDim,
+                textTransform: "uppercase",
+                marginBottom: 6,
+              }}
+            >
+              Operator controls
+            </div>
+            <div className="hive-command-rail">
+              <div
+                style={{
+                  fontSize: 9,
+                  letterSpacing: "0.24em",
+                  fontWeight: 800,
+                  color: HIVE_UI.textMuted,
+                  textTransform: "uppercase",
+                  alignSelf: "center",
+                  marginRight: 4,
+                  paddingRight: 6,
+                  borderRight: `1px solid ${HIVE_UI.borderDeep}`,
+                }}
+              >
+                Command
+              </div>
+              <HiveButton compact onClick={loadAll} label="Refresh" />
+              <HiveButton compact onClick={runCycle} label="Pulse" />
+              <HiveButton compact onClick={startBot} label="Launch" />
+              <HiveButton compact onClick={stopBot} label="Recall" />
+              <HiveButton compact onClick={enableTrading} label="Arm" />
+              <HiveButton compact onClick={disableTrading} label="Disarm" />
+              <HiveButton
+                compact
+                onClick={() => {
+                  void enablePaperBroker();
+                }}
+                label="Paper on"
+                disabled={paperBrokerEnabled}
+                active={paperBrokerEnabled}
+              />
+              <HiveButton
+                compact
+                onClick={() => {
+                  void disablePaperBroker();
+                }}
+                label="Paper off"
+                disabled={!paperBrokerEnabled}
+              />
+              <HiveButton
+                compact
+                onClick={() => {
+                  void syncBroker();
+                }}
+                label="Sync broker"
+                disabled={!paperBrokerEnabled}
+              />
+              <HiveButton
+                compact
+                onClick={() => {
+                  void syncLiveRead();
+                }}
+                label="Sync live read"
+              />
+              <HiveButton
+                compact
+                onClick={() => {
+                  void setAlpacaOptionsAuto(!alpacaOptionsAutoEnabled);
+                }}
+                label={alpacaOptionsAutoEnabled ? "AUTO OFF" : "AUTO ON"}
+                active={alpacaOptionsAutoEnabled}
+                disabled={!paperBrokerEnabled}
+              />
+              <HiveButton
+                compact
+                onClick={() => setAutoRefresh(!autoRefresh)}
+                label={autoRefresh ? "Refresh on" : "Refresh off"}
+                active={autoRefresh}
+              />
+            </div>
+          </section>
+
           <section className="hive-hero-theater" aria-label="HIVE tactical hero theater">
             <div className="hive-hero-chrome-top" aria-hidden="true" />
             <div className="hive-hero-media">
@@ -1030,7 +1167,7 @@ export default function Page() {
               </div>
               <div
                 style={{
-                  fontSize: 27,
+                  fontSize: 17,
                   lineHeight: 1.04,
                   fontWeight: 800,
                   letterSpacing: "0.14em",
@@ -1069,7 +1206,7 @@ export default function Page() {
                     marginBottom: 5,
                   }}
                 >
-                  Primary pulse
+                  Signal · decision
                 </div>
                 <div
                   style={{
@@ -1081,15 +1218,15 @@ export default function Page() {
                 >
                   <div
                     style={{
-                      fontSize: 28,
+                      fontSize: 24,
                       lineHeight: 1.02,
                       fontWeight: 800,
-                      letterSpacing: "0.12em",
+                      letterSpacing: "0.1em",
                       color: HIVE_UI.text,
                       textRendering: "geometricPrecision",
                     }}
                   >
-                    LIVE TACTICAL FIELD
+                    Tactical command
                   </div>
                   <div
                     style={{
@@ -1099,7 +1236,7 @@ export default function Page() {
                       color: HIVE_UI.accent,
                     }}
                   >
-                    OPERATOR DECK
+                    TOP SIGNAL · GUARD · EDGE
                   </div>
                   <div
                     style={{
@@ -1146,6 +1283,27 @@ export default function Page() {
             </div>
 
             <div className="hive-stage-body">
+              <div className="hive-tactical-deck">
+                <TacticalFieldDeck
+                  running={running === true}
+                  swarmRunningKnown={swarmKnown}
+                  tradingEnabled={tradingEnabled}
+                  system={system}
+                  signal={signal}
+                  top={top}
+                  recommended={recommended}
+                  guard={guard}
+                  promo={promo}
+                  cq={cq}
+                  edge={edge}
+                  delta={delta}
+                  regime={regime}
+                  gatePromoted={gatePromoted}
+                  gateSuppressed={gateSuppressed}
+                  gateHold={gateHold}
+                  gatePillText={gatePillText}
+                />
+              </div>
               <div className="hive-side-rail">
                 {brokerStale ? (
                   <div
@@ -1244,102 +1402,9 @@ export default function Page() {
                 </div>
               </div>
 
-              <div className="hive-tactical-deck">
-                <TacticalFieldDeck
-                  running={running === true}
-                  swarmRunningKnown={swarmKnown}
-                  tradingEnabled={tradingEnabled}
-                  system={system}
-                  signal={signal}
-                  top={top}
-                  recommended={recommended}
-                  guard={guard}
-                  promo={promo}
-                  cq={cq}
-                  edge={edge}
-                  delta={delta}
-                  regime={regime}
-                  gatePromoted={gatePromoted}
-                  gateSuppressed={gateSuppressed}
-                  gateHold={gateHold}
-                  gatePillText={gatePillText}
-                />
-              </div>
-
             </div>
-          </section>
 
-          <div className="hive-command-rail">
-            <div
-              style={{
-                fontSize: 9,
-                letterSpacing: "0.24em",
-                fontWeight: 800,
-                color: HIVE_UI.textMuted,
-                textTransform: "uppercase",
-                alignSelf: "center",
-                marginRight: 4,
-                paddingRight: 6,
-                borderRight: `1px solid ${HIVE_UI.borderDeep}`,
-              }}
-            >
-              Command
-            </div>
-            <HiveButton compact onClick={loadAll} label="Refresh" />
-            <HiveButton compact onClick={runCycle} label="Pulse" />
-            <HiveButton compact onClick={startBot} label="Launch" />
-            <HiveButton compact onClick={stopBot} label="Recall" />
-            <HiveButton compact onClick={enableTrading} label="Arm" />
-            <HiveButton compact onClick={disableTrading} label="Disarm" />
-            <HiveButton
-              compact
-              onClick={() => {
-                void enablePaperBroker();
-              }}
-              label="Paper on"
-              disabled={paperBrokerEnabled}
-              active={paperBrokerEnabled}
-            />
-            <HiveButton
-              compact
-              onClick={() => {
-                void disablePaperBroker();
-              }}
-              label="Paper off"
-              disabled={!paperBrokerEnabled}
-            />
-            <HiveButton
-              compact
-              onClick={() => {
-                void syncBroker();
-              }}
-              label="Sync broker"
-              disabled={!paperBrokerEnabled}
-            />
-            <HiveButton
-              compact
-              onClick={() => {
-                void syncLiveRead();
-              }}
-              label="Sync live read"
-            />
-            <HiveButton
-              compact
-              onClick={() => {
-                void setAlpacaOptionsAuto(!alpacaOptionsAutoEnabled);
-              }}
-              label={alpacaOptionsAutoEnabled ? "AUTO OFF" : "AUTO ON"}
-              active={alpacaOptionsAutoEnabled}
-              disabled={!paperBrokerEnabled}
-            />
-            <HiveButton
-              compact
-              onClick={() => setAutoRefresh(!autoRefresh)}
-              label={autoRefresh ? "Refresh on" : "Refresh off"}
-              active={autoRefresh}
-            />
-          </div>
-
+            <div className="hive-account-paper-band">
           {!paperBrokerEnabled ? (
             <div
               style={{
@@ -1695,13 +1760,34 @@ export default function Page() {
               ) : null}
             </div>
           ) : null}
+            </div>
 
-          <div className="hive-lower-grid">
+          </section>
+
+          <div className="hive-lower-stack-ops2">
             <div className="hive-stack">
               <Panel
                 variant="diagnostics"
-                title="Extended diagnostics"
-                subtitle="Secondary depth · operator deck above"
+                title="Activity · bee log"
+                subtitle="Recent in-process stream (this worker only)"
+              >
+                <div className="hive-bee-log-inner">
+                  {(fullState?.logs || []).length
+                    ? (fullState.logs as string[]).join("\n")
+                    : (
+                        <span style={{ color: HIVE_UI.textMuted, letterSpacing: "0.06em" }}>
+                          No bee activity yet
+                        </span>
+                      )}
+                </div>
+              </Panel>
+            </div>
+
+            <div className="hive-stack">
+              <Panel
+                variant="diagnostics"
+                title="Advanced · diagnostics"
+                subtitle="Secondary depth — rationale, guardrails, contract notes"
               >
                 <div className="hive-signal-grid hive-signal-grid--tight">
                   <div>
@@ -1819,24 +1905,6 @@ export default function Page() {
                       />
                     </PanelSection>
                   </div>
-                </div>
-              </Panel>
-            </div>
-
-            <div className="hive-stack">
-              <Panel
-                variant="diagnostics"
-                title="Bee log"
-                subtitle="In-process activity stream (this worker only)"
-              >
-                <div className="hive-bee-log-inner">
-                  {(fullState?.logs || []).length
-                    ? (fullState.logs as string[]).join("\n")
-                    : (
-                        <span style={{ color: HIVE_UI.textMuted, letterSpacing: "0.06em" }}>
-                          No bee activity yet
-                        </span>
-                      )}
                 </div>
               </Panel>
             </div>
