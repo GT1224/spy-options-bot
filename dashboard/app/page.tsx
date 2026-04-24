@@ -162,6 +162,17 @@ export default function Page() {
     await loadAll();
   }
 
+  async function setAlpacaOptionsAuto(next: boolean) {
+    try {
+      setError("");
+      await apiCall("/config", "POST", { alpaca_options_auto_enabled: next });
+      await loadAll();
+    } catch (err: any) {
+      setError(err?.message || "Options AUTO config failed");
+      await loadAll();
+    }
+  }
+
   async function enablePaperBroker() {
     try {
       setError("");
@@ -348,6 +359,7 @@ export default function Page() {
     execSurface === "alpaca_paper_degraded" || !!brokerSync?.stale;
 
   const paperBrokerEnabled = !!fullState?.config?.alpaca_paper_enabled;
+  const alpacaOptionsAutoEnabled = !!fullState?.config?.alpaca_options_auto_enabled;
   const paperBrokerPillText = !paperBrokerEnabled
     ? "Paper broker: off (signal-only)"
     : execSurface === "alpaca_paper"
@@ -908,7 +920,7 @@ export default function Page() {
                 />
                 <StatusPill
                   dense
-                  text={autoRefresh ? "Auto refresh on" : "Auto refresh off"}
+                  text={autoRefresh ? "Page refresh on" : "Page refresh off"}
                   active={autoRefresh}
                 />
               </div>
@@ -1313,8 +1325,17 @@ export default function Page() {
             />
             <HiveButton
               compact
+              onClick={() => {
+                void setAlpacaOptionsAuto(!alpacaOptionsAutoEnabled);
+              }}
+              label={alpacaOptionsAutoEnabled ? "AUTO OFF" : "AUTO ON"}
+              active={alpacaOptionsAutoEnabled}
+              disabled={!paperBrokerEnabled}
+            />
+            <HiveButton
+              compact
               onClick={() => setAutoRefresh(!autoRefresh)}
-              label={autoRefresh ? "Auto on" : "Auto off"}
+              label={autoRefresh ? "Refresh on" : "Refresh off"}
               active={autoRefresh}
             />
           </div>
