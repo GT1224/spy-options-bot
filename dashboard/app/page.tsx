@@ -3,6 +3,13 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 
+import {
+  DEFAULT_HIVE_UI_PREFS,
+  loadHiveUiPrefs,
+  saveHiveUiPrefs,
+  type HiveUiPrefs,
+} from "../lib/hive-ui-prefs";
+
 /** Same-origin BFF — admin key never in the browser (H2). */
 const HIVE_API = "/api/hive";
 
@@ -92,6 +99,35 @@ export default function Page() {
   const [paperOrderObs, setPaperOrderObs] = useState<PaperOrderObservability | null>(null);
   const [opsAdvancedOpen, setOpsAdvancedOpen] = useState(false);
   const [emergencyStopBusy, setEmergencyStopBusy] = useState(false);
+  const [uiPrefs, setUiPrefs] = useState<HiveUiPrefs>(DEFAULT_HIVE_UI_PREFS);
+  const [prefsHydrated, setPrefsHydrated] = useState(false);
+  const [configureOpen, setConfigureOpen] = useState(false);
+
+  useEffect(() => {
+    const p = loadHiveUiPrefs();
+    setUiPrefs(p);
+    setOpsAdvancedOpen(p.advancedDefault === "open");
+    setPrefsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!prefsHydrated) return;
+    saveHiveUiPrefs(uiPrefs);
+  }, [uiPrefs, prefsHydrated]);
+
+  useEffect(() => {
+    if (!configureOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setConfigureOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [configureOpen]);
 
   async function apiCall(path: string, method = "GET", body?: any) {
     const res = await fetch(`${HIVE_API}${path}`, {
@@ -779,6 +815,253 @@ export default function Page() {
   flex-direction: column;
   gap: 12px;
 }
+.hive-orbit-canvas {
+  position: relative;
+  margin-top: 8px;
+  isolation: isolate;
+  border-radius: 20px;
+  padding: 2px 0 0;
+}
+.hive-orbit-stack {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.hive-core-plate-slot {
+  position: relative;
+  width: 100%;
+  border-radius: 20px;
+  border: 1px solid ${HIVE_UI.borderStrong};
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 70% 85% at 50% 48%, rgba(199,154,49,0.09) 0%, rgba(0,0,0,0.55) 55%, #010102 100%),
+    linear-gradient(180deg, #06080d, #020203);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.045),
+    inset 0 0 88px rgba(0,0,0,0.55),
+    0 16px 44px rgba(0,0,0,0.38);
+}
+[data-hive-core-size="compact"] .hive-core-plate-slot {
+  min-height: 160px;
+  max-height: min(28vh, 220px);
+}
+[data-hive-core-size="standard"] .hive-core-plate-slot {
+  min-height: 200px;
+  max-height: min(36vh, 320px);
+}
+[data-hive-core-size="large"] .hive-core-plate-slot {
+  min-height: 240px;
+  max-height: min(46vh, 420px);
+}
+.hive-core-plate-img-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.hive-core-plate-img-wrap img {
+  object-fit: contain !important;
+  object-position: center center !important;
+  filter: saturate(1.05) brightness(0.94) contrast(1.1);
+}
+.hive-core-plate-scrim {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background:
+    radial-gradient(ellipse 68% 62% at 50% 42%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.38) 72%, rgba(0,0,0,0.78) 100%),
+    linear-gradient(180deg, rgba(2,2,5,0.25), rgba(0,0,0,0.5));
+}
+[data-hive-core-visibility="subtle"] .hive-core-plate-img-wrap {
+  opacity: 0.44;
+}
+[data-hive-core-visibility="subtle"] .hive-core-plate-scrim {
+  background:
+    radial-gradient(ellipse 65% 58% at 50% 40%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 68%, rgba(0,0,0,0.88) 100%),
+    linear-gradient(180deg, rgba(2,2,5,0.45), rgba(0,0,0,0.62));
+}
+.hive-orbit-stack .hive-signal-context-bar {
+  border-color: rgba(255,255,255,0.1);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.18)),
+    ${HIVE_UI.panel};
+  box-shadow: 0 10px 32px rgba(0,0,0,0.42);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.hive-orbit-stack .hive-ops-primary-shell.hive-ops3c-shell {
+  border-color: rgba(255,255,255,0.13);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.038), rgba(0,0,0,0.22)),
+    linear-gradient(180deg, #0b0d14, #06080d);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 14px 36px rgba(0,0,0,0.42);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.hive-orbit-stack .hive-stage-shell {
+  border-color: rgba(255,255,255,0.12);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+[data-hive-density="compact"] .hive-orbit-stack .hive-ops-primary-shell.hive-ops3c-shell {
+  padding: 11px 12px 13px;
+}
+[data-hive-density="compact"] .hive-orbit-stack .hive-signal-context-bar {
+  padding: 6px 10px;
+}
+[data-hive-density="compact"] .hive-stage-body {
+  padding: 9px 10px 0;
+}
+[data-hive-density="compact"] .hive-lower-stack-ops2 {
+  gap: 9px;
+}
+.hive-configure-trigger {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid ${HIVE_UI.border};
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.12));
+  color: ${HIVE_UI.textSoft};
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: ${HIVE_UI.motion};
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+.hive-configure-trigger:hover {
+  border-color: ${HIVE_UI.borderStrong};
+  color: ${HIVE_UI.text};
+}
+.hive-drawer-root {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+}
+.hive-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.55);
+  cursor: pointer;
+}
+.hive-drawer-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  width: min(420px, 100vw);
+  max-width: 100%;
+  overflow-y: auto;
+  padding: 16px 16px 22px;
+  border-left: 1px solid ${HIVE_UI.borderStrong};
+  background:
+    linear-gradient(200deg, rgba(199,154,49,0.07), rgba(0,0,0,0) 42%),
+    linear-gradient(180deg, #0a0c12, #050608);
+  box-shadow: -12px 0 48px rgba(0,0,0,0.55);
+}
+@media (max-width: 520px) {
+  .hive-drawer-panel {
+    left: 0;
+    width: 100%;
+    border-left: none;
+    border-bottom: 1px solid ${HIVE_UI.borderDeep};
+  }
+}
+.hive-drawer-title {
+  margin: 0 0 14px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: ${HIVE_UI.accent};
+}
+.hive-drawer-section {
+  margin-bottom: 18px;
+}
+.hive-drawer-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: ${HIVE_UI.textDim};
+  margin-bottom: 8px;
+}
+.hive-drawer-seg-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.hive-drawer-seg {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid ${HIVE_UI.border};
+  background: linear-gradient(180deg, #10141c, #0a0d12);
+  color: ${HIVE_UI.textMuted};
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: ${HIVE_UI.motion};
+}
+.hive-drawer-seg--on {
+  border-color: ${HIVE_UI.accentLine};
+  color: #f1deb0;
+  background: linear-gradient(180deg, rgba(199,154,49,0.14), rgba(199,154,49,0.05));
+}
+.hive-drawer-close {
+  margin-top: 20px;
+  width: 100%;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid ${HIVE_UI.border};
+  background: ${HIVE_UI.panel2};
+  color: ${HIVE_UI.textSoft};
+  font-weight: 700;
+  font-size: 11px;
+  cursor: pointer;
+}
+.hive-drawer-reset {
+  margin-top: 10px;
+  width: 100%;
+  padding: 9px;
+  border-radius: 12px;
+  border: 1px solid ${HIVE_UI.danger};
+  background: ${HIVE_UI.dangerSoft};
+  color: #ffd4d4;
+  font-weight: 700;
+  font-size: 10px;
+  cursor: pointer;
+}
+.hive-hero-theater--full {
+  min-height: min(22vh, 200px);
+  max-height: min(42vh, 400px);
+}
+.hive-hero-theater--deemph {
+  opacity: 0.52;
+  max-height: 120px;
+  min-height: 96px;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .hive-orbit-stack .hive-signal-context-bar,
+  .hive-orbit-stack .hive-ops-primary-shell.hive-ops3c-shell,
+  .hive-orbit-stack .hive-stage-shell {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
 .hive-hero-theater {
   position: relative;
   margin-top: 12px;
@@ -1048,12 +1331,14 @@ export default function Page() {
       />
       <main
         data-hive-dashboard
+        data-hive-density={uiPrefs.panelDensity}
         style={{
           minHeight: "100vh",
           background: `linear-gradient(180deg, ${HIVE_UI.bgTop} 0%, ${HIVE_UI.bg} 35%, #010102 100%)`,
           color: HIVE_UI.text,
           fontFamily: HIVE_UI.font,
-          padding: "14px 15px 26px",
+          padding:
+            uiPrefs.panelDensity === "compact" ? "10px 12px 20px" : "14px 15px 26px",
         }}
       >
         <div className="hive-shell">
@@ -1131,14 +1416,28 @@ export default function Page() {
               style={{
                 minWidth: 0,
                 padding: "0 4px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-end",
+                gap: 8,
               }}
             >
+              <button
+                type="button"
+                className="hive-configure-trigger"
+                aria-haspopup="dialog"
+                aria-expanded={configureOpen}
+                onClick={() => setConfigureOpen(true)}
+              >
+                Configure
+              </button>
               <div
                 className="hive-topbar-chips"
                 style={{
                   display: "flex",
                   flexWrap: "wrap",
                   alignItems: "center",
+                  justifyContent: "flex-end",
                 }}
               >
                 <StatusPill
@@ -1218,6 +1517,12 @@ export default function Page() {
             </div>
           ) : null}
 
+          <div
+            className="hive-orbit-canvas"
+            data-hive-core-visibility={uiPrefs.coreVisibility}
+            data-hive-core-size={uiPrefs.coreSize}
+          >
+            <div className="hive-orbit-stack">
           <div className="hive-signal-context-bar" aria-label="Pulse context">
             <span className="hive-signal-context-label">Pulse context</span>
             <MetricKicker label="Bias" value={formatVal(signal?.bias)} />
@@ -1238,6 +1543,22 @@ export default function Page() {
               accent={delta?.status === "meaningful_change"}
             />
           </div>
+
+          {uiPrefs.coreVisibility !== "off" ? (
+            <div className="hive-core-plate-slot" aria-hidden="true">
+              <div className="hive-core-plate-img-wrap">
+                <Image
+                  src="/hive-hero.jpg"
+                  alt=""
+                  fill
+                  sizes="(max-width: 900px) 100vw, 1200px"
+                  style={{ objectFit: "contain", objectPosition: "center center" }}
+                  priority
+                />
+              </div>
+              <div className="hive-core-plate-scrim" aria-hidden="true" />
+            </div>
+          ) : null}
 
           <section
             className="hive-ops-primary-shell hive-ops3c-shell"
@@ -1402,73 +1723,83 @@ export default function Page() {
             </div>
           </section>
 
-          <section className="hive-hero-theater" aria-label="HIVE tactical hero theater">
-            <div className="hive-hero-chrome-top" aria-hidden="true" />
-            <div className="hive-hero-media">
-              <div className="hive-hero-media-inner">
-                <Image
-                  src="/hive-hero.jpg"
-                  alt="HIVE tactical command — SPY options swarm"
-                  fill
-                  sizes="(max-width: 900px) 100vw, 1540px"
-                  style={{ objectFit: "cover", objectPosition: "center 46%" }}
-                  priority
-                />
-              </div>
-            </div>
-            <div
-              className="hive-hero-caption"
-              style={{
-                position: "absolute",
-                left: 0,
-                bottom: 0,
-                zIndex: 6,
-                display: "flex",
-                flexDirection: "column",
-                gap: 5,
-                maxWidth: "min(92vw, 520px)",
-                pointerEvents: "none",
-              }}
+          {uiPrefs.heroStrip !== "hidden" ? (
+            <section
+              className={
+                "hive-hero-theater" +
+                (uiPrefs.heroStrip === "full" ? " hive-hero-theater--full" : "") +
+                (uiPrefs.heroStrip === "compact" && uiPrefs.coreVisibility !== "off"
+                  ? " hive-hero-theater--deemph"
+                  : "")
+              }
+              aria-label="HIVE tactical hero theater"
             >
-              <div
-                style={{
-                  fontSize: 10,
-                  letterSpacing: "0.28em",
-                  fontWeight: 700,
-                  color: HIVE_UI.textSoft,
-                  textTransform: "uppercase",
-                  opacity: 0.92,
-                }}
-              >
-                SPY options · swarm command
+              <div className="hive-hero-chrome-top" aria-hidden="true" />
+              <div className="hive-hero-media">
+                <div className="hive-hero-media-inner">
+                  <Image
+                    src="/hive-hero.jpg"
+                    alt="HIVE tactical command — SPY options swarm"
+                    fill
+                    sizes="(max-width: 900px) 100vw, 1540px"
+                    style={{ objectFit: "cover", objectPosition: "center 46%" }}
+                  />
+                </div>
               </div>
               <div
+                className="hive-hero-caption"
                 style={{
-                  fontSize: 17,
-                  lineHeight: 1.04,
-                  fontWeight: 800,
-                  letterSpacing: "0.14em",
-                  color: HIVE_UI.text,
-                  textShadow:
-                    "0 1px 0 rgba(0,0,0,0.95), 0 2px 18px rgba(0,0,0,0.75), 0 12px 40px rgba(0,0,0,0.55)",
+                  position: "absolute",
+                  left: 0,
+                  bottom: 0,
+                  zIndex: 6,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 5,
+                  maxWidth: "min(92vw, 520px)",
+                  pointerEvents: "none",
                 }}
               >
-                TACTICAL THEATER
+                <div
+                  style={{
+                    fontSize: 10,
+                    letterSpacing: "0.28em",
+                    fontWeight: 700,
+                    color: HIVE_UI.textSoft,
+                    textTransform: "uppercase",
+                    opacity: 0.92,
+                  }}
+                >
+                  SPY options · swarm command
+                </div>
+                <div
+                  style={{
+                    fontSize: 17,
+                    lineHeight: 1.04,
+                    fontWeight: 800,
+                    letterSpacing: "0.14em",
+                    color: HIVE_UI.text,
+                    textShadow:
+                      "0 1px 0 rgba(0,0,0,0.95), 0 2px 18px rgba(0,0,0,0.75), 0 12px 40px rgba(0,0,0,0.55)",
+                  }}
+                >
+                  TACTICAL THEATER
+                </div>
+                <div
+                  style={{
+                    fontSize: 10,
+                    letterSpacing: "0.26em",
+                    fontWeight: 700,
+                    color: HIVE_UI.accent,
+                    textTransform: "uppercase",
+                    opacity: 0.95,
+                  }}
+                >
+                  HIVE · SWARM ARRAY
+                </div>
               </div>
-              <div
-                style={{
-                  fontSize: 10,
-                  letterSpacing: "0.26em",
-                  fontWeight: 700,
-                  color: HIVE_UI.accent,
-                  textTransform: "uppercase",
-                  opacity: 0.95,
-                }}
-              >
-                HIVE · SWARM ARRAY
-              </div>
-            </div>
-          </section>
+            </section>
+          ) : null}
 
           <section className="hive-stage-shell">
             <div className="hive-stage-header">
@@ -2186,7 +2517,146 @@ export default function Page() {
               </Panel>
             </div>
           </div>
+            </div>
+          </div>
         </div>
+
+        {configureOpen ? (
+          <div className="hive-drawer-root">
+            <button
+              type="button"
+              className="hive-drawer-backdrop"
+              aria-label="Close configure"
+              onClick={() => setConfigureOpen(false)}
+            />
+            <div
+              className="hive-drawer-panel"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="hive-drawer-title"
+            >
+              <h2 id="hive-drawer-title" className="hive-drawer-title">
+                Configure UI
+              </h2>
+              <p style={{ fontSize: 11, color: HIVE_UI.textMuted, lineHeight: 1.45, marginBottom: 16 }}>
+                Local display preferences only — stored in this browser. Does not change trading logic.
+              </p>
+
+              <div className="hive-drawer-section">
+                <div className="hive-drawer-label">Hive core visibility</div>
+                <div className="hive-drawer-seg-row">
+                  {(["off", "subtle", "full"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={
+                        "hive-drawer-seg" + (uiPrefs.coreVisibility === v ? " hive-drawer-seg--on" : "")
+                      }
+                      onClick={() => setUiPrefs((u) => ({ ...u, schema: 1, coreVisibility: v }))}
+                    >
+                      {v === "off" ? "Off" : v === "subtle" ? "Subtle" : "Full"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="hive-drawer-section">
+                <div className="hive-drawer-label">Hive core size</div>
+                <div className="hive-drawer-seg-row">
+                  {(["compact", "standard", "large"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={
+                        "hive-drawer-seg" + (uiPrefs.coreSize === v ? " hive-drawer-seg--on" : "")
+                      }
+                      onClick={() => setUiPrefs((u) => ({ ...u, schema: 1, coreSize: v }))}
+                    >
+                      {v.charAt(0).toUpperCase() + v.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="hive-drawer-section">
+                <div className="hive-drawer-label">Panel density</div>
+                <div className="hive-drawer-seg-row">
+                  {(["comfortable", "compact"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={
+                        "hive-drawer-seg" + (uiPrefs.panelDensity === v ? " hive-drawer-seg--on" : "")
+                      }
+                      onClick={() => setUiPrefs((u) => ({ ...u, schema: 1, panelDensity: v }))}
+                    >
+                      {v === "comfortable" ? "Comfortable" : "Compact"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="hive-drawer-section">
+                <div className="hive-drawer-label">Advanced default</div>
+                <div className="hive-drawer-seg-row">
+                  {(["closed", "open"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={
+                        "hive-drawer-seg" + (uiPrefs.advancedDefault === v ? " hive-drawer-seg--on" : "")
+                      }
+                      onClick={() => {
+                        setUiPrefs((u) => ({ ...u, schema: 1, advancedDefault: v }));
+                        setOpsAdvancedOpen(v === "open");
+                      }}
+                    >
+                      {v === "closed" ? "Closed" : "Open"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="hive-drawer-section">
+                <div className="hive-drawer-label">Hero strip</div>
+                <div className="hive-drawer-seg-row">
+                  {(["hidden", "compact", "full"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={
+                        "hive-drawer-seg" + (uiPrefs.heroStrip === v ? " hive-drawer-seg--on" : "")
+                      }
+                      onClick={() => setUiPrefs((u) => ({ ...u, schema: 1, heroStrip: v }))}
+                    >
+                      {v === "hidden" ? "Hidden" : v === "compact" ? "Compact" : "Full"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="hive-drawer-reset"
+                onClick={() => {
+                  setUiPrefs(DEFAULT_HIVE_UI_PREFS);
+                  setOpsAdvancedOpen(DEFAULT_HIVE_UI_PREFS.advancedDefault === "open");
+                  saveHiveUiPrefs(DEFAULT_HIVE_UI_PREFS);
+                }}
+              >
+                Reset UI to defaults
+              </button>
+
+              <button
+                type="button"
+                className="hive-drawer-close"
+                onClick={() => setConfigureOpen(false)}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        ) : null}
       </main>
     </>
   );
