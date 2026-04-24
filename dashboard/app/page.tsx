@@ -572,9 +572,9 @@ export default function Page() {
   padding: 10px 14px;
   border: 1px solid ${HIVE_UI.border};
   border-radius: 14px;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0.006)),
-    linear-gradient(180deg, #090c11, #080a0e);
+  background: linear-gradient(180deg, rgba(8,10,16,0.9), rgba(5,6,10,0.86));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.032),
     0 12px 40px rgba(0,0,0,0.38);
@@ -815,8 +815,65 @@ export default function Page() {
   flex-direction: column;
   gap: 12px;
 }
+.hive-fixed-bg-root {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100vw;
+  min-height: 100vh;
+  min-height: 100dvh;
+  pointer-events: none;
+  overflow: hidden;
+}
+.hive-bg-plate {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url(/hive-hero.jpg);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+[data-hive-bg-visibility="off"] .hive-bg-plate {
+  opacity: 0;
+}
+[data-hive-bg-visibility="subtle"] .hive-bg-plate {
+  opacity: 0.42;
+}
+[data-hive-bg-visibility="full"] .hive-bg-plate {
+  opacity: 1;
+}
+.hive-bg-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+[data-hive-bg-visibility="off"] .hive-bg-scrim {
+  background: linear-gradient(180deg, ${HIVE_UI.bgTop} 0%, ${HIVE_UI.bg} 50%, #010102 100%);
+  opacity: 1;
+}
+[data-hive-bg-visibility="full"][data-hive-bg-intensity="low"] .hive-bg-scrim {
+  background: linear-gradient(180deg, rgba(2,3,8,0.4) 0%, rgba(0,0,0,0.58) 48%, rgba(0,0,0,0.82) 100%);
+}
+[data-hive-bg-visibility="full"][data-hive-bg-intensity="medium"] .hive-bg-scrim {
+  background: linear-gradient(180deg, rgba(2,3,10,0.55) 0%, rgba(0,0,0,0.72) 50%, rgba(0,0,0,0.9) 100%);
+}
+[data-hive-bg-visibility="full"][data-hive-bg-intensity="high"] .hive-bg-scrim {
+  background: linear-gradient(180deg, rgba(2,2,12,0.72) 0%, rgba(0,0,0,0.84) 52%, rgba(0,0,0,0.95) 100%);
+}
+[data-hive-bg-visibility="subtle"][data-hive-bg-intensity="low"] .hive-bg-scrim {
+  background: linear-gradient(180deg, rgba(2,3,8,0.52) 0%, rgba(0,0,0,0.72) 50%, rgba(0,0,0,0.88) 100%);
+}
+[data-hive-bg-visibility="subtle"][data-hive-bg-intensity="medium"] .hive-bg-scrim {
+  background: linear-gradient(180deg, rgba(2,2,10,0.62) 0%, rgba(0,0,0,0.8) 52%, rgba(0,0,0,0.92) 100%);
+}
+[data-hive-bg-visibility="subtle"][data-hive-bg-intensity="high"] .hive-bg-scrim {
+  background: linear-gradient(180deg, rgba(1,1,8,0.78) 0%, rgba(0,0,0,0.88) 50%, rgba(0,0,0,0.96) 100%);
+}
 .hive-orbit-canvas {
   position: relative;
+  z-index: 1;
   margin-top: 8px;
   isolation: isolate;
   border-radius: 20px;
@@ -833,30 +890,18 @@ export default function Page() {
   display: grid;
   gap: 12px;
   grid-template-columns: 1fr;
-  grid-template-areas:
-    "ctx"
-    "core"
-    "readout";
+  grid-template-areas: "ctx" "readout";
   align-items: stretch;
 }
 @media (min-width: 1020px) {
-  .hive-orbit-crown:not([data-hive-core-off="true"]) {
-    grid-template-columns: minmax(200px, 1.05fr) minmax(260px, 1.45fr) minmax(200px, 1.05fr);
-    grid-template-areas: "ctx core readout";
-    align-items: start;
-  }
-  .hive-orbit-crown[data-hive-core-off="true"] {
-    grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr);
+  .hive-orbit-crown {
+    grid-template-columns: minmax(200px, 1fr) minmax(200px, 1fr);
     grid-template-areas: "ctx readout";
     align-items: start;
   }
 }
 .hive-orbit-zone--ctx {
   grid-area: ctx;
-  min-width: 0;
-}
-.hive-orbit-zone--core {
-  grid-area: core;
   min-width: 0;
 }
 .hive-orbit-readout-stack {
@@ -900,59 +945,6 @@ export default function Page() {
 }
 .hive-orbit-stack .hive-orbit-readout-stack .hive-rail-title {
   margin: 0 0 7px;
-}
-.hive-core-plate-slot {
-  position: relative;
-  width: 100%;
-  border-radius: 20px;
-  border: 1px solid ${HIVE_UI.borderStrong};
-  overflow: hidden;
-  background:
-    radial-gradient(ellipse 70% 85% at 50% 48%, rgba(199,154,49,0.09) 0%, rgba(0,0,0,0.55) 55%, #010102 100%),
-    linear-gradient(180deg, #06080d, #020203);
-  box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,0.045),
-    inset 0 0 88px rgba(0,0,0,0.55),
-    0 16px 44px rgba(0,0,0,0.38);
-}
-[data-hive-core-size="compact"] .hive-core-plate-slot {
-  min-height: 160px;
-  max-height: min(28vh, 220px);
-}
-[data-hive-core-size="standard"] .hive-core-plate-slot {
-  min-height: 200px;
-  max-height: min(36vh, 320px);
-}
-[data-hive-core-size="large"] .hive-core-plate-slot {
-  min-height: 240px;
-  max-height: min(46vh, 420px);
-}
-.hive-core-plate-img-wrap {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-}
-.hive-core-plate-img-wrap img {
-  object-fit: contain !important;
-  object-position: center center !important;
-  filter: saturate(1.05) brightness(0.94) contrast(1.1);
-}
-.hive-core-plate-scrim {
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  background:
-    radial-gradient(ellipse 68% 62% at 50% 42%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.38) 72%, rgba(0,0,0,0.78) 100%),
-    linear-gradient(180deg, rgba(2,2,5,0.25), rgba(0,0,0,0.5));
-}
-[data-hive-core-visibility="subtle"] .hive-core-plate-img-wrap {
-  opacity: 0.44;
-}
-[data-hive-core-visibility="subtle"] .hive-core-plate-scrim {
-  background:
-    radial-gradient(ellipse 65% 58% at 50% 40%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 68%, rgba(0,0,0,0.88) 100%),
-    linear-gradient(180deg, rgba(2,2,5,0.45), rgba(0,0,0,0.62));
 }
 .hive-orbit-stack .hive-signal-context-bar {
   border-color: rgba(255,255,255,0.1);
@@ -1402,12 +1394,23 @@ export default function Page() {
           `,
         }}
       />
+      <div
+        className="hive-fixed-bg-root"
+        data-hive-bg-visibility={uiPrefs.backgroundVisibility}
+        data-hive-bg-intensity={uiPrefs.backgroundIntensity}
+        aria-hidden="true"
+      >
+        <div className="hive-bg-plate" />
+        <div className="hive-bg-scrim" />
+      </div>
       <main
         data-hive-dashboard
         data-hive-density={uiPrefs.panelDensity}
         style={{
+          position: "relative",
+          zIndex: 1,
           minHeight: "100vh",
-          background: `linear-gradient(180deg, ${HIVE_UI.bgTop} 0%, ${HIVE_UI.bg} 35%, #010102 100%)`,
+          background: "transparent",
           color: HIVE_UI.text,
           fontFamily: HIVE_UI.font,
           padding:
@@ -1590,16 +1593,9 @@ export default function Page() {
             </div>
           ) : null}
 
-          <div
-            className="hive-orbit-canvas"
-            data-hive-core-visibility={uiPrefs.coreVisibility}
-            data-hive-core-size={uiPrefs.coreSize}
-          >
+          <div className="hive-orbit-canvas">
             <div className="hive-orbit-stack">
-          <div
-            className="hive-orbit-crown"
-            data-hive-core-off={uiPrefs.coreVisibility === "off" ? "true" : "false"}
-          >
+          <div className="hive-orbit-crown">
             <div className="hive-signal-context-bar hive-orbit-zone--ctx" aria-label="Pulse context">
               <span className="hive-signal-context-label">Pulse context</span>
               <MetricKicker label="Bias" value={formatVal(signal?.bias)} />
@@ -1620,24 +1616,6 @@ export default function Page() {
                 accent={delta?.status === "meaningful_change"}
               />
             </div>
-
-            {uiPrefs.coreVisibility !== "off" ? (
-              <div className="hive-orbit-zone--core">
-                <div className="hive-core-plate-slot" aria-hidden="true">
-                  <div className="hive-core-plate-img-wrap">
-                    <Image
-                      src="/hive-hero.jpg"
-                      alt=""
-                      fill
-                      sizes="(max-width: 900px) 100vw, 1200px"
-                      style={{ objectFit: "contain", objectPosition: "center center" }}
-                      priority
-                    />
-                  </div>
-                  <div className="hive-core-plate-scrim" aria-hidden="true" />
-                </div>
-              </div>
-            ) : null}
 
             <div className="hive-orbit-readout-stack" aria-label="Operator readout and treasury">
               {brokerStale ? (
@@ -1898,7 +1876,7 @@ export default function Page() {
               className={
                 "hive-hero-theater" +
                 (uiPrefs.heroStrip === "full" ? " hive-hero-theater--full" : "") +
-                (uiPrefs.heroStrip === "compact" && uiPrefs.coreVisibility !== "off"
+                (uiPrefs.heroStrip === "compact" && uiPrefs.backgroundVisibility !== "off"
                   ? " hive-hero-theater--deemph"
                   : "")
               }
@@ -2615,16 +2593,19 @@ export default function Page() {
               </p>
 
               <div className="hive-drawer-section">
-                <div className="hive-drawer-label">Hive core visibility</div>
+                <div className="hive-drawer-label">Background visibility</div>
                 <div className="hive-drawer-seg-row">
                   {(["off", "subtle", "full"] as const).map((v) => (
                     <button
                       key={v}
                       type="button"
                       className={
-                        "hive-drawer-seg" + (uiPrefs.coreVisibility === v ? " hive-drawer-seg--on" : "")
+                        "hive-drawer-seg" +
+                        (uiPrefs.backgroundVisibility === v ? " hive-drawer-seg--on" : "")
                       }
-                      onClick={() => setUiPrefs((u) => ({ ...u, schema: 1, coreVisibility: v }))}
+                      onClick={() =>
+                        setUiPrefs((u) => ({ ...u, schema: 2, backgroundVisibility: v }))
+                      }
                     >
                       {v === "off" ? "Off" : v === "subtle" ? "Subtle" : "Full"}
                     </button>
@@ -2633,16 +2614,19 @@ export default function Page() {
               </div>
 
               <div className="hive-drawer-section">
-                <div className="hive-drawer-label">Hive core size</div>
+                <div className="hive-drawer-label">Background intensity</div>
                 <div className="hive-drawer-seg-row">
-                  {(["compact", "standard", "large"] as const).map((v) => (
+                  {(["low", "medium", "high"] as const).map((v) => (
                     <button
                       key={v}
                       type="button"
                       className={
-                        "hive-drawer-seg" + (uiPrefs.coreSize === v ? " hive-drawer-seg--on" : "")
+                        "hive-drawer-seg" +
+                        (uiPrefs.backgroundIntensity === v ? " hive-drawer-seg--on" : "")
                       }
-                      onClick={() => setUiPrefs((u) => ({ ...u, schema: 1, coreSize: v }))}
+                      onClick={() =>
+                        setUiPrefs((u) => ({ ...u, schema: 2, backgroundIntensity: v }))
+                      }
                     >
                       {v.charAt(0).toUpperCase() + v.slice(1)}
                     </button>
@@ -2660,7 +2644,7 @@ export default function Page() {
                       className={
                         "hive-drawer-seg" + (uiPrefs.panelDensity === v ? " hive-drawer-seg--on" : "")
                       }
-                      onClick={() => setUiPrefs((u) => ({ ...u, schema: 1, panelDensity: v }))}
+                      onClick={() => setUiPrefs((u) => ({ ...u, schema: 2, panelDensity: v }))}
                     >
                       {v === "comfortable" ? "Comfortable" : "Compact"}
                     </button>
@@ -2679,7 +2663,7 @@ export default function Page() {
                         "hive-drawer-seg" + (uiPrefs.advancedDefault === v ? " hive-drawer-seg--on" : "")
                       }
                       onClick={() => {
-                        setUiPrefs((u) => ({ ...u, schema: 1, advancedDefault: v }));
+                        setUiPrefs((u) => ({ ...u, schema: 2, advancedDefault: v }));
                         setOpsAdvancedOpen(v === "open");
                       }}
                     >
@@ -2699,7 +2683,7 @@ export default function Page() {
                       className={
                         "hive-drawer-seg" + (uiPrefs.heroStrip === v ? " hive-drawer-seg--on" : "")
                       }
-                      onClick={() => setUiPrefs((u) => ({ ...u, schema: 1, heroStrip: v }))}
+                      onClick={() => setUiPrefs((u) => ({ ...u, schema: 2, heroStrip: v }))}
                     >
                       {v === "hidden" ? "Hidden" : v === "compact" ? "Compact" : "Full"}
                     </button>
