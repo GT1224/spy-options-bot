@@ -573,32 +573,131 @@ export default function Page() {
     inset 0 1px 0 rgba(255,255,255,0.035),
     0 10px 28px rgba(0,0,0,0.35);
 }
+.hive-ops-primary-shell.hive-ops3c-shell {
+  padding: 14px 16px 16px;
+}
+@media (min-width: 900px) {
+  .hive-ops-primary-shell.hive-ops3c-shell {
+    padding: 16px 20px 18px;
+  }
+}
 .hive-ops-primary-shell .hive-command-rail {
   margin-top: 8px;
+}
+.hive-ops3c-surface {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 2px;
+}
+.hive-ops3c-zone-primary {
+  padding: 12px 14px 14px;
+  border-radius: 14px;
+  border: 1px solid ${HIVE_UI.borderDeep};
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.034), rgba(255,255,255,0.01)),
+    linear-gradient(180deg, #0c0f16, #07090e);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.045),
+    0 8px 22px rgba(0,0,0,0.28);
+}
+.hive-ops3c-zone-guidance {
+  padding: 0 2px;
+  max-width: min(920px, 100%);
+}
+.hive-ops3c-guidance-kicker {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: ${HIVE_UI.textDim};
+  margin-bottom: 8px;
+}
+.hive-ops3c-guidance-list {
+  margin: 0;
+  padding: 0 0 0 1.15em;
+  font-size: 11px;
+  line-height: 1.48;
+  color: ${HIVE_UI.textMuted};
+  max-width: 100%;
+}
+.hive-ops3c-guidance-list li {
+  margin: 5px 0;
+  padding-left: 2px;
+}
+.hive-ops3c-guidance-list li::marker {
+  color: ${HIVE_UI.accent};
+  font-size: 0.85em;
+}
+.hive-ops3c-guidance-list strong {
+  color: ${HIVE_UI.textSoft};
+  font-weight: 700;
+}
+.hive-ops3c-guidance-list code {
+  font-size: 10px;
+  color: ${HIVE_UI.textDim};
+}
+.hive-ops3c-zone-advanced {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-top: 2px;
+  border-top: 1px solid ${HIVE_UI.borderDeep};
+}
+.hive-ops3c-advanced-panel {
+  margin-top: 12px;
+  padding: 12px 12px 12px 14px;
+  border-radius: 14px;
+  border: 1px solid ${HIVE_UI.border};
+  border-left: 3px solid ${HIVE_UI.accentLine};
+  background:
+    linear-gradient(90deg, rgba(199,154,49,0.06), rgba(0,0,0,0) 38%),
+    linear-gradient(180deg, #0a0d12, #06080c);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.028);
+}
+.hive-ops3c-advanced-panel-head {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: ${HIVE_UI.accent};
+  margin-bottom: 10px;
+  opacity: 0.92;
+}
+.hive-ops3c-advanced-panel .hive-command-rail {
+  margin-top: 0;
+}
+.hive-command-rail.hive-command-rail--advanced {
+  padding: 10px 10px 10px 11px;
+  border-radius: 11px;
+  border: 1px solid ${HIVE_UI.borderDeep};
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.14));
 }
 .hive-ops2b-cta-row {
   display: flex;
   flex-wrap: wrap;
   align-items: stretch;
   gap: 10px;
-  margin-top: 4px;
+  margin-top: 0;
 }
 .hive-ops2b-cta-row > * {
   min-width: 0;
 }
-.hive-ops2b-operator-copy {
-  margin-top: 10px;
-  font-size: 11px;
-  line-height: 1.5;
-  color: ${HIVE_UI.textMuted};
-  max-width: 820px;
+@media (min-width: 720px) {
+  .hive-ops2b-cta-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.22fr) minmax(148px, 0.78fr);
+    gap: 14px;
+    align-items: stretch;
+  }
 }
 .hive-ops2b-advanced-bar {
-  margin-top: 12px;
+  margin-top: 0;
+  padding-top: 14px;
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 10px 14px;
 }
 .hive-ops2b-advanced-toggle {
   display: inline-flex;
@@ -629,12 +728,20 @@ export default function Page() {
   font-size: 10px;
   color: ${HIVE_UI.textDim};
   letter-spacing: 0.06em;
-  max-width: 520px;
+  max-width: min(560px, 100%);
   line-height: 1.45;
+  flex: 1 1 200px;
+}
+@media (max-width: 719px) {
+  .hive-ops2b-cta-row {
+    display: flex;
+    flex-wrap: wrap;
+  }
 }
 @media (max-width: 520px) {
   .hive-ops2b-cta-row {
     flex-direction: column;
+    flex-wrap: nowrap;
   }
 }
 .hive-signal-context-bar {
@@ -1132,7 +1239,10 @@ export default function Page() {
             />
           </div>
 
-          <section className="hive-ops-primary-shell" aria-label="Operator controls">
+          <section
+            className="hive-ops-primary-shell hive-ops3c-shell"
+            aria-label="Operator controls"
+          >
             <div
               style={{
                 fontSize: 9,
@@ -1140,55 +1250,77 @@ export default function Page() {
                 fontWeight: 800,
                 color: HIVE_UI.textDim,
                 textTransform: "uppercase",
-                marginBottom: 6,
+                marginBottom: 8,
               }}
             >
               Operator controls
             </div>
-            <div className="hive-ops2b-cta-row" role="group" aria-label="Primary operator actions">
-              <HiveButton
-                cta
-                onClick={() => {
-                  void runCycle();
-                }}
-                label="Pulse cycle"
-              />
-              <HiveButton
-                cta
-                stop
-                onClick={() => {
-                  void emergencyStop();
-                }}
-                label="STOP"
-                disabled={emergencyStopBusy}
-              />
-            </div>
-            <p className="hive-ops2b-operator-copy">
-              <strong style={{ color: HIVE_UI.textSoft }}>Pulse cycle</strong> runs{" "}
-              <code style={{ fontSize: 10, color: HIVE_UI.textMuted }}>POST /cycle</code> and reloads state — it is
-              the normal operator refresh. If{" "}
-              <strong style={{ color: HIVE_UI.textSoft }}>Options AUTO</strong> is on and Alpaca paper is connected, the
-              backend may still evaluate paper auto-exec during that cycle; the top bar pill shows AUTO state.{" "}
-              <strong style={{ color: HIVE_UI.danger }}>STOP</strong> forces Options AUTO off, disarms trading (
-              <code style={{ fontSize: 10, color: HIVE_UI.textMuted }}>enabled: false</code>
-              ), recalls the bot (<code style={{ fontSize: 10, color: HIVE_UI.textMuted }}>POST /bot/stop</code>
-              ), then refreshes once — it does not cancel open paper orders.
-            </p>
-            <div className="hive-ops2b-advanced-bar">
-              <button
-                type="button"
-                className="hive-ops2b-advanced-toggle"
-                aria-expanded={opsAdvancedOpen}
-                onClick={() => setOpsAdvancedOpen((o) => !o)}
-              >
-                {opsAdvancedOpen ? "Hide advanced / recovery" : "Advanced / recovery"}
-              </button>
-              <span className="hive-ops2b-advanced-hint">
-                Launch, paper lane, broker sync, AUTO toggle, and timed refresh live here — keep the surface calm.
-              </span>
-            </div>
-            {opsAdvancedOpen ? (
-              <div className="hive-command-rail" id="hive-ops-advanced-rail">
+            <div className="hive-ops3c-surface">
+              <div className="hive-ops3c-zone-primary">
+                <div className="hive-ops2b-cta-row" role="group" aria-label="Primary operator actions">
+                  <HiveButton
+                    cta
+                    onClick={() => {
+                      void runCycle();
+                    }}
+                    label="Pulse cycle"
+                  />
+                  <HiveButton
+                    cta
+                    stop
+                    onClick={() => {
+                      void emergencyStop();
+                    }}
+                    label="STOP"
+                    disabled={emergencyStopBusy}
+                  />
+                </div>
+              </div>
+
+              <div className="hive-ops3c-zone-guidance">
+                <div className="hive-ops3c-guidance-kicker">Operator briefing</div>
+                <ul className="hive-ops3c-guidance-list">
+                  <li>
+                    <strong>Pulse cycle</strong> — <code>POST /cycle</code> then state reload; default cadence.
+                  </li>
+                  <li>
+                    <strong>Options AUTO</strong> (top bar) — when on with Alpaca paper connected, a cycle may still
+                    evaluate paper auto-exec.
+                  </li>
+                  <li>
+                    <strong style={{ color: HIVE_UI.danger }}>STOP</strong> — AUTO off,{" "}
+                    <code>enabled: false</code>, <code>POST /bot/stop</code>, one refresh; does not cancel open paper
+                    orders.
+                  </li>
+                </ul>
+              </div>
+
+              <div className="hive-ops3c-zone-advanced">
+                <div className="hive-ops2b-advanced-bar">
+                  <button
+                    type="button"
+                    id="hive-ops-advanced-toggle"
+                    className="hive-ops2b-advanced-toggle"
+                    aria-expanded={opsAdvancedOpen}
+                    aria-controls="hive-ops-advanced-panel"
+                    onClick={() => setOpsAdvancedOpen((o) => !o)}
+                  >
+                    {opsAdvancedOpen ? "Hide advanced / recovery" : "Advanced / recovery"}
+                  </button>
+                  <span className="hive-ops2b-advanced-hint">
+                    Launch, paper lane, broker sync, AUTO toggle, and timed refresh — secondary lane; keep the deck
+                    clear.
+                  </span>
+                </div>
+                {opsAdvancedOpen ? (
+                  <div
+                    className="hive-ops3c-advanced-panel"
+                    id="hive-ops-advanced-panel"
+                    role="region"
+                    aria-labelledby="hive-ops-advanced-toggle"
+                  >
+                    <div className="hive-ops3c-advanced-panel-head">Recovery controls</div>
+                    <div className="hive-command-rail hive-command-rail--advanced" id="hive-ops-advanced-rail">
                 <div
                   style={{
                     fontSize: 9,
@@ -1263,8 +1395,11 @@ export default function Page() {
                   label={autoRefresh ? "Refresh on" : "Refresh off"}
                   active={autoRefresh}
                 />
+                    </div>
+                  </div>
+                ) : null}
               </div>
-            ) : null}
+            </div>
           </section>
 
           <section className="hive-hero-theater" aria-label="HIVE tactical hero theater">
