@@ -90,6 +90,8 @@ export default function Page() {
   const [paperCid, setPaperCid] = useState<string>("");
   const [paperOrderHint, setPaperOrderHint] = useState<string | null>(null);
   const [paperOrderObs, setPaperOrderObs] = useState<PaperOrderObservability | null>(null);
+  const [opsAdvancedOpen, setOpsAdvancedOpen] = useState(false);
+  const [emergencyStopBusy, setEmergencyStopBusy] = useState(false);
 
   async function apiCall(path: string, method = "GET", body?: any) {
     const res = await fetch(`${HIVE_API}${path}`, {
@@ -145,6 +147,35 @@ export default function Page() {
   async function stopBot() {
     await apiCall("/bot/stop", "POST");
     await loadAll();
+  }
+
+  /** OPS2B: best-effort B — same POSTs as AUTO off / Disarm / Recall; one refresh at end. */
+  async function emergencyStop() {
+    if (emergencyStopBusy) return;
+    setEmergencyStopBusy(true);
+    setError("");
+    const errs: string[] = [];
+    try {
+      try {
+        await apiCall("/config", "POST", { alpaca_options_auto_enabled: false });
+      } catch (e: unknown) {
+        errs.push((e as Error)?.message || "Options AUTO off failed");
+      }
+      try {
+        await apiCall("/config", "POST", { enabled: false });
+      } catch (e: unknown) {
+        errs.push((e as Error)?.message || "Trading disarm failed");
+      }
+      try {
+        await apiCall("/bot/stop", "POST");
+      } catch (e: unknown) {
+        errs.push((e as Error)?.message || "Bot recall failed");
+      }
+      if (errs.length) setError(errs.join(" · "));
+    } finally {
+      await loadAll();
+      setEmergencyStopBusy(false);
+    }
   }
 
   async function runCycle() {
@@ -544,6 +575,67 @@ export default function Page() {
 }
 .hive-ops-primary-shell .hive-command-rail {
   margin-top: 8px;
+}
+.hive-ops2b-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 4px;
+}
+.hive-ops2b-cta-row > * {
+  min-width: 0;
+}
+.hive-ops2b-operator-copy {
+  margin-top: 10px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: ${HIVE_UI.textMuted};
+  max-width: 820px;
+}
+.hive-ops2b-advanced-bar {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.hive-ops2b-advanced-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid ${HIVE_UI.border};
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.12));
+  color: ${HIVE_UI.textSoft};
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: ${HIVE_UI.motion};
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+}
+.hive-ops2b-advanced-toggle:hover {
+  border-color: ${HIVE_UI.borderStrong};
+  color: ${HIVE_UI.text};
+}
+.hive-ops2b-advanced-toggle:focus-visible {
+  outline: 2px solid ${HIVE_UI.accent};
+  outline-offset: 2px;
+}
+.hive-ops2b-advanced-hint {
+  font-size: 10px;
+  color: ${HIVE_UI.textDim};
+  letter-spacing: 0.06em;
+  max-width: 520px;
+  line-height: 1.45;
+}
+@media (max-width: 520px) {
+  .hive-ops2b-cta-row {
+    flex-direction: column;
+  }
 }
 .hive-signal-context-bar {
   margin-top: 12px;
@@ -1053,76 +1145,126 @@ export default function Page() {
             >
               Operator controls
             </div>
-            <div className="hive-command-rail">
-              <div
-                style={{
-                  fontSize: 9,
-                  letterSpacing: "0.24em",
-                  fontWeight: 800,
-                  color: HIVE_UI.textMuted,
-                  textTransform: "uppercase",
-                  alignSelf: "center",
-                  marginRight: 4,
-                  paddingRight: 6,
-                  borderRight: `1px solid ${HIVE_UI.borderDeep}`,
-                }}
-              >
-                Command
-              </div>
-              <HiveButton compact onClick={loadAll} label="Refresh" />
-              <HiveButton compact onClick={runCycle} label="Pulse" />
-              <HiveButton compact onClick={startBot} label="Launch" />
-              <HiveButton compact onClick={stopBot} label="Recall" />
-              <HiveButton compact onClick={enableTrading} label="Arm" />
-              <HiveButton compact onClick={disableTrading} label="Disarm" />
+            <div className="hive-ops2b-cta-row" role="group" aria-label="Primary operator actions">
               <HiveButton
-                compact
+                cta
                 onClick={() => {
-                  void enablePaperBroker();
+                  void runCycle();
                 }}
-                label="Paper on"
-                disabled={paperBrokerEnabled}
-                active={paperBrokerEnabled}
+                label="Pulse cycle"
               />
               <HiveButton
-                compact
+                cta
+                stop
                 onClick={() => {
-                  void disablePaperBroker();
+                  void emergencyStop();
                 }}
-                label="Paper off"
-                disabled={!paperBrokerEnabled}
-              />
-              <HiveButton
-                compact
-                onClick={() => {
-                  void syncBroker();
-                }}
-                label="Sync broker"
-                disabled={!paperBrokerEnabled}
-              />
-              <HiveButton
-                compact
-                onClick={() => {
-                  void syncLiveRead();
-                }}
-                label="Sync live read"
-              />
-              <HiveButton
-                compact
-                onClick={() => {
-                  void setAlpacaOptionsAuto(!alpacaOptionsAutoEnabled);
-                }}
-                label={alpacaOptionsAutoEnabled ? "AUTO OFF" : "AUTO ON"}
-                active={alpacaOptionsAutoEnabled}
-                disabled={!paperBrokerEnabled}
-              />
-              <HiveButton
-                compact
-                onClick={() => setAutoRefresh(!autoRefresh)}
-                label={autoRefresh ? "Refresh on" : "Refresh off"}
-                active={autoRefresh}
+                label="STOP"
+                disabled={emergencyStopBusy}
               />
             </div>
+            <p className="hive-ops2b-operator-copy">
+              <strong style={{ color: HIVE_UI.textSoft }}>Pulse cycle</strong> runs{" "}
+              <code style={{ fontSize: 10, color: HIVE_UI.textMuted }}>POST /cycle</code> and reloads state — it is
+              the normal operator refresh. If{" "}
+              <strong style={{ color: HIVE_UI.textSoft }}>Options AUTO</strong> is on and Alpaca paper is connected, the
+              backend may still evaluate paper auto-exec during that cycle; the top bar pill shows AUTO state.{" "}
+              <strong style={{ color: HIVE_UI.danger }}>STOP</strong> forces Options AUTO off, disarms trading (
+              <code style={{ fontSize: 10, color: HIVE_UI.textMuted }}>enabled: false</code>
+              ), recalls the bot (<code style={{ fontSize: 10, color: HIVE_UI.textMuted }}>POST /bot/stop</code>
+              ), then refreshes once — it does not cancel open paper orders.
+            </p>
+            <div className="hive-ops2b-advanced-bar">
+              <button
+                type="button"
+                className="hive-ops2b-advanced-toggle"
+                aria-expanded={opsAdvancedOpen}
+                onClick={() => setOpsAdvancedOpen((o) => !o)}
+              >
+                {opsAdvancedOpen ? "Hide advanced / recovery" : "Advanced / recovery"}
+              </button>
+              <span className="hive-ops2b-advanced-hint">
+                Launch, paper lane, broker sync, AUTO toggle, and timed refresh live here — keep the surface calm.
+              </span>
+            </div>
+            {opsAdvancedOpen ? (
+              <div className="hive-command-rail" id="hive-ops-advanced-rail">
+                <div
+                  style={{
+                    fontSize: 9,
+                    letterSpacing: "0.24em",
+                    fontWeight: 800,
+                    color: HIVE_UI.textMuted,
+                    textTransform: "uppercase",
+                    alignSelf: "center",
+                    marginRight: 4,
+                    paddingRight: 6,
+                    borderRight: `1px solid ${HIVE_UI.borderDeep}`,
+                  }}
+                >
+                  Command
+                </div>
+                <HiveButton compact onClick={loadAll} label="Refresh" />
+                <HiveButton
+                  compact
+                  onClick={() => {
+                    void runCycle();
+                  }}
+                  label="Pulse"
+                />
+                <HiveButton compact onClick={startBot} label="Launch" />
+                <HiveButton compact onClick={stopBot} label="Recall" />
+                <HiveButton compact onClick={enableTrading} label="Arm" />
+                <HiveButton compact onClick={disableTrading} label="Disarm" />
+                <HiveButton
+                  compact
+                  onClick={() => {
+                    void enablePaperBroker();
+                  }}
+                  label="Paper on"
+                  disabled={paperBrokerEnabled}
+                  active={paperBrokerEnabled}
+                />
+                <HiveButton
+                  compact
+                  onClick={() => {
+                    void disablePaperBroker();
+                  }}
+                  label="Paper off"
+                  disabled={!paperBrokerEnabled}
+                />
+                <HiveButton
+                  compact
+                  onClick={() => {
+                    void syncBroker();
+                  }}
+                  label="Sync broker"
+                  disabled={!paperBrokerEnabled}
+                />
+                <HiveButton
+                  compact
+                  onClick={() => {
+                    void syncLiveRead();
+                  }}
+                  label="Sync live read"
+                />
+                <HiveButton
+                  compact
+                  onClick={() => {
+                    void setAlpacaOptionsAuto(!alpacaOptionsAutoEnabled);
+                  }}
+                  label={alpacaOptionsAutoEnabled ? "AUTO OFF" : "AUTO ON"}
+                  active={alpacaOptionsAutoEnabled}
+                  disabled={!paperBrokerEnabled}
+                />
+                <HiveButton
+                  compact
+                  onClick={() => setAutoRefresh(!autoRefresh)}
+                  label={autoRefresh ? "Refresh on" : "Refresh off"}
+                  active={autoRefresh}
+                />
+              </div>
+            ) : null}
           </section>
 
           <section className="hive-hero-theater" aria-label="HIVE tactical hero theater">
@@ -2459,34 +2601,53 @@ function HiveButton({
   label,
   active = false,
   compact = false,
+  cta = false,
+  stop = false,
   disabled = false,
 }: {
   onClick: () => void;
   label: string;
   active?: boolean;
   compact?: boolean;
+  /** Large command-surface control (Pulse / STOP row). */
+  cta?: boolean;
+  /** Destructive CTA styling (emergency STOP). */
+  stop?: boolean;
   disabled?: boolean;
 }) {
   const restShadow = "inset 0 1px 0 rgba(255,255,255,0.03)";
   const activeShadow = `inset 0 0 0 1px ${HIVE_UI.accentLine}`;
+  const isCta = cta && !compact;
+  const danger = stop && isCta;
+  const bg = danger
+    ? "linear-gradient(180deg, rgba(217,107,107,0.22), rgba(120,40,40,0.35))"
+    : active
+      ? "linear-gradient(180deg, rgba(199,154,49,0.14), rgba(199,154,49,0.06))"
+      : "linear-gradient(180deg, #10141a, #0b0e13)";
+  const color = danger ? "#ffe8e8" : active ? "#f1deb0" : HIVE_UI.textSoft;
+  const border = danger
+    ? `1px solid ${HIVE_UI.danger}`
+    : active
+      ? `1px solid ${HIVE_UI.accentLine}`
+      : `1px solid ${HIVE_UI.border}`;
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
       style={{
-        background: active
-          ? "linear-gradient(180deg, rgba(199,154,49,0.14), rgba(199,154,49,0.06))"
-          : "linear-gradient(180deg, #10141a, #0b0e13)",
-        color: active ? "#f1deb0" : HIVE_UI.textSoft,
-        border: active ? `1px solid ${HIVE_UI.accentLine}` : `1px solid ${HIVE_UI.border}`,
-        borderRadius: compact ? 999 : 12,
-        padding: compact ? "5px 10px" : "11px 14px",
+        flex: isCta ? "1 1 200px" : undefined,
+        minHeight: isCta ? 50 : undefined,
+        background: bg,
+        color,
+        border,
+        borderRadius: compact ? 999 : isCta ? 14 : 12,
+        padding: compact ? "5px 10px" : isCta ? "14px 18px" : "11px 14px",
         fontWeight: 700,
-        fontSize: compact ? 9.5 : 12,
-        letterSpacing: compact ? "0.065em" : "0.08em",
+        fontSize: compact ? 9.5 : isCta ? 12.5 : 12,
+        letterSpacing: compact ? "0.065em" : isCta ? "0.14em" : "0.08em",
         textTransform: "uppercase" as const,
-        boxShadow: active ? activeShadow : restShadow,
+        boxShadow: danger ? "inset 0 1px 0 rgba(255,255,255,0.06)" : active ? activeShadow : restShadow,
         cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.45 : 1,
         transition: HIVE_UI.motion,
