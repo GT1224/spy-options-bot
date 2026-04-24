@@ -829,6 +829,78 @@ export default function Page() {
   flex-direction: column;
   gap: 12px;
 }
+.hive-orbit-crown {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "ctx"
+    "core"
+    "readout";
+  align-items: stretch;
+}
+@media (min-width: 1020px) {
+  .hive-orbit-crown:not([data-hive-core-off="true"]) {
+    grid-template-columns: minmax(200px, 1.05fr) minmax(260px, 1.45fr) minmax(200px, 1.05fr);
+    grid-template-areas: "ctx core readout";
+    align-items: start;
+  }
+  .hive-orbit-crown[data-hive-core-off="true"] {
+    grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr);
+    grid-template-areas: "ctx readout";
+    align-items: start;
+  }
+}
+.hive-orbit-zone--ctx {
+  grid-area: ctx;
+  min-width: 0;
+}
+.hive-orbit-zone--core {
+  grid-area: core;
+  min-width: 0;
+}
+.hive-orbit-readout-stack {
+  grid-area: readout;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.hive-orbit-crown .hive-signal-context-bar {
+  flex-wrap: wrap;
+}
+@media (min-width: 1020px) {
+  .hive-orbit-crown .hive-signal-context-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .hive-orbit-crown .hive-signal-context-bar .hive-signal-context-label {
+    width: 100%;
+  }
+}
+.hive-stage-body.hive-stage-body--orbit-solo {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+.hive-lower-stack-ops2.hive-lower-stack-ops4a {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+@media (min-width: 1000px) {
+  .hive-lower-stack-ops2.hive-lower-stack-ops4a {
+    display: grid;
+    grid-template-columns: 1fr 1.08fr;
+    align-items: start;
+  }
+}
+.hive-orbit-stack .hive-orbit-readout-stack .hive-rail-card {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.022), 0 8px 26px rgba(0,0,0,0.32);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.hive-orbit-stack .hive-orbit-readout-stack .hive-rail-title {
+  margin: 0 0 7px;
+}
 .hive-core-plate-slot {
   position: relative;
   width: 100%;
@@ -1057,7 +1129,8 @@ export default function Page() {
 @media (prefers-reduced-transparency: reduce) {
   .hive-orbit-stack .hive-signal-context-bar,
   .hive-orbit-stack .hive-ops-primary-shell.hive-ops3c-shell,
-  .hive-orbit-stack .hive-stage-shell {
+  .hive-orbit-stack .hive-stage-shell,
+  .hive-orbit-stack .hive-orbit-readout-stack .hive-rail-card {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
@@ -1523,42 +1596,139 @@ export default function Page() {
             data-hive-core-size={uiPrefs.coreSize}
           >
             <div className="hive-orbit-stack">
-          <div className="hive-signal-context-bar" aria-label="Pulse context">
-            <span className="hive-signal-context-label">Pulse context</span>
-            <MetricKicker label="Bias" value={formatVal(signal?.bias)} />
-            <MetricKicker label="Score" value={formatVal(signal?.setup_score)} />
-            <MetricKicker
-              label="Delta"
-              value={
-                !delta?.status
-                  ? "—"
-                  : delta.status === "none"
-                    ? "no prior pulse"
-                    : delta.status === "unchanged"
-                      ? "unchanged"
-                      : delta.status === "minor_change"
-                        ? "minor"
-                        : "meaningful"
-              }
-              accent={delta?.status === "meaningful_change"}
-            />
-          </div>
+          <div
+            className="hive-orbit-crown"
+            data-hive-core-off={uiPrefs.coreVisibility === "off" ? "true" : "false"}
+          >
+            <div className="hive-signal-context-bar hive-orbit-zone--ctx" aria-label="Pulse context">
+              <span className="hive-signal-context-label">Pulse context</span>
+              <MetricKicker label="Bias" value={formatVal(signal?.bias)} />
+              <MetricKicker label="Score" value={formatVal(signal?.setup_score)} />
+              <MetricKicker
+                label="Delta"
+                value={
+                  !delta?.status
+                    ? "—"
+                    : delta.status === "none"
+                      ? "no prior pulse"
+                      : delta.status === "unchanged"
+                        ? "unchanged"
+                        : delta.status === "minor_change"
+                          ? "minor"
+                          : "meaningful"
+                }
+                accent={delta?.status === "meaningful_change"}
+              />
+            </div>
 
-          {uiPrefs.coreVisibility !== "off" ? (
-            <div className="hive-core-plate-slot" aria-hidden="true">
-              <div className="hive-core-plate-img-wrap">
-                <Image
-                  src="/hive-hero.jpg"
-                  alt=""
-                  fill
-                  sizes="(max-width: 900px) 100vw, 1200px"
-                  style={{ objectFit: "contain", objectPosition: "center center" }}
-                  priority
+            {uiPrefs.coreVisibility !== "off" ? (
+              <div className="hive-orbit-zone--core">
+                <div className="hive-core-plate-slot" aria-hidden="true">
+                  <div className="hive-core-plate-img-wrap">
+                    <Image
+                      src="/hive-hero.jpg"
+                      alt=""
+                      fill
+                      sizes="(max-width: 900px) 100vw, 1200px"
+                      style={{ objectFit: "contain", objectPosition: "center center" }}
+                      priority
+                    />
+                  </div>
+                  <div className="hive-core-plate-scrim" aria-hidden="true" />
+                </div>
+              </div>
+            ) : null}
+
+            <div className="hive-orbit-readout-stack" aria-label="Operator readout and treasury">
+              {brokerStale ? (
+                <div
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    border: `1px solid ${HIVE_UI.danger}`,
+                    background: HIVE_UI.dangerSoft,
+                    color: HIVE_UI.textSoft,
+                    fontSize: 12,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  <strong style={{ color: HIVE_UI.danger }}>Broker snapshot stale or sync failed.</strong>{" "}
+                  Treasury may show last-good Alpaca paper values or demo seed.{" "}
+                  {typeof brokerSync?.error === "string" && brokerSync.error.length
+                    ? `Last error: ${brokerSync.error.length > 120 ? `${brokerSync.error.slice(0, 120)}…` : brokerSync.error}`
+                    : null}
+                </div>
+              ) : null}
+              <div className="hive-rail-card">
+                <h3 className="hive-rail-title">Operator readout</h3>
+                <RailRow
+                  label="Lifecycle"
+                  value={
+                    system?.lifecycle_phase
+                      ? `${String(system.lifecycle_phase)}${
+                          typeof system.lifecycle_hint === "string" &&
+                          system.lifecycle_hint.length
+                            ? ` — ${
+                                system.lifecycle_hint.length > 58
+                                  ? `${system.lifecycle_hint.slice(0, 58)}…`
+                                  : system.lifecycle_hint
+                              }`
+                            : ""
+                        }`
+                      : "—"
+                  }
+                />
+                <RailRow
+                  label="Posture"
+                  value={
+                    typeof system?.operator_posture_hint === "string" &&
+                    system.operator_posture_hint.length
+                      ? system.operator_posture_hint.length > 58
+                        ? `${system.operator_posture_hint.slice(0, 58)}…`
+                        : system.operator_posture_hint
+                      : "—"
+                  }
+                  muted
+                />
+                <RailRow
+                  label="Pending"
+                  value={
+                    system?.pending_signals_semantics === "broker_orders_only"
+                      ? `${formatVal(
+                          system?.pending_signals_count ?? 0
+                        )} — Alpaca open orders (all symbols; not fills or positions)`
+                      : formatVal(system?.pending_signals_count ?? "—")
+                  }
+                />
+                <RailRow
+                  label="Provider"
+                  value={formatVal(
+                    system?.provider_mode ?? fullState?.provider_mode ?? health?.provider
+                  )}
+                  muted
                 />
               </div>
-              <div className="hive-core-plate-scrim" aria-hidden="true" />
+
+              <div className="hive-rail-card">
+                <h3 className="hive-rail-title">Treasury</h3>
+                <RailRow label="Source" value={treasurySource} muted />
+                <RailRow label="Cash" value={formatVal(perf?.cash ?? fullState?.cash)} />
+                <RailRow label="Equity" value={formatVal(perf?.equity ?? fullState?.equity)} />
+                <RailRow
+                  label="Daily P&L (HIVE internal)"
+                  value={formatVal(perf?.realized_pnl_today ?? fullState?.realized_pnl_today)}
+                  accent
+                />
+                <RailRow
+                  label="Loss streak (HIVE internal)"
+                  value={formatVal(perf?.consecutive_losses ?? fullState?.consecutive_losses)}
+                />
+                {perf?.unrealized_pnl != null ? (
+                  <RailRow label="Unrealized" value={formatVal(perf.unrealized_pnl)} muted />
+                ) : null}
+              </div>
             </div>
-          ) : null}
+          </div>
 
           <section
             className="hive-ops-primary-shell hive-ops3c-shell"
@@ -1890,7 +2060,7 @@ export default function Page() {
               </div>
             </div>
 
-            <div className="hive-stage-body">
+            <div className="hive-stage-body hive-stage-body--orbit-solo">
               <div className="hive-tactical-deck">
                 <TacticalFieldDeck
                   running={running === true}
@@ -1912,104 +2082,6 @@ export default function Page() {
                   gatePillText={gatePillText}
                 />
               </div>
-              <div className="hive-side-rail">
-                {brokerStale ? (
-                  <div
-                    style={{
-                      marginBottom: 10,
-                      padding: "10px 12px",
-                      borderRadius: 12,
-                      border: `1px solid ${HIVE_UI.danger}`,
-                      background: HIVE_UI.dangerSoft,
-                      color: HIVE_UI.textSoft,
-                      fontSize: 12,
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    <strong style={{ color: HIVE_UI.danger }}>Broker snapshot stale or sync failed.</strong>{" "}
-                    Treasury may show last-good Alpaca paper values or demo seed.{" "}
-                    {typeof brokerSync?.error === "string" && brokerSync.error.length
-                      ? `Last error: ${brokerSync.error.length > 120 ? `${brokerSync.error.slice(0, 120)}…` : brokerSync.error}`
-                      : null}
-                  </div>
-                ) : null}
-                <div className="hive-rail-card">
-                  <h3 className="hive-rail-title">Operator readout</h3>
-                  <RailRow
-                    label="Lifecycle"
-                    value={
-                      system?.lifecycle_phase
-                        ? `${String(system.lifecycle_phase)}${
-                            typeof system.lifecycle_hint === "string" &&
-                            system.lifecycle_hint.length
-                              ? ` — ${
-                                  system.lifecycle_hint.length > 58
-                                    ? `${system.lifecycle_hint.slice(0, 58)}…`
-                                    : system.lifecycle_hint
-                                }`
-                              : ""
-                          }`
-                        : "—"
-                    }
-                  />
-                  <RailRow
-                    label="Posture"
-                    value={
-                      typeof system?.operator_posture_hint === "string" &&
-                      system.operator_posture_hint.length
-                        ? system.operator_posture_hint.length > 58
-                          ? `${system.operator_posture_hint.slice(0, 58)}…`
-                          : system.operator_posture_hint
-                        : "—"
-                    }
-                    muted
-                  />
-                  <RailRow
-                    label="Pending"
-                    value={
-                      system?.pending_signals_semantics === "broker_orders_only"
-                        ? `${formatVal(
-                            system?.pending_signals_count ?? 0
-                          )} — Alpaca open orders (all symbols; not fills or positions)`
-                        : formatVal(system?.pending_signals_count ?? "—")
-                    }
-                  />
-                  <RailRow
-                    label="Provider"
-                    value={formatVal(
-                      system?.provider_mode ?? fullState?.provider_mode ?? health?.provider
-                    )}
-                    muted
-                  />
-                </div>
-
-                <div className="hive-rail-card">
-                  <h3 className="hive-rail-title">Treasury</h3>
-                  <RailRow label="Source" value={treasurySource} muted />
-                  <RailRow label="Cash" value={formatVal(perf?.cash ?? fullState?.cash)} />
-                  <RailRow
-                    label="Equity"
-                    value={formatVal(perf?.equity ?? fullState?.equity)}
-                  />
-                  <RailRow
-                    label="Daily P&L (HIVE internal)"
-                    value={formatVal(
-                      perf?.realized_pnl_today ?? fullState?.realized_pnl_today
-                    )}
-                    accent
-                  />
-                  <RailRow
-                    label="Loss streak (HIVE internal)"
-                    value={formatVal(
-                      perf?.consecutive_losses ?? fullState?.consecutive_losses
-                    )}
-                  />
-                  {perf?.unrealized_pnl != null ? (
-                    <RailRow label="Unrealized" value={formatVal(perf.unrealized_pnl)} muted />
-                  ) : null}
-                </div>
-              </div>
-
             </div>
 
             <div className="hive-account-paper-band">
@@ -2372,7 +2444,7 @@ export default function Page() {
 
           </section>
 
-          <div className="hive-lower-stack-ops2">
+          <div className="hive-lower-stack-ops2 hive-lower-stack-ops4a">
             <div className="hive-stack">
               <Panel
                 variant="diagnostics"
