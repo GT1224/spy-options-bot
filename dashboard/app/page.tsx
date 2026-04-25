@@ -510,6 +510,11 @@ export default function Page() {
       : execSurface === "alpaca_paper_degraded"
         ? "Paper broker: on · sync degraded"
         : "Paper broker: on · keys missing on API host";
+  const paperBrokerPillDisplay =
+    paperBrokerPillText +
+    (alpacaOptionsAutoEnabled && paperBrokerEnabled && execSurface === "alpaca_paper"
+      ? " · paper opt AUTO"
+      : "");
   const paperBrokerPillActive = paperBrokerEnabled && execSurface === "alpaca_paper";
 
   const liveRead = (system?.live_readiness ?? fullState?.live_readiness) as
@@ -597,6 +602,8 @@ export default function Page() {
     : tradingUsesConfigFallback
       ? " · /state cfg"
       : "";
+  const tradingSurfaceSuffix =
+    execSurface === "signal_only" && tradingEnabled ? " · no broker exec" : "";
 
   const promoStatus = promo?.status as string | undefined;
   const gateSuppressed = promoStatus === "suppressed";
@@ -1862,9 +1869,9 @@ export default function Page() {
                 />
                 <StatusPill
                   dense
-                  text={`Trading ${tradingEnabled ? "Armed" : "Safe"}${tradingPillSuffix}`}
+                  text={`Trading ${tradingEnabled ? "Armed" : "Safe"}${tradingPillSuffix}${tradingSurfaceSuffix}`}
                 />
-                <StatusPill dense text={paperBrokerPillText} active={paperBrokerPillActive} />
+                <StatusPill dense text={paperBrokerPillDisplay} active={paperBrokerPillActive} />
                 <StatusPill dense text={liveLanePillText} tone={liveLanePillTone} />
                 <StatusPill dense text={surfacePillText} />
                 <StatusPill dense text={gatePillText} tone={gatePillTone} active={gatePromoted} />
@@ -1880,7 +1887,11 @@ export default function Page() {
                 />
                 <StatusPill
                   dense
-                  text={alpacaOptionsAutoEnabled ? "Options AUTO on" : "Options AUTO off"}
+                  text={
+                    alpacaOptionsAutoEnabled
+                      ? "Options AUTO on · paper SPY options only"
+                      : "Options AUTO off · paper SPY options only"
+                  }
                   tone={alpacaOptionsAutoEnabled ? "promoted" : "hold"}
                   active={alpacaOptionsAutoEnabled}
                 />
