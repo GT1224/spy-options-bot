@@ -571,7 +571,8 @@ export default function Page() {
     ((perf?.cash === undefined && fullState?.cash !== undefined) ||
       (perf?.equity === undefined && fullState?.equity !== undefined) ||
       (perf?.realized_pnl_today === undefined && fullState?.realized_pnl_today !== undefined) ||
-      (perf?.consecutive_losses === undefined && fullState?.consecutive_losses !== undefined));
+      (perf?.consecutive_losses === undefined && fullState?.consecutive_losses !== undefined) ||
+      (perf?.buying_power === undefined && fullState?.buying_power !== undefined));
 
   const providerLegacyMix =
     hasHiveContract &&
@@ -2134,6 +2135,13 @@ export default function Page() {
                 ) : null}
                 <RailRow label="Cash" value={formatVal(perf?.cash ?? fullState?.cash)} />
                 <RailRow label="Equity" value={formatVal(perf?.equity ?? fullState?.equity)} />
+                {treasurySource.includes("Alpaca paper") ? (
+                  <RailRow
+                    label="Buying power (paper account read)"
+                    value={formatVal(perf?.buying_power ?? fullState?.buying_power)}
+                    muted
+                  />
+                ) : null}
                 <RailRow
                   label={
                     treasurySource.includes("Alpaca paper")

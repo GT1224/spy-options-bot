@@ -159,6 +159,8 @@ state: dict[str, Any] = {
     "prior_pulse_compact": None,
     "open_position": None,
     "unrealized_pnl": None,
+    # Alpaca paper GET /v2/account buying_power when performance_source is alpaca_paper; else None.
+    "buying_power": None,
     "performance_source": "demo_seed",
     "broker_last_success_at": None,
     "broker_last_attempt_at": None,
@@ -297,6 +299,7 @@ def maybe_sync_alpaca_paper(*, force: bool) -> None:
             snap = read_paper_portfolio_snapshot(key_id, secret)
             state["cash"] = snap["cash"]
             state["equity"] = snap["equity"]
+            state["buying_power"] = snap.get("buying_power")
             state["open_position"] = snap["open_position"]
             state["unrealized_pnl"] = snap["unrealized_pnl"]
             state["broker_open_orders_count"] = int(snap["open_orders_count"])
@@ -1183,6 +1186,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
         else "demo_seed"
     )
     unrealized_out = state.get("unrealized_pnl") if perf_src == "alpaca_paper" else None
+    buying_power_out = state.get("buying_power") if perf_src == "alpaca_paper" else None
 
     return {
         "system_state": {
@@ -1248,6 +1252,8 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "open_position": state.get("open_position"),
             "consecutive_losses": state.get("consecutive_losses"),
             "unrealized_pnl": unrealized_out,
+            # From Alpaca paper GET /v2/account when performance_source is alpaca_paper; None if absent or demo.
+            "buying_power": buying_power_out,
             # Never written from Alpaca reads in this build — only init + risk reset (POST /risk/reset).
             "realized_pnl_today_source": "hive_internal_only_not_alpaca_account_sync",
             "consecutive_losses_source": "hive_internal_only_not_alpaca_account_sync",
@@ -1542,6 +1548,7 @@ def paper_order(payload: dict[str, Any]):
     with _broker_sync_lock:
         state["cash"] = snap["cash"]
         state["equity"] = snap["equity"]
+        state["buying_power"] = snap.get("buying_power")
         state["open_position"] = snap["open_position"]
         state["unrealized_pnl"] = snap["unrealized_pnl"]
         state["broker_open_orders_count"] = int(snap["open_orders_count"])

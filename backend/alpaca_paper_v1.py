@@ -479,8 +479,8 @@ def read_paper_portfolio_snapshot(
 ) -> dict[str, Any]:
     """
     Fetches account + positions + open orders from paper API.
-    Returns dict: cash, equity, open_position (SPY or None), unrealized_pnl, open_orders_count,
-    spy_open_order_count (open working orders for symbol SPY).
+    Returns dict: cash, equity, buying_power (optional), open_position (SPY or None), unrealized_pnl,
+    open_orders_count, spy_open_order_count (open working orders for symbol SPY).
     """
     acct = fetch_account(key_id, secret, timeout)
     pos = fetch_positions(key_id, secret, timeout)
@@ -492,6 +492,8 @@ def read_paper_portfolio_snapshot(
         raise AlpacaPaperError("broker account missing cash")
     if equity is None:
         raise AlpacaPaperError("broker account missing equity")
+
+    bp = _f(acct.get("buying_power"))
 
     upl = sum_unrealized_pl(pos)
     op = aggregate_spy_equity_position(pos)
@@ -505,6 +507,7 @@ def read_paper_portfolio_snapshot(
     return {
         "cash": round(cash, 2),
         "equity": round(equity, 2),
+        "buying_power": round(bp, 2) if bp is not None else None,
         "open_position": op,
         "unrealized_pnl": upl,
         "open_orders_count": len(orders),
