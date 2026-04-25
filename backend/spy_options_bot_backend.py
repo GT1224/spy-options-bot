@@ -22,6 +22,7 @@ from hive_flow_context_v1 import FLOW_BUFFER_CAP, compute_hive_flow_context_v1
 from hive_guardrails_v1 import compute_hive_guardrails_v1
 from hive_promotion_gate_v1 import compute_hive_promotion_gate_v1
 from hive_regime_observability_v1 import compute_hive_regime_observability_v1
+from hive_signal_freshness_v1 import compute_hive_signal_freshness_v1
 from hive_session_regime_v1 import compute_hive_session_regime_v1
 from hive_signal_memory_v1 import compute_hive_signal_memory_v1
 from hive_signal_rank_v1 import compute_hive_rank_v1
@@ -1164,6 +1165,15 @@ def build_hive_contract_v1() -> dict[str, Any]:
 
     age_sec = _utc_age_seconds(last_at)
     signal_stale = age_sec is not None and (age_sec * 1000.0) > float(SIGNAL_STALE_AFTER_MS)
+    signal_freshness = compute_hive_signal_freshness_v1(
+        last_loop_at=last_at,
+        age_seconds=age_sec,
+        signal_stale=signal_stale,
+        stale_after_ms=SIGNAL_STALE_AFTER_MS,
+        spot=snap.get("spot"),
+        setup_score=snap.get("setup_score"),
+        regime_code=regime_obs.get("code") if isinstance(regime_obs.get("code"), str) else None,
+    )
     bot_running = bool(state.get("running"))
     if not bot_running:
         lifecycle_phase = "idle"
@@ -1216,6 +1226,8 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "lifecycle_hint": lifecycle_hint,
             "signal_age_seconds": int(round(age_sec)) if age_sec is not None else None,
             "signal_stale": signal_stale,
+            # D1-P1: read-only decay map — not consumed by ranking/guardrails/execution.
+            "signal_freshness": signal_freshness,
             "operator_posture_hint": posture_hint,
             "freshness": {"signal_stale_after_ms": SIGNAL_STALE_AFTER_MS},
             "session_regime": session_regime,
@@ -1278,6 +1290,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
                 "system_state.live_readiness",
                 "system_state.session_regime",
                 "system_state.regime",
+                "system_state.signal_freshness",
                 "system_state.execution_surface",
                 "system_state.lifecycle_phase",
                 "system_state.lifecycle_hint",
