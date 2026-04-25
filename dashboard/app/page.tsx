@@ -4047,6 +4047,96 @@ function TacticalFieldDeck({
             ) : null}
           </div>
         ) : null}
+        {system?.ai_governance && typeof system.ai_governance === "object" && !Array.isArray(system.ai_governance) ? (
+          <div
+            style={{
+              marginTop: 10,
+              padding: "8px 10px",
+              borderRadius: 10,
+              border: `1px solid ${HIVE_UI.border}`,
+              background: "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.08))",
+              maxWidth: "62ch",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 8,
+                fontWeight: 800,
+                letterSpacing: "0.18em",
+                color: HIVE_UI.textDim,
+                textTransform: "uppercase",
+                marginBottom: 6,
+              }}
+            >
+              AI governance (read-only · v1)
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: HIVE_UI.textSoft, lineHeight: 1.35 }}>
+              {typeof system.ai_governance.posture_label === "string"
+                ? system.ai_governance.posture_label
+                : formatVal(system.ai_governance.posture)}{" "}
+              <span style={{ fontSize: 10, fontWeight: 700, color: HIVE_UI.textMuted }}>
+                ({String(system.ai_governance.status ?? "—").toUpperCase()})
+              </span>
+            </div>
+            <div style={{ fontSize: 10, color: HIVE_UI.textMuted, lineHeight: 1.45, marginTop: 6 }}>
+              AI present:{" "}
+              {system.ai_governance.ai_present === true
+                ? "yes"
+                : system.ai_governance.ai_present === false
+                  ? "no"
+                  : "—"}{" "}
+              · AI-attributed signal:{" "}
+              {system.ai_governance.ai_signal_present === true
+                ? "yes"
+                : system.ai_governance.ai_signal_present === false
+                  ? "no"
+                  : "—"}{" "}
+              · Capital privilege: {formatVal(system.ai_governance.capital_privilege)}
+            </div>
+            <div style={{ fontSize: 10, color: HIVE_UI.textDim, lineHeight: 1.45, marginTop: 6 }}>
+              Attribution / governance strip only — not a historical AI scorecard or allocator. HIVE does not grant AI
+              capital trust from this block in v1.
+            </div>
+            {Array.isArray(system.ai_governance.rationale) && system.ai_governance.rationale.length ? (
+              <ul
+                style={{
+                  margin: "8px 0 0 0",
+                  paddingLeft: 16,
+                  fontSize: 10,
+                  color: HIVE_UI.textMuted,
+                  lineHeight: 1.4,
+                }}
+              >
+                {system.ai_governance.rationale.slice(0, 5).map((line: string, i: number) => (
+                  <li key={i}>{typeof line === "string" ? line : formatVal(line)}</li>
+                ))}
+              </ul>
+            ) : null}
+            {Array.isArray(system.ai_governance.blockers) && system.ai_governance.blockers.length ? (
+              <div style={{ fontSize: 10, color: HIVE_UI.accent, marginTop: 6, lineHeight: 1.4 }}>
+                <strong>Blockers:</strong>{" "}
+                {system.ai_governance.blockers.map((b: string, i: number) => (
+                  <span key={i}>
+                    {i > 0 ? " · " : ""}
+                    {typeof b === "string" ? b : formatVal(b)}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            {typeof system.ai_governance.source === "string" && system.ai_governance.source.length ? (
+              <div style={{ fontSize: 9, color: HIVE_UI.textDim, marginTop: 6, lineHeight: 1.35 }}>
+                {system.ai_governance.source.length > 180
+                  ? `${system.ai_governance.source.slice(0, 180)}…`
+                  : system.ai_governance.source}
+              </div>
+            ) : null}
+            {system.ai_governance.observed_at ? (
+              <div style={{ fontSize: 9, color: HIVE_UI.textDim, marginTop: 6 }}>
+                Anchored to last pulse: {formatVal(system.ai_governance.observed_at)}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         {system?.regime && typeof system.regime === "object" && !Array.isArray(system.regime) ? (
           <div
             style={{

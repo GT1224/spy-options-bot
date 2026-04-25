@@ -22,6 +22,7 @@ from hive_flow_context_v1 import FLOW_BUFFER_CAP, compute_hive_flow_context_v1
 from hive_guardrails_v1 import compute_hive_guardrails_v1
 from hive_promotion_gate_v1 import compute_hive_promotion_gate_v1
 from hive_regime_observability_v1 import compute_hive_regime_observability_v1
+from hive_ai_governance_v1 import compute_hive_ai_governance_v1
 from hive_capital_posture_v1 import compute_hive_capital_posture_v1
 from hive_operator_review_v1 import compute_hive_operator_review_v1
 from hive_shadow_book_v1 import compute_hive_shadow_book_v1
@@ -1244,6 +1245,13 @@ def build_hive_contract_v1() -> dict[str, Any]:
         bot_running=bot_running,
         trade_action=trade_action,
     )
+    contract_signal_type = "rules"
+    ai_governance = compute_hive_ai_governance_v1(
+        signal_type=contract_signal_type,
+        last_loop_at=last_at,
+        capital_posture_tier=capital_posture.get("tier") if isinstance(capital_posture.get("tier"), str) else None,
+        alpaca_options_auto_enabled=bool((state.get("config") or {}).get("alpaca_options_auto_enabled")),
+    )
 
     return {
         "system_state": {
@@ -1271,6 +1279,8 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "operator_review": operator_review,
             # C1-P1: provisional trust tier / capital posture — not an allocator.
             "capital_posture": capital_posture,
+            # AI1-P1: AI attribution / governance — not an AI allocator or scorecard.
+            "ai_governance": ai_governance,
             "operator_posture_hint": posture_hint,
             "freshness": {"signal_stale_after_ms": SIGNAL_STALE_AFTER_MS},
             "session_regime": session_regime,
@@ -1291,7 +1301,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "underlying": "SPY",
             "direction": direction,
             "confidence": confidence,
-            "signal_type": "rules",
+            "signal_type": contract_signal_type,
             "rank": 1,
             "rank_score": rank_bundle["rank_score"],
             "rank_factors": rank_bundle["rank_factors"],
@@ -1337,6 +1347,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
                 "system_state.shadow_book",
                 "system_state.operator_review",
                 "system_state.capital_posture",
+                "system_state.ai_governance",
                 "system_state.execution_surface",
                 "system_state.lifecycle_phase",
                 "system_state.lifecycle_hint",
