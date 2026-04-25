@@ -13,6 +13,15 @@ export type HiveLayoutDensity = "compact" | "normal" | "roomy";
 export type HiveMotionLevel = "off" | "low" | "high";
 export type HiveReadability = "standard" | "high_contrast" | "relaxed";
 
+/** HIVE-UICTRL-2: macro shell width / orbit rhythm (distinct from layoutDensity spacing). */
+export type HiveLayoutMode = "compact" | "command_center" | "wide";
+
+/** Pulse context bar: collapsed keeps bias/score/delta visible in a tighter strip (never fully removed). */
+export type HivePulseContextMode = "full" | "collapsed";
+
+/** Operator readout + treasury rails: collapsed soft-fades secondary treasury detail (lifecycle rail stays). */
+export type HiveOrbitReadoutMode = "full" | "collapsed";
+
 export type HiveUiPresetId =
   | "stealth"
   | "command_center"
@@ -41,6 +50,12 @@ export type HiveUiPrefs = {
   heroStrip: HiveHeroStripMode;
   motionLevel: HiveMotionLevel;
   readability: HiveReadability;
+  /** UICTRL-2 */
+  layoutMode: HiveLayoutMode;
+  pulseContextMode: HivePulseContextMode;
+  orbitReadoutMode: HiveOrbitReadoutMode;
+  /** Bee log, diagnostics, and secondary deck bands — scroll-clipped when collapsed. */
+  collapseLowPrioritySections: boolean;
 };
 
 const STORAGE_KEY = "hive_ui_prefs_v1";
@@ -66,6 +81,10 @@ const PRESET_PATCH: Record<HiveUiPresetApplyId, Partial<Omit<HiveUiPrefs, "schem
     shadowDepth: "low",
     panelDensity: "compact",
     layoutDensity: "compact",
+    layoutMode: "compact",
+    pulseContextMode: "collapsed",
+    orbitReadoutMode: "collapsed",
+    collapseLowPrioritySections: true,
     heroStrip: "hidden",
     motionLevel: "off",
     readability: "standard",
@@ -80,6 +99,10 @@ const PRESET_PATCH: Record<HiveUiPresetApplyId, Partial<Omit<HiveUiPrefs, "schem
     shadowDepth: "medium",
     panelDensity: "comfortable",
     layoutDensity: "normal",
+    layoutMode: "command_center",
+    pulseContextMode: "full",
+    orbitReadoutMode: "full",
+    collapseLowPrioritySections: false,
     heroStrip: "hidden",
     motionLevel: "low",
     readability: "standard",
@@ -94,6 +117,10 @@ const PRESET_PATCH: Record<HiveUiPresetApplyId, Partial<Omit<HiveUiPrefs, "schem
     shadowDepth: "low",
     panelDensity: "compact",
     layoutDensity: "compact",
+    layoutMode: "compact",
+    pulseContextMode: "collapsed",
+    orbitReadoutMode: "collapsed",
+    collapseLowPrioritySections: true,
     heroStrip: "hidden",
     motionLevel: "off",
     readability: "standard",
@@ -108,6 +135,10 @@ const PRESET_PATCH: Record<HiveUiPresetApplyId, Partial<Omit<HiveUiPrefs, "schem
     shadowDepth: "medium",
     panelDensity: "comfortable",
     layoutDensity: "normal",
+    layoutMode: "command_center",
+    pulseContextMode: "full",
+    orbitReadoutMode: "full",
+    collapseLowPrioritySections: false,
     heroStrip: "compact",
     motionLevel: "high",
     readability: "standard",
@@ -122,6 +153,10 @@ const PRESET_PATCH: Record<HiveUiPresetApplyId, Partial<Omit<HiveUiPrefs, "schem
     shadowDepth: "high",
     panelDensity: "comfortable",
     layoutDensity: "normal",
+    layoutMode: "command_center",
+    pulseContextMode: "full",
+    orbitReadoutMode: "full",
+    collapseLowPrioritySections: false,
     heroStrip: "hidden",
     motionLevel: "low",
     readability: "high_contrast",
@@ -136,6 +171,10 @@ const PRESET_PATCH: Record<HiveUiPresetApplyId, Partial<Omit<HiveUiPrefs, "schem
     shadowDepth: "medium",
     panelDensity: "comfortable",
     layoutDensity: "roomy",
+    layoutMode: "wide",
+    pulseContextMode: "full",
+    orbitReadoutMode: "full",
+    collapseLowPrioritySections: false,
     heroStrip: "full",
     motionLevel: "low",
     readability: "relaxed",
@@ -188,6 +227,15 @@ function isMotion(v: unknown): v is HiveMotionLevel {
 function isRead(v: unknown): v is HiveReadability {
   return v === "standard" || v === "high_contrast" || v === "relaxed";
 }
+function isLayoutMode(v: unknown): v is HiveLayoutMode {
+  return v === "compact" || v === "command_center" || v === "wide";
+}
+function isPulseCtx(v: unknown): v is HivePulseContextMode {
+  return v === "full" || v === "collapsed";
+}
+function isOrbitReadout(v: unknown): v is HiveOrbitReadoutMode {
+  return v === "full" || v === "collapsed";
+}
 
 type LegacyV1 = {
   schema?: number;
@@ -223,6 +271,10 @@ function baseFromV1(j: LegacyV1): Omit<HiveUiPrefs, "schema" | "activePreset"> {
     heroStrip: isHero(j.heroStrip) ? j.heroStrip : DEFAULT_HIVE_UI_PREFS.heroStrip,
     motionLevel: "low",
     readability: "standard",
+    layoutMode: "command_center",
+    pulseContextMode: "full",
+    orbitReadoutMode: "full",
+    collapseLowPrioritySections: false,
   };
 }
 
@@ -256,6 +308,10 @@ function migrateV2(j: Record<string, unknown>): HiveUiPrefs {
     heroStrip: isHero(j.heroStrip) ? j.heroStrip : DEFAULT_HIVE_UI_PREFS.heroStrip,
     motionLevel: "low",
     readability: "standard",
+    layoutMode: "command_center",
+    pulseContextMode: "full",
+    orbitReadoutMode: "full",
+    collapseLowPrioritySections: false,
   };
 }
 
@@ -283,6 +339,11 @@ function coerceV3(j: Record<string, unknown>): HiveUiPrefs {
     heroStrip: isHero(j.heroStrip) ? j.heroStrip : DEFAULT_HIVE_UI_PREFS.heroStrip,
     motionLevel: isMotion(j.motionLevel) ? j.motionLevel : "low",
     readability: isRead(j.readability) ? j.readability : "standard",
+    layoutMode: isLayoutMode(j.layoutMode) ? j.layoutMode : "command_center",
+    pulseContextMode: isPulseCtx(j.pulseContextMode) ? j.pulseContextMode : "full",
+    orbitReadoutMode: isOrbitReadout(j.orbitReadoutMode) ? j.orbitReadoutMode : "full",
+    collapseLowPrioritySections:
+      typeof j.collapseLowPrioritySections === "boolean" ? j.collapseLowPrioritySections : false,
   };
 }
 
@@ -319,6 +380,33 @@ export function applyHiveUiPreset(id: HiveUiPresetApplyId, prev: HiveUiPrefs): H
     ...DEFAULT_HIVE_UI_PREFS,
     ...patch,
     advancedDefault: prev.advancedDefault,
+  };
+}
+
+/** One-shot operator surface: tight crown, collapsed rails, clipped diagnostics. Sets preset to Custom. */
+export function applyOperatorMinimal(prev: HiveUiPrefs): HiveUiPrefs {
+  return {
+    ...prev,
+    schema: 3,
+    activePreset: "custom",
+    layoutMode: "compact",
+    pulseContextMode: "collapsed",
+    orbitReadoutMode: "collapsed",
+    collapseLowPrioritySections: true,
+    heroStrip: "hidden",
+  };
+}
+
+/** One-shot: wide shell, full pulse/readout rails, expanded secondary sections. Sets preset to Custom. */
+export function applyOperatorFullObservability(prev: HiveUiPrefs): HiveUiPrefs {
+  return {
+    ...prev,
+    schema: 3,
+    activePreset: "custom",
+    layoutMode: "wide",
+    pulseContextMode: "full",
+    orbitReadoutMode: "full",
+    collapseLowPrioritySections: false,
   };
 }
 

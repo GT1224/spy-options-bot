@@ -5,6 +5,8 @@ import Image from "next/image";
 
 import {
   applyHiveUiPreset,
+  applyOperatorFullObservability,
+  applyOperatorMinimal,
   DEFAULT_HIVE_UI_PREFS,
   HIVE_UI_PRESET_ORDER,
   hiveUiPresetLabel,
@@ -574,6 +576,12 @@ export default function Page() {
   margin: 0 auto;
   position: relative;
 }
+[data-hive-layout-mode="compact"] .hive-shell {
+  max-width: 1180px;
+}
+[data-hive-layout-mode="wide"] .hive-shell {
+  max-width: min(1920px, 100%);
+}
 .hive-topbar {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -1017,6 +1025,107 @@ export default function Page() {
 }
 [data-hive-layout-density="roomy"] .hive-orbit-crown {
   gap: 14px;
+}
+[data-hive-layout-mode="wide"] .hive-orbit-crown {
+  gap: 14px;
+}
+@media (min-width: 1020px) {
+  [data-hive-layout-mode="wide"] .hive-orbit-crown {
+    grid-template-columns: minmax(220px, 0.95fr) minmax(260px, 1.05fr);
+  }
+}
+[data-hive-layout-mode="compact"] .hive-orbit-crown {
+  gap: 8px;
+}
+[data-hive-pulse-context="collapsed"] .hive-orbit-stack .hive-signal-context-bar {
+  padding: 5px 8px;
+  gap: 5px;
+}
+[data-hive-pulse-context="collapsed"] .hive-orbit-stack .hive-signal-context-bar .hive-signal-context-label {
+  font-size: 7px !important;
+  letter-spacing: 0.12em !important;
+}
+@media (min-width: 1020px) {
+  [data-hive-pulse-context="collapsed"] .hive-orbit-crown .hive-signal-context-bar {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+  }
+  [data-hive-pulse-context="collapsed"] .hive-orbit-crown .hive-signal-context-bar .hive-signal-context-label {
+    width: auto !important;
+    margin-right: 6px;
+  }
+}
+[data-hive-pulse-context="collapsed"] .hive-pulse-metric {
+  min-width: 0 !important;
+  padding: 3px 6px !important;
+}
+[data-hive-pulse-context="collapsed"] .hive-pulse-metric > div:first-of-type {
+  font-size: 7px !important;
+  letter-spacing: 0.12em !important;
+  margin-bottom: 1px !important;
+}
+[data-hive-pulse-context="collapsed"] .hive-pulse-metric > div:last-of-type {
+  font-size: 11px !important;
+}
+[data-hive-orbit-readout="collapsed"] .hive-orbit-readout-stack {
+  gap: 8px;
+}
+[data-hive-orbit-readout="collapsed"] .hive-orbit-readout-stack .hive-rail-card:last-of-type {
+  max-height: 5.2rem;
+  overflow: hidden;
+  position: relative;
+  padding-bottom: 8px;
+}
+[data-hive-orbit-readout="collapsed"] .hive-orbit-readout-stack .hive-rail-card:last-of-type::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 20px;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(10,12,18,0) 0%, rgba(10,12,18,0.92) 75%);
+}
+[data-hive-orbit-readout="collapsed"] .hive-orbit-readout-stack .hive-rail-card:last-of-type .hive-rail-title {
+  margin-bottom: 4px;
+}
+[data-hive-low-priority="collapsed"] .hive-lower-stack-ops2 .hive-bee-log-inner {
+  max-height: 200px;
+}
+[data-hive-low-priority="collapsed"] .hive-lower-stack-ops2 .hive-signal-grid {
+  max-height: 240px;
+  overflow-y: auto;
+}
+[data-hive-low-priority="collapsed"] .hive-deck-collapsible-band {
+  max-height: 58px;
+  overflow: hidden;
+  position: relative;
+}
+[data-hive-low-priority="collapsed"] .hive-deck-collapsible-band::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 16px;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(5,6,10,0.92));
+}
+[data-hive-low-priority="collapsed"] .hive-deck-collapsible-thesis {
+  max-height: 3.4rem;
+  overflow: hidden;
+  position: relative;
+}
+[data-hive-low-priority="collapsed"] .hive-deck-collapsible-thesis::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 14px;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(5,6,10,0.95));
 }
 [data-hive-motion="off"][data-hive-dashboard] .hive-topbar,
 [data-hive-motion="off"][data-hive-dashboard] .hive-drawer-seg,
@@ -1474,6 +1583,8 @@ export default function Page() {
         data-hive-dashboard
         data-hive-density={uiPrefs.panelDensity}
         data-hive-layout-density={uiPrefs.layoutDensity}
+        data-hive-layout-mode={uiPrefs.layoutMode}
+        data-hive-low-priority={uiPrefs.collapseLowPrioritySections ? "collapsed" : "full"}
         data-hive-motion={uiPrefs.motionLevel}
         data-hive-readability={uiPrefs.readability}
         data-hive-preset={uiPrefs.activePreset}
@@ -1666,7 +1777,11 @@ export default function Page() {
           ) : null}
 
           <div className="hive-orbit-canvas">
-            <div className="hive-orbit-stack">
+            <div
+              className="hive-orbit-stack"
+              data-hive-pulse-context={uiPrefs.pulseContextMode}
+              data-hive-orbit-readout={uiPrefs.orbitReadoutMode}
+            >
           <div className="hive-orbit-crown">
             <div className="hive-signal-context-bar hive-orbit-zone--ctx" aria-label="Pulse context">
               <span className="hive-signal-context-label">Pulse context</span>
@@ -2847,6 +2962,122 @@ export default function Page() {
               </div>
 
               <div className="hive-drawer-section">
+                <div className="hive-drawer-label">Layout mode</div>
+                <div className="hive-drawer-seg-row">
+                  {(["compact", "command_center", "wide"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={
+                        "hive-drawer-seg" + (uiPrefs.layoutMode === v ? " hive-drawer-seg--on" : "")
+                      }
+                      onClick={() => setUiPrefs((u) => patchHiveUi(u, { layoutMode: v }))}
+                    >
+                      {v === "compact" ? "Compact" : v === "wide" ? "Wide" : "Command"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="hive-drawer-section">
+                <div className="hive-drawer-label">Operator surface</div>
+                <p
+                  style={{
+                    fontSize: 10,
+                    color: HIVE_UI.textMuted,
+                    margin: "0 0 8px",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  One-tap bundles · switches to Custom. Critical readouts stay visible; treasury rail soft-clips when
+                  collapsed.
+                </p>
+                <div className="hive-drawer-seg-row">
+                  <button
+                    type="button"
+                    className="hive-drawer-seg"
+                    onClick={() => setUiPrefs((u) => applyOperatorMinimal(u))}
+                  >
+                    Minimal Operator
+                  </button>
+                  <button
+                    type="button"
+                    className="hive-drawer-seg"
+                    onClick={() => setUiPrefs((u) => applyOperatorFullObservability(u))}
+                  >
+                    Full Observability
+                  </button>
+                </div>
+              </div>
+
+              <div className="hive-drawer-section">
+                <div className="hive-drawer-label">Pulse context strip</div>
+                <div className="hive-drawer-seg-row">
+                  {(["full", "collapsed"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={
+                        "hive-drawer-seg" +
+                        (uiPrefs.pulseContextMode === v ? " hive-drawer-seg--on" : "")
+                      }
+                      onClick={() => setUiPrefs((u) => patchHiveUi(u, { pulseContextMode: v }))}
+                    >
+                      {v === "full" ? "Full" : "Collapsed"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="hive-drawer-section">
+                <div className="hive-drawer-label">Readout rails</div>
+                <div className="hive-drawer-seg-row">
+                  {(["full", "collapsed"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={
+                        "hive-drawer-seg" +
+                        (uiPrefs.orbitReadoutMode === v ? " hive-drawer-seg--on" : "")
+                      }
+                      onClick={() => setUiPrefs((u) => patchHiveUi(u, { orbitReadoutMode: v }))}
+                    >
+                      {v === "full" ? "Full" : "Collapsed"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="hive-drawer-section">
+                <div className="hive-drawer-label">Collapse low-priority</div>
+                <div className="hive-drawer-seg-row">
+                  {(
+                    [
+                      { id: false as const, label: "Off" },
+                      { id: true as const, label: "On" },
+                    ] as const
+                  ).map(({ id, label }) => (
+                    <button
+                      key={String(id)}
+                      type="button"
+                      className={
+                        "hive-drawer-seg" +
+                        (uiPrefs.collapseLowPrioritySections === id ? " hive-drawer-seg--on" : "")
+                      }
+                      onClick={() =>
+                        setUiPrefs((u) => patchHiveUi(u, { collapseLowPrioritySections: id }))
+                      }
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <p style={{ fontSize: 10, color: HIVE_UI.textDim, margin: "8px 0 0", lineHeight: 1.4 }}>
+                  Clips bee log, diagnostics depth, and secondary tactical deck bands — scroll where needed.
+                </p>
+              </div>
+
+              <div className="hive-drawer-section">
                 <div className="hive-drawer-label">Motion</div>
                 <div className="hive-drawer-seg-row">
                   {(["off", "low", "high"] as const).map((v) => (
@@ -3212,7 +3443,7 @@ function TacticalFieldDeck({
         </div>
       </div>
 
-      <div className="hive-deck-mini-row" style={{ marginBottom: 12 }}>
+      <div className="hive-deck-mini-row hive-deck-collapsible-band" style={{ marginBottom: 12 }}>
         <div style={miniCard}>
           <div style={miniTitle}>Contract quality</div>
           <div style={{ fontSize: 13, fontWeight: 800, color: HIVE_UI.textSoft }}>{cqLine}</div>
@@ -3271,36 +3502,38 @@ function TacticalFieldDeck({
         ) : null}
       </div>
 
-      {thesis ? (
-        <div
-          style={{
-            fontSize: 12,
-            lineHeight: 1.55,
-            color: HIVE_UI.textMuted,
-            paddingTop: 4,
-            borderTop: `1px solid ${HIVE_UI.borderDeep}`,
-          }}
-        >
-          <span style={{ fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase" }}>
-            Thesis ·{" "}
-          </span>
-          {thesis}
-        </div>
-      ) : (
-        <div
-          style={{
-            fontSize: 11,
-            letterSpacing: "0.14em",
-            fontWeight: 700,
-            textTransform: "uppercase",
-            color: HIVE_UI.textDim,
-            paddingTop: 8,
-            borderTop: `1px solid ${HIVE_UI.borderDeep}`,
-          }}
-        >
-          Thesis not published on this pulse
-        </div>
-      )}
+      <div className="hive-deck-collapsible-thesis">
+        {thesis ? (
+          <div
+            style={{
+              fontSize: 12,
+              lineHeight: 1.55,
+              color: HIVE_UI.textMuted,
+              paddingTop: 4,
+              borderTop: `1px solid ${HIVE_UI.borderDeep}`,
+            }}
+          >
+            <span style={{ fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase" }}>
+              Thesis ·{" "}
+            </span>
+            {thesis}
+          </div>
+        ) : (
+          <div
+            style={{
+              fontSize: 11,
+              letterSpacing: "0.14em",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              color: HIVE_UI.textDim,
+              paddingTop: 8,
+              borderTop: `1px solid ${HIVE_UI.borderDeep}`,
+            }}
+          >
+            Thesis not published on this pulse
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -3316,6 +3549,7 @@ function MetricKicker({
 }) {
   return (
     <div
+      className="hive-pulse-metric"
       style={{
         minWidth: 72,
         border: `1px solid ${accent ? HIVE_UI.accentLine : HIVE_UI.border}`,
