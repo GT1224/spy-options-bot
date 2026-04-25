@@ -269,7 +269,7 @@ export default function Page() {
       try {
         await apiCall("/config", "POST", { alpaca_options_auto_enabled: false });
       } catch (e: unknown) {
-        errs.push((e as Error)?.message || "Options AUTO off failed");
+        errs.push((e as Error)?.message || "Paper options AUTO off failed");
       }
       try {
         await apiCall("/config", "POST", { enabled: false });
@@ -309,7 +309,7 @@ export default function Page() {
       await apiCall("/config", "POST", { alpaca_options_auto_enabled: next });
       await loadAll();
     } catch (err: any) {
-      setError(err?.message || "Options AUTO config failed");
+      setError(err?.message || "Paper options AUTO config failed");
       await loadAll();
     }
   }
@@ -506,14 +506,14 @@ export default function Page() {
   const paperBrokerPillText = !paperBrokerEnabled
     ? "Paper broker: off (signal-only)"
     : execSurface === "alpaca_paper"
-      ? "Paper broker: connected"
+      ? "Paper broker: synced"
       : execSurface === "alpaca_paper_degraded"
         ? "Paper broker: on · sync degraded"
         : "Paper broker: on · keys missing on API host";
   const paperBrokerPillDisplay =
     paperBrokerPillText +
     (alpacaOptionsAutoEnabled && paperBrokerEnabled && execSurface === "alpaca_paper"
-      ? " · paper opt AUTO"
+      ? " · AUTO (paper opts)"
       : "");
   const paperBrokerPillActive = paperBrokerEnabled && execSurface === "alpaca_paper";
 
@@ -541,7 +541,7 @@ export default function Page() {
             : "Live lane: —";
   const liveLanePillText =
     liveReadFromRawState && liveLanePillTextCore.startsWith("Live lane:")
-      ? `${liveLanePillTextCore} · legacy /state`
+      ? `${liveLanePillTextCore} · /state fallback`
       : liveLanePillTextCore;
   const liveLanePillTone: PillTone =
     liveReadSummary === "missing_credentials"
@@ -598,12 +598,12 @@ export default function Page() {
     typeof fullState?.config?.enabled === "boolean" &&
     !!system.trading_enabled !== !!fullState.config.enabled;
   const tradingPillSuffix = tradingContractConfigDrift
-    ? " · mismatch"
+    ? " · arming drift"
     : tradingUsesConfigFallback
-      ? " · /state cfg"
+      ? " · /state.config"
       : "";
   const tradingSurfaceSuffix =
-    execSurface === "signal_only" && tradingEnabled ? " · no broker exec" : "";
+    execSurface === "signal_only" && tradingEnabled ? " · no broker route" : "";
 
   const promoStatus = promo?.status as string | undefined;
   const gateSuppressed = promoStatus === "suppressed";
@@ -1889,8 +1889,8 @@ export default function Page() {
                   dense
                   text={
                     alpacaOptionsAutoEnabled
-                      ? "Options AUTO on · paper SPY options only"
-                      : "Options AUTO off · paper SPY options only"
+                      ? "Paper options AUTO: on"
+                      : "Paper options AUTO: off"
                   }
                   tone={alpacaOptionsAutoEnabled ? "promoted" : "hold"}
                   active={alpacaOptionsAutoEnabled}
@@ -1988,8 +1988,8 @@ export default function Page() {
                     lineHeight: 1.4,
                   }}
                 >
-                  <strong style={{ color: HIVE_UI.danger }}>Broker snapshot stale or sync failed.</strong>{" "}
-                  Treasury may show last-good Alpaca paper values or demo seed.{" "}
+                  <strong style={{ color: HIVE_UI.danger }}>Paper broker read: stale or failed.</strong>{" "}
+                  Treasury may show last-good paper account data or demo seed.{" "}
                   {typeof brokerSync?.error === "string" && brokerSync.error.length
                     ? `Last error: ${brokerSync.error.length > 120 ? `${brokerSync.error.slice(0, 120)}…` : brokerSync.error}`
                     : null}
@@ -2036,7 +2036,7 @@ export default function Page() {
                   muted
                 />
                 <RailRow
-                  label="Pending"
+                  label="Open orders"
                   value={
                     system?.pending_signals_semantics === "broker_orders_only"
                       ? typeof system?.pending_signals_count === "number"
@@ -2051,7 +2051,7 @@ export default function Page() {
                   label="Provider"
                   value={`${formatVal(
                     system?.provider_mode ?? fullState?.provider_mode ?? health?.provider
-                  )}${providerLegacyMix ? " · outside contract" : ""}`}
+                  )}${providerLegacyMix ? " · not in contract" : ""}`}
                   muted
                 />
                 {brokerSync && typeof brokerSync === "object" ? (
@@ -2115,7 +2115,7 @@ export default function Page() {
                   >
                     Cash, equity, SPY line, and unrealized reflect the last successful Alpaca paper{" "}
                     <strong style={{ color: HIVE_UI.textMuted }}>account + positions</strong> read — not the
-                    open-order count in Operator readout.
+                    Open orders row in Operator readout.
                   </div>
                 ) : treasurySource.includes("Demo seed") ? (
                   <div
@@ -2208,11 +2208,11 @@ export default function Page() {
                     <strong>Pulse cycle</strong> — <code>POST /cycle</code> then state reload; default cadence.
                   </li>
                   <li>
-                    <strong>Options AUTO</strong> (top bar) — when on with Alpaca paper connected, a cycle may still
+                    <strong>Paper options AUTO</strong> (top bar) — when on with Alpaca paper synced, a cycle may still
                     evaluate paper auto-exec.
                   </li>
                   <li>
-                    <strong style={{ color: HIVE_UI.danger }}>STOP</strong> — AUTO off,{" "}
+                    <strong style={{ color: HIVE_UI.danger }}>STOP</strong> — paper AUTO off,{" "}
                     <code>enabled: false</code>, <code>POST /bot/stop</code>, one refresh; does not cancel open paper
                     orders.
                   </li>
@@ -2232,7 +2232,7 @@ export default function Page() {
                     {opsAdvancedOpen ? "Hide advanced / recovery" : "Advanced / recovery"}
                   </button>
                   <span className="hive-ops2b-advanced-hint">
-                    Launch, paper lane, broker sync, AUTO toggle, and timed refresh — secondary lane; keep the deck
+                    Launch, paper lane, broker sync, paper AUTO toggle, and timed refresh — secondary lane; keep the deck
                     clear.
                   </span>
                 </div>
@@ -2309,7 +2309,7 @@ export default function Page() {
                   onClick={() => {
                     void setAlpacaOptionsAuto(!alpacaOptionsAutoEnabled);
                   }}
-                  label={alpacaOptionsAutoEnabled ? "AUTO OFF" : "AUTO ON"}
+                  label={alpacaOptionsAutoEnabled ? "Paper AUTO off" : "Paper AUTO on"}
                   active={alpacaOptionsAutoEnabled}
                   disabled={!paperBrokerEnabled}
                 />
@@ -2598,8 +2598,8 @@ export default function Page() {
                     lineHeight: 1.4,
                   }}
                 >
-                  Pending {system.pending_signals_count} Alpaca open order(s) (any symbol) — working/accepted is not a fill; may be
-                  session-related; cancel or monitor in Alpaca.
+                  Open orders: {system.pending_signals_count} at broker (any symbol) — working/accepted is not a fill;
+                  not an open position; cancel or monitor in Alpaca.
                 </div>
               ) : null}
               {paperOrderType === "market" && typeof regime?.market_hours === "boolean" && !regime.market_hours ? (
@@ -3728,9 +3728,9 @@ function TacticalFieldDeck({
 
   const signalReadoutPrefix =
     signalReadoutMode === "legacy_snapshot"
-      ? "Tactical columns use legacy /state.signal_snapshot — hive_contract_v1.top_signal.setup was absent. "
+      ? "Setup from /state.signal_snapshot (contract top_signal.setup missing). "
       : signalReadoutMode === "contract_incomplete"
-        ? "Tactical contract incomplete: no top_signal.setup and no signal_snapshot — readouts below may be empty. "
+        ? "Contract incomplete: no top_signal.setup or signal_snapshot — tactical rows may be empty. "
         : "";
 
   const postureSubInner =
