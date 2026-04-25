@@ -3870,6 +3870,86 @@ function TacticalFieldDeck({
           <span>Session {sessionLine}</span>
           <span>{rth}</span>
         </div>
+        {system?.regime && typeof system.regime === "object" && !Array.isArray(system.regime) ? (
+          <div
+            style={{
+              marginTop: 10,
+              padding: "8px 10px",
+              borderRadius: 10,
+              border: `1px solid ${HIVE_UI.border}`,
+              background: "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.08))",
+              maxWidth: "62ch",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 8,
+                fontWeight: 800,
+                letterSpacing: "0.18em",
+                color: HIVE_UI.textDim,
+                textTransform: "uppercase",
+                marginBottom: 6,
+              }}
+            >
+              Session regime (read-only · v1)
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: HIVE_UI.textSoft, lineHeight: 1.35 }}>
+              {typeof system.regime.label === "string" && system.regime.label.length
+                ? system.regime.label
+                : formatVal(system.regime.code)}{" "}
+              <span style={{ fontSize: 10, fontWeight: 700, color: HIVE_UI.textMuted }}>
+                (
+                {typeof system.regime.status === "string"
+                  ? String(system.regime.status).toUpperCase()
+                  : "—"}
+                )
+              </span>
+              {system.regime.confidence !== undefined && system.regime.confidence !== null ? (
+                <span style={{ fontSize: 10, fontWeight: 700, color: HIVE_UI.textMuted }}>
+                  {" "}
+                  · conf {String(system.regime.confidence)}
+                </span>
+              ) : (
+                <span style={{ fontSize: 10, fontWeight: 700, color: HIVE_UI.textMuted }}>
+                  {" "}
+                  · conf —
+                </span>
+              )}
+            </div>
+            <div style={{ fontSize: 10, color: HIVE_UI.textDim, lineHeight: 1.45, marginTop: 6 }}>
+              Informational only — strategy does not adapt to this label yet.{" "}
+              {typeof system.regime.source === "string" && system.regime.source.length > 0
+                ? system.regime.source.length > 200
+                  ? `${system.regime.source.slice(0, 200)}…`
+                  : system.regime.source
+                : null}
+            </div>
+            {Array.isArray(system.regime.rationale) && system.regime.rationale.length ? (
+              <ul
+                style={{
+                  margin: "8px 0 0 0",
+                  paddingLeft: 16,
+                  fontSize: 10,
+                  color: HIVE_UI.textMuted,
+                  lineHeight: 1.4,
+                }}
+              >
+                {system.regime.rationale.slice(0, 3).map((line: string, i: number) => (
+                  <li key={i}>{typeof line === "string" ? line : formatVal(line)}</li>
+                ))}
+              </ul>
+            ) : null}
+            {system.regime.observed_at ? (
+              <div style={{ fontSize: 9, color: HIVE_UI.textDim, marginTop: 6 }}>
+                Anchored to last pulse: {formatVal(system.regime.observed_at)}
+              </div>
+            ) : (
+              <div style={{ fontSize: 9, color: HIVE_UI.textDim, marginTop: 6 }}>
+                No pulse timestamp on regime block (clock-only or idle).
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
 
       {gateSuppressed ? (

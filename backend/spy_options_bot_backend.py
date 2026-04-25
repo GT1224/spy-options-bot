@@ -21,6 +21,7 @@ from hive_execution_edge_v1 import compute_hive_execution_edge_v1
 from hive_flow_context_v1 import FLOW_BUFFER_CAP, compute_hive_flow_context_v1
 from hive_guardrails_v1 import compute_hive_guardrails_v1
 from hive_promotion_gate_v1 import compute_hive_promotion_gate_v1
+from hive_regime_observability_v1 import compute_hive_regime_observability_v1
 from hive_session_regime_v1 import compute_hive_session_regime_v1
 from hive_signal_memory_v1 import compute_hive_signal_memory_v1
 from hive_signal_rank_v1 import compute_hive_rank_v1
@@ -1136,6 +1137,16 @@ def build_hive_contract_v1() -> dict[str, Any]:
 
     session_regime = compute_hive_session_regime_v1()
 
+    last_at = state.get("last_loop_at") if isinstance(state.get("last_loop_at"), str) else None
+    regime_obs = compute_hive_regime_observability_v1(
+        session_regime=session_regime,
+        setup=setup_payload,
+        last_loop_at=last_at,
+        recent_flow=state.get("recent_signal_flow"),
+        market_intel_items=[],  # R1-P2: event_driven when items exist
+        provider_mode=_compute_canonical_provider(),
+    )
+
     current_pulse = compact_pulse_snapshot(
         rank_score=rank_score if isinstance(rank_score, int) else None,
         promotion_gate=promotion_gate,
@@ -1151,7 +1162,6 @@ def build_hive_contract_v1() -> dict[str, Any]:
     cycle_delta = compute_hive_cycle_delta_v1(prior=prior_pulse, current=current_pulse)
     state["prior_pulse_compact"] = dict(current_pulse)
 
-    last_at = state.get("last_loop_at") if isinstance(state.get("last_loop_at"), str) else None
     age_sec = _utc_age_seconds(last_at)
     signal_stale = age_sec is not None and (age_sec * 1000.0) > float(SIGNAL_STALE_AFTER_MS)
     bot_running = bool(state.get("running"))
@@ -1209,6 +1219,8 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "operator_posture_hint": posture_hint,
             "freshness": {"signal_stale_after_ms": SIGNAL_STALE_AFTER_MS},
             "session_regime": session_regime,
+            # R1-P1: read-only observability — not consumed by execution/ranking/guardrails.
+            "regime": regime_obs,
             "broker_sync": broker_sync,
             "manual_paper_last_broker_snapshot": state.get("last_paper_order_observability")
             if isinstance(state.get("last_paper_order_observability"), dict)
@@ -1265,6 +1277,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
                 "system_state.broker_sync",
                 "system_state.live_readiness",
                 "system_state.session_regime",
+                "system_state.regime",
                 "system_state.execution_surface",
                 "system_state.lifecycle_phase",
                 "system_state.lifecycle_hint",
