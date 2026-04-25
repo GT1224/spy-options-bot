@@ -22,6 +22,7 @@ from hive_flow_context_v1 import FLOW_BUFFER_CAP, compute_hive_flow_context_v1
 from hive_guardrails_v1 import compute_hive_guardrails_v1
 from hive_promotion_gate_v1 import compute_hive_promotion_gate_v1
 from hive_regime_observability_v1 import compute_hive_regime_observability_v1
+from hive_audit_30d_v1 import build_hive_30d_audit_v1
 from hive_ai_governance_v1 import compute_hive_ai_governance_v1
 from hive_capital_posture_v1 import compute_hive_capital_posture_v1
 from hive_operator_review_v1 import compute_hive_operator_review_v1
@@ -1252,6 +1253,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
         capital_posture_tier=capital_posture.get("tier") if isinstance(capital_posture.get("tier"), str) else None,
         alpaca_options_auto_enabled=bool((state.get("config") or {}).get("alpaca_options_auto_enabled")),
     )
+    audit_30d = build_hive_30d_audit_v1(last_loop_at=last_at)
 
     return {
         "system_state": {
@@ -1281,6 +1283,8 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "capital_posture": capital_posture,
             # AI1-P1: AI attribution / governance — not an AI allocator or scorecard.
             "ai_governance": ai_governance,
+            # 30D-AUDIT1: official read-only validation framework definition.
+            "audit_30d": audit_30d,
             "operator_posture_hint": posture_hint,
             "freshness": {"signal_stale_after_ms": SIGNAL_STALE_AFTER_MS},
             "session_regime": session_regime,
@@ -1348,6 +1352,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
                 "system_state.operator_review",
                 "system_state.capital_posture",
                 "system_state.ai_governance",
+                "system_state.audit_30d",
                 "system_state.execution_surface",
                 "system_state.lifecycle_phase",
                 "system_state.lifecycle_hint",

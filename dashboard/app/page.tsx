@@ -4137,6 +4137,119 @@ function TacticalFieldDeck({
             ) : null}
           </div>
         ) : null}
+        {system?.audit_30d && typeof system.audit_30d === "object" && !Array.isArray(system.audit_30d) ? (
+          <div
+            style={{
+              marginTop: 10,
+              padding: "8px 10px",
+              borderRadius: 10,
+              border: `1px solid ${HIVE_UI.border}`,
+              background: "linear-gradient(180deg, rgba(255,255,255,0.022), rgba(0,0,0,0.09))",
+              maxWidth: "62ch",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 8,
+                fontWeight: 800,
+                letterSpacing: "0.18em",
+                color: HIVE_UI.textDim,
+                textTransform: "uppercase",
+                marginBottom: 6,
+              }}
+            >
+              30-Day Audit (read-only)
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: HIVE_UI.textSoft, lineHeight: 1.35 }}>
+              {typeof system.audit_30d.window_label === "string" && system.audit_30d.window_label.length
+                ? system.audit_30d.window_label
+                : "—"}{" "}
+              <span style={{ fontSize: 10, fontWeight: 700, color: HIVE_UI.textMuted }}>
+                ({String(system.audit_30d.status ?? "—").toUpperCase()})
+              </span>
+            </div>
+            <div style={{ fontSize: 10, color: HIVE_UI.textDim, lineHeight: 1.45, marginTop: 6 }}>
+              {typeof system.audit_30d.freeze_posture === "string"
+                ? system.audit_30d.freeze_posture
+                : "Freeze posture: —"}
+            </div>
+            <div style={{ fontSize: 10, color: HIVE_UI.textMuted, marginTop: 8, lineHeight: 1.4 }}>
+              <strong style={{ color: HIVE_UI.textSoft }}>Metrics scope:</strong>{" "}
+              {Array.isArray(system.audit_30d.metrics)
+                ? (() => {
+                    const tracked = system.audit_30d.metrics.filter((m: any) => m?.status === "tracked").length;
+                    const manual = system.audit_30d.metrics.filter((m: any) => m?.status === "manual_review").length;
+                    const deferred = system.audit_30d.metrics.filter((m: any) => m?.status === "deferred").length;
+                    return `tracked ${tracked} · manual_review ${manual} · deferred ${deferred}`;
+                  })()
+                : "—"}
+            </div>
+            {Array.isArray(system.audit_30d.metrics) && system.audit_30d.metrics.length ? (
+              <ul
+                style={{
+                  margin: "8px 0 0 0",
+                  paddingLeft: 16,
+                  fontSize: 10,
+                  color: HIVE_UI.textMuted,
+                  lineHeight: 1.4,
+                }}
+              >
+                {system.audit_30d.metrics.slice(0, 7).map((m: any, i: number) => (
+                  <li key={i}>
+                    {formatVal(m?.label)} · {formatVal(m?.status)}
+                    {typeof m?.note === "string" && m.note.length ? ` — ${m.note}` : ""}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {system.audit_30d?.thresholds ? (
+              <div style={{ marginTop: 8, fontSize: 10, color: HIVE_UI.textMuted, lineHeight: 1.4 }}>
+                <strong style={{ color: HIVE_UI.textSoft }}>Good:</strong>{" "}
+                {Array.isArray(system.audit_30d.thresholds.good)
+                  ? system.audit_30d.thresholds.good.slice(0, 2).join(" · ")
+                  : "—"}
+                <br />
+                <strong style={{ color: HIVE_UI.textSoft }}>Great:</strong>{" "}
+                {Array.isArray(system.audit_30d.thresholds.great)
+                  ? system.audit_30d.thresholds.great.slice(0, 2).join(" · ")
+                  : "—"}
+                <br />
+                <strong style={{ color: HIVE_UI.textSoft }}>Elite:</strong>{" "}
+                {Array.isArray(system.audit_30d.thresholds.elite)
+                  ? system.audit_30d.thresholds.elite.slice(0, 2).join(" · ")
+                  : "—"}
+              </div>
+            ) : null}
+            {Array.isArray(system.audit_30d.guardrails) && system.audit_30d.guardrails.length ? (
+              <div style={{ fontSize: 10, color: HIVE_UI.accent, marginTop: 8, lineHeight: 1.4 }}>
+                <strong>Freeze rules:</strong>{" "}
+                {system.audit_30d.guardrails.slice(0, 3).map((g: string, i: number) => (
+                  <span key={i}>
+                    {i > 0 ? " · " : ""}
+                    {typeof g === "string" ? g : formatVal(g)}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            {typeof system.audit_30d.source === "string" && system.audit_30d.source.length ? (
+              <div style={{ fontSize: 9, color: HIVE_UI.textDim, marginTop: 6, lineHeight: 1.35 }}>
+                {system.audit_30d.source.length > 180
+                  ? `${system.audit_30d.source.slice(0, 180)}…`
+                  : system.audit_30d.source}
+              </div>
+            ) : null}
+            {system.audit_30d.observed_at ? (
+              <div style={{ fontSize: 9, color: HIVE_UI.textDim, marginTop: 6 }}>
+                Snapshot timestamp: {formatVal(system.audit_30d.observed_at)}
+              </div>
+            ) : null}
+            <div style={{ fontSize: 9, color: HIVE_UI.textDim, marginTop: 6 }}>
+              {system.audit_30d.started_at
+                ? `Audit start marker: ${formatVal(system.audit_30d.started_at)}`
+                : "Audit start marker: defined now / active by operator (no immutable auto start marker in v1)."}
+            </div>
+          </div>
+        ) : null}
         {system?.regime && typeof system.regime === "object" && !Array.isArray(system.regime) ? (
           <div
             style={{
