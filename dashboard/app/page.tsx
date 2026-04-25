@@ -1886,7 +1886,7 @@ export default function Page() {
               <div className="hive-hero-media">
                 <div className="hive-hero-media-inner">
                   <Image
-                    src="/hive-hero.jpg"
+                    src="/hive-hero-v2.png"
                     alt="HIVE tactical command — SPY options swarm"
                     fill
                     sizes="(max-width: 900px) 100vw, 1540px"
