@@ -342,7 +342,7 @@ export default function Page() {
       await apiCall("/paper/sync", "POST");
       await loadAll();
     } catch (err: any) {
-      const msg = err?.message || "Broker sync failed";
+      const msg = err?.message || "Paper broker read sync failed";
       setError(msg);
       await loadAll();
     }
@@ -362,7 +362,7 @@ export default function Page() {
       }
       await loadAll();
     } catch (err: any) {
-      const msg = err?.message || "Live read sync failed";
+      const msg = err?.message || "Live broker read sync failed";
       setError(msg);
       await loadAll();
     }
@@ -508,8 +508,8 @@ export default function Page() {
     : execSurface === "alpaca_paper"
       ? "Paper broker: synced"
       : execSurface === "alpaca_paper_degraded"
-        ? "Paper broker: on · sync degraded"
-        : "Paper broker: on · keys missing on API host";
+        ? "Paper broker: DEGRADED · sync failed/stale"
+        : "Paper broker: BLOCKED · keys missing";
   const paperBrokerPillDisplay =
     paperBrokerPillText +
     (alpacaOptionsAutoEnabled && paperBrokerEnabled && execSurface === "alpaca_paper"
