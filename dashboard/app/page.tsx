@@ -494,7 +494,7 @@ export default function Page() {
             : "Surface: —";
 
   const treasurySource = !brokerSync
-    ? "Unavailable — broker_sync missing from contract"
+    ? "UNAVAILABLE · broker_sync NOT IN CONTRACT"
     : brokerSync.performance_source === "alpaca_paper"
       ? "Alpaca paper (read-only sync)"
       : "Demo seed (not broker-backed)";
@@ -541,7 +541,7 @@ export default function Page() {
             : "Live lane: —";
   const liveLanePillText =
     liveReadFromRawState && liveLanePillTextCore.startsWith("Live lane:")
-      ? `${liveLanePillTextCore} · /state fallback`
+      ? `${liveLanePillTextCore} · FALLBACK (/state)`
       : liveLanePillTextCore;
   const liveLanePillTone: PillTone =
     liveReadSummary === "missing_credentials"
@@ -599,7 +599,7 @@ export default function Page() {
     typeof fullState?.config?.enabled === "boolean" &&
     !!system.trading_enabled !== !!fullState.config.enabled;
   const tradingPillSuffix = tradingContractConfigDrift
-    ? " · arming drift"
+    ? " · DRIFT"
     : tradingUsesConfigFallback
       ? " · /state.config"
       : "";
@@ -1989,7 +1989,7 @@ export default function Page() {
                     lineHeight: 1.4,
                   }}
                 >
-                  <strong style={{ color: HIVE_UI.danger }}>Paper broker read: stale or failed.</strong>{" "}
+                  <strong style={{ color: HIVE_UI.danger }}>Paper broker read: STALE/DEGRADED.</strong>{" "}
                   Treasury may show last-good paper account data or demo seed.{" "}
                   {typeof brokerSync?.error === "string" && brokerSync.error.length
                     ? `Last error: ${brokerSync.error.length > 120 ? `${brokerSync.error.slice(0, 120)}…` : brokerSync.error}`
@@ -2052,7 +2052,7 @@ export default function Page() {
                   label="Provider"
                   value={`${formatVal(
                     system?.provider_mode ?? fullState?.provider_mode ?? health?.provider
-                  )}${providerLegacyMix ? " · not in contract" : ""}`}
+                  )}${providerLegacyMix ? " · NOT IN CONTRACT" : ""}`}
                   muted
                 />
                 {brokerSync && typeof brokerSync === "object" ? (
