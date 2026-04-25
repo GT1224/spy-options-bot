@@ -137,6 +137,25 @@ function paperManualWorkingWithoutFillTimestamp(obs: PaperOrderObservability): b
   return workingLike && !obs.filled_at;
 }
 
+/** HIVE-W4-ACCOUNT1: SPY line from account/positions read — not the open-order pending count. */
+function formatTreasuryOpenPosition(op: unknown, treasurySourceLine: string): string {
+  const brokerBacked = treasurySourceLine.includes("Alpaca paper");
+  if (op == null) {
+    if (brokerBacked) return "Flat · no SPY equity row in last paper account read";
+    return "—";
+  }
+  if (typeof op !== "object" || Array.isArray(op)) return formatVal(op);
+  const o = op as Record<string, unknown>;
+  const sym = typeof o.symbol === "string" && o.symbol.length ? o.symbol : "SPY";
+  const side = typeof o.side === "string" ? o.side : "";
+  const qraw = o.qty;
+  const qty = typeof qraw === "number" ? qraw : qraw != null ? Number(qraw) : NaN;
+  if (!Number.isFinite(qty)) return formatVal(op);
+  const uplN = o.unrealized_pl != null ? Number(o.unrealized_pl) : NaN;
+  const upl = Number.isFinite(uplN) ? ` · uPnL ${uplN}` : "";
+  return `${sym} ${side} qty ${qty}${upl}`;
+}
+
 export default function Page() {
   const [health, setHealth] = useState<any>(null);
   const [fullState, setFullState] = useState<any>(null);
@@ -2052,8 +2071,47 @@ export default function Page() {
                   </div>
                 ) : null}
                 <RailRow label="Source" value={treasurySource} muted />
+                {treasurySource.includes("Alpaca paper") ? (
+                  <div
+                    style={{
+                      fontSize: 9,
+                      color: HIVE_UI.textDim,
+                      lineHeight: 1.35,
+                      marginTop: -2,
+                      marginBottom: 8,
+                      maxWidth: "52ch",
+                    }}
+                  >
+                    Cash, equity, SPY line, and unrealized reflect the last successful Alpaca paper{" "}
+                    <strong style={{ color: HIVE_UI.textMuted }}>account + positions</strong> read — not the
+                    open-order count in Operator readout.
+                  </div>
+                ) : treasurySource.includes("Demo seed") ? (
+                  <div
+                    style={{
+                      fontSize: 9,
+                      color: HIVE_UI.textDim,
+                      lineHeight: 1.35,
+                      marginTop: -2,
+                      marginBottom: 8,
+                      maxWidth: "52ch",
+                    }}
+                  >
+                    In-process demo balances — not Alpaca broker-backed until Source shows Alpaca paper (read-only
+                    sync).
+                  </div>
+                ) : null}
                 <RailRow label="Cash" value={formatVal(perf?.cash ?? fullState?.cash)} />
                 <RailRow label="Equity" value={formatVal(perf?.equity ?? fullState?.equity)} />
+                <RailRow
+                  label={
+                    treasurySource.includes("Alpaca paper")
+                      ? "SPY position (paper account read)"
+                      : "SPY position (snapshot)"
+                  }
+                  value={formatTreasuryOpenPosition(perf?.open_position ?? fullState?.open_position, treasurySource)}
+                  muted
+                />
                 <RailRow
                   label="Daily P&L (HIVE internal)"
                   value={formatVal(perf?.realized_pnl_today ?? fullState?.realized_pnl_today)}
@@ -2064,7 +2122,11 @@ export default function Page() {
                   value={formatVal(perf?.consecutive_losses ?? fullState?.consecutive_losses)}
                 />
                 {perf?.unrealized_pnl != null ? (
-                  <RailRow label="Unrealized" value={formatVal(perf.unrealized_pnl)} muted />
+                  <RailRow
+                    label="Unrealized (Alpaca positions)"
+                    value={formatVal(perf.unrealized_pnl)}
+                    muted
+                  />
                 ) : null}
               </div>
             </div>
