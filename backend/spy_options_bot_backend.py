@@ -22,6 +22,7 @@ from hive_flow_context_v1 import FLOW_BUFFER_CAP, compute_hive_flow_context_v1
 from hive_guardrails_v1 import compute_hive_guardrails_v1
 from hive_promotion_gate_v1 import compute_hive_promotion_gate_v1
 from hive_regime_observability_v1 import compute_hive_regime_observability_v1
+from hive_operator_review_v1 import compute_hive_operator_review_v1
 from hive_shadow_book_v1 import compute_hive_shadow_book_v1
 from hive_signal_freshness_v1 import compute_hive_signal_freshness_v1
 from hive_session_regime_v1 import compute_hive_session_regime_v1
@@ -1215,6 +1216,19 @@ def build_hive_contract_v1() -> dict[str, Any]:
     unrealized_out = state.get("unrealized_pnl") if perf_src == "alpaca_paper" else None
     buying_power_out = state.get("buying_power") if perf_src == "alpaca_paper" else None
 
+    live_readiness = _compute_live_readiness()
+    operator_review = compute_hive_operator_review_v1(
+        regime_obs=regime_obs,
+        signal_freshness=signal_freshness,
+        shadow_book=shadow_book,
+        broker_sync=broker_sync,
+        live_readiness=live_readiness,
+        cycle_delta=cycle_delta,
+        execution_surface=execution_surface,
+        signal_stale=signal_stale,
+        last_loop_at=last_at,
+    )
+
     return {
         "system_state": {
             "bot_running": bot_running,
@@ -1237,6 +1251,8 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "signal_freshness": signal_freshness,
             # S1-P1: read-only shadow context from recent_signal_flow — not a rejected-candidate engine.
             "shadow_book": shadow_book,
+            # OAR1-P1: current-state operator review — not historical daily after-action.
+            "operator_review": operator_review,
             "operator_posture_hint": posture_hint,
             "freshness": {"signal_stale_after_ms": SIGNAL_STALE_AFTER_MS},
             "session_regime": session_regime,
@@ -1250,7 +1266,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
             if isinstance(state.get("last_live_order_observability"), dict)
             else None,
             "live_broker_sync": _live_broker_sync_contract_block(),
-            "live_readiness": _compute_live_readiness(),
+            "live_readiness": live_readiness,
         },
         "top_signal": {
             "signal_id": signal_id,
@@ -1301,6 +1317,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
                 "system_state.regime",
                 "system_state.signal_freshness",
                 "system_state.shadow_book",
+                "system_state.operator_review",
                 "system_state.execution_surface",
                 "system_state.lifecycle_phase",
                 "system_state.lifecycle_hint",

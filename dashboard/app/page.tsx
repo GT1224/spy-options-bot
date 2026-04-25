@@ -3870,6 +3870,105 @@ function TacticalFieldDeck({
           <span>Session {sessionLine}</span>
           <span>{rth}</span>
         </div>
+        {system?.operator_review &&
+        typeof system.operator_review === "object" &&
+        !Array.isArray(system.operator_review) ? (
+          <div
+            style={{
+              marginTop: 10,
+              padding: "8px 10px",
+              borderRadius: 10,
+              border: `1px solid ${HIVE_UI.border}`,
+              background: "linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.1))",
+              maxWidth: "62ch",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 8,
+                fontWeight: 800,
+                letterSpacing: "0.18em",
+                color: HIVE_UI.textDim,
+                textTransform: "uppercase",
+                marginBottom: 6,
+              }}
+            >
+              Operator review (read-only · v1)
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: HIVE_UI.accent, lineHeight: 1.35, marginBottom: 6 }}>
+              {typeof system.operator_review.headline === "string" && system.operator_review.headline.length
+                ? system.operator_review.headline
+                : "—"}{" "}
+              <span style={{ fontSize: 10, fontWeight: 700, color: HIVE_UI.textMuted }}>
+                ({String(system.operator_review.status ?? "—").toUpperCase()} ·{" "}
+                {typeof system.operator_review.label === "string" ? system.operator_review.label : "—"})
+              </span>
+            </div>
+            <div style={{ fontSize: 10, color: HIVE_UI.textDim, lineHeight: 1.45, marginBottom: 8 }}>
+              Current runtime summary only — not a full daily after-action or performance review. Does not change
+              ranking, gating, or execution.
+            </div>
+            {Array.isArray(system.operator_review.bullets) && system.operator_review.bullets.length ? (
+              <ul
+                style={{
+                  margin: "0 0 8px 0",
+                  paddingLeft: 16,
+                  fontSize: 10,
+                  color: HIVE_UI.textMuted,
+                  lineHeight: 1.4,
+                }}
+              >
+                {system.operator_review.bullets.slice(0, 5).map((line: string, i: number) => (
+                  <li key={i}>{typeof line === "string" ? line : formatVal(line)}</li>
+                ))}
+              </ul>
+            ) : null}
+            {Array.isArray(system.operator_review.watch_items) && system.operator_review.watch_items.length ? (
+              <div style={{ fontSize: 10, color: HIVE_UI.textSoft, lineHeight: 1.4, marginBottom: 6 }}>
+                <strong style={{ color: HIVE_UI.textMuted }}>Watch:</strong>{" "}
+                {system.operator_review.watch_items.slice(0, 3).map((w: string, i: number) => (
+                  <span key={i}>
+                    {i > 0 ? " · " : ""}
+                    {typeof w === "string" ? w : formatVal(w)}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            {Array.isArray(system.operator_review.change_summary) && system.operator_review.change_summary.length ? (
+              <div
+                style={{
+                  fontSize: 10,
+                  color: HIVE_UI.textDim,
+                  lineHeight: 1.4,
+                  marginBottom: 6,
+                  padding: "6px 8px",
+                  borderRadius: 8,
+                  background: "rgba(0,0,0,0.2)",
+                }}
+              >
+                <strong style={{ color: HIVE_UI.textMuted }}>Since last pulse:</strong>{" "}
+                {system.operator_review.change_summary.join(" ")}
+              </div>
+            ) : (
+              <div style={{ fontSize: 9, color: HIVE_UI.textDim, marginBottom: 6 }}>
+                Since last pulse: not in this review row — first in-process pulse, unchanged compact snapshot, or delta
+                omitted.
+              </div>
+            )}
+            {typeof system.operator_review.source === "string" && system.operator_review.source.length ? (
+              <div style={{ fontSize: 9, color: HIVE_UI.textDim, lineHeight: 1.35 }}>
+                {system.operator_review.source.length > 180
+                  ? `${system.operator_review.source.slice(0, 180)}…`
+                  : system.operator_review.source}
+              </div>
+            ) : null}
+            {system.operator_review.observed_at ? (
+              <div style={{ fontSize: 9, color: HIVE_UI.textDim, marginTop: 6 }}>
+                Anchored to last pulse: {formatVal(system.operator_review.observed_at)}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         {system?.regime && typeof system.regime === "object" && !Array.isArray(system.regime) ? (
           <div
             style={{
