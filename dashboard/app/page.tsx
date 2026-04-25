@@ -1967,6 +1967,34 @@ export default function Page() {
                   )}${providerLegacyMix ? " · outside contract" : ""}`}
                   muted
                 />
+                {brokerSync && typeof brokerSync === "object" ? (
+                  <>
+                    <RailRow
+                      label="Paper Alpaca · last OK read"
+                      value={formatHiveObsTime(brokerSync.last_sync_at)}
+                      muted
+                    />
+                    <RailRow
+                      label="Paper Alpaca · last read attempt"
+                      value={formatHiveObsTime(brokerSync.last_attempt_at)}
+                      muted
+                    />
+                  </>
+                ) : null}
+                {system?.live_broker_sync && typeof system.live_broker_sync === "object" ? (
+                  <>
+                    <RailRow
+                      label="Live Alpaca · last OK read"
+                      value={formatHiveObsTime(system.live_broker_sync.last_sync_at)}
+                      muted
+                    />
+                    <RailRow
+                      label="Live Alpaca · last read attempt"
+                      value={formatHiveObsTime(system.live_broker_sync.last_attempt_at)}
+                      muted
+                    />
+                  </>
+                ) : null}
               </div>
 
               <div className="hive-rail-card hive-surface-treasury">
@@ -3685,7 +3713,7 @@ function TacticalFieldDeck({
             color: HIVE_UI.textDim,
           }}
         >
-          <span>Last cycle {lastCycle}</span>
+          <span>Last pulse (complete) {lastCycle}</span>
           <span>Pulse age {pulseAge}</span>
           <span>Session {sessionLine}</span>
           <span>{rth}</span>
