@@ -22,6 +22,7 @@ from hive_flow_context_v1 import FLOW_BUFFER_CAP, compute_hive_flow_context_v1
 from hive_guardrails_v1 import compute_hive_guardrails_v1
 from hive_promotion_gate_v1 import compute_hive_promotion_gate_v1
 from hive_regime_observability_v1 import compute_hive_regime_observability_v1
+from hive_shadow_book_v1 import compute_hive_shadow_book_v1
 from hive_signal_freshness_v1 import compute_hive_signal_freshness_v1
 from hive_session_regime_v1 import compute_hive_session_regime_v1
 from hive_signal_memory_v1 import compute_hive_signal_memory_v1
@@ -1174,6 +1175,12 @@ def build_hive_contract_v1() -> dict[str, Any]:
         setup_score=snap.get("setup_score"),
         regime_code=regime_obs.get("code") if isinstance(regime_obs.get("code"), str) else None,
     )
+    shadow_book = compute_hive_shadow_book_v1(
+        recent_flow=state.get("recent_signal_flow"),
+        active_bias=bias,
+        last_loop_at=last_at,
+        flow_buffer_cap=FLOW_BUFFER_CAP,
+    )
     bot_running = bool(state.get("running"))
     if not bot_running:
         lifecycle_phase = "idle"
@@ -1228,6 +1235,8 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "signal_stale": signal_stale,
             # D1-P1: read-only decay map — not consumed by ranking/guardrails/execution.
             "signal_freshness": signal_freshness,
+            # S1-P1: read-only shadow context from recent_signal_flow — not a rejected-candidate engine.
+            "shadow_book": shadow_book,
             "operator_posture_hint": posture_hint,
             "freshness": {"signal_stale_after_ms": SIGNAL_STALE_AFTER_MS},
             "session_regime": session_regime,
@@ -1291,6 +1300,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
                 "system_state.session_regime",
                 "system_state.regime",
                 "system_state.signal_freshness",
+                "system_state.shadow_book",
                 "system_state.execution_surface",
                 "system_state.lifecycle_phase",
                 "system_state.lifecycle_hint",

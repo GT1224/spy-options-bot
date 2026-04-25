@@ -4031,6 +4031,105 @@ function TacticalFieldDeck({
             ) : null}
           </div>
         ) : null}
+        {system?.shadow_book && typeof system.shadow_book === "object" && !Array.isArray(system.shadow_book) ? (
+          <div
+            style={{
+              marginTop: 10,
+              padding: "8px 10px",
+              borderRadius: 10,
+              border: `1px solid ${HIVE_UI.border}`,
+              background: "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.08))",
+              maxWidth: "62ch",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 8,
+                fontWeight: 800,
+                letterSpacing: "0.18em",
+                color: HIVE_UI.textDim,
+                textTransform: "uppercase",
+                marginBottom: 6,
+              }}
+            >
+              Shadow context (read-only · v1)
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: HIVE_UI.textSoft, lineHeight: 1.35 }}>
+              {typeof system.shadow_book.label === "string" && system.shadow_book.label.length
+                ? system.shadow_book.label
+                : "—"}{" "}
+              <span style={{ fontSize: 10, fontWeight: 700, color: HIVE_UI.textMuted }}>
+                ({String(system.shadow_book.status ?? "—").toUpperCase()})
+              </span>
+            </div>
+            <div style={{ fontSize: 10, color: HIVE_UI.textDim, lineHeight: 1.45, marginTop: 6 }}>
+              Not learning from rejected candidates yet. Based on recent signal flow only; full rejected-candidate
+              capture is not implemented. Does not affect ranking or gating.
+            </div>
+            <div style={{ fontSize: 10, color: HIVE_UI.textMuted, marginTop: 8, lineHeight: 1.45 }}>
+              <strong style={{ color: HIVE_UI.textSoft }}>Active bias (top setup):</strong>{" "}
+              {formatVal(system.shadow_book.active_bias)}
+              {" · "}
+              <strong style={{ color: HIVE_UI.textSoft }}>Contested:</strong>{" "}
+              {system.shadow_book.contested === true
+                ? "yes"
+                : system.shadow_book.contested === false
+                  ? "no"
+                  : "—"}
+              {" · "}
+              <strong style={{ color: HIVE_UI.textSoft }}>Opposing flow (bull+bear in window):</strong>{" "}
+              {system.shadow_book.opposing_flow_present === true
+                ? "yes"
+                : system.shadow_book.opposing_flow_present === false
+                  ? "no"
+                  : "—"}
+            </div>
+            {system.shadow_book.recent_flow_mix &&
+            typeof system.shadow_book.recent_flow_mix === "object" &&
+            !Array.isArray(system.shadow_book.recent_flow_mix) ? (
+              <div style={{ fontSize: 10, color: HIVE_UI.textMuted, marginTop: 6, lineHeight: 1.45 }}>
+                <strong style={{ color: HIVE_UI.textSoft }}>Recent flow mix:</strong> bull{" "}
+                {formatVal(system.shadow_book.recent_flow_mix.bullish)} · bear{" "}
+                {formatVal(system.shadow_book.recent_flow_mix.bearish)} · neutral{" "}
+                {formatVal(system.shadow_book.recent_flow_mix.neutral)}
+                {system.shadow_book.candidate_count !== undefined && system.shadow_book.candidate_count !== null
+                  ? ` · candidate_count ${String(system.shadow_book.candidate_count)}`
+                  : " · candidate_count — (not enumerated in v1)"}
+              </div>
+            ) : (
+              <div style={{ fontSize: 10, color: HIVE_UI.textMuted, marginTop: 6 }}>
+                Recent flow mix: — · candidate_count — (not enumerated in v1)
+              </div>
+            )}
+            {Array.isArray(system.shadow_book.notes) && system.shadow_book.notes.length ? (
+              <ul
+                style={{
+                  margin: "8px 0 0 0",
+                  paddingLeft: 16,
+                  fontSize: 10,
+                  color: HIVE_UI.textMuted,
+                  lineHeight: 1.4,
+                }}
+              >
+                {system.shadow_book.notes.slice(0, 5).map((line: string, i: number) => (
+                  <li key={i}>{typeof line === "string" ? line : formatVal(line)}</li>
+                ))}
+              </ul>
+            ) : null}
+            {typeof system.shadow_book.source === "string" && system.shadow_book.source.length ? (
+              <div style={{ fontSize: 9, color: HIVE_UI.textDim, marginTop: 6, lineHeight: 1.35 }}>
+                {system.shadow_book.source.length > 200
+                  ? `${system.shadow_book.source.slice(0, 200)}…`
+                  : system.shadow_book.source}
+              </div>
+            ) : null}
+            {system.shadow_book.observed_at ? (
+              <div style={{ fontSize: 9, color: HIVE_UI.textDim, marginTop: 6 }}>
+                Anchored to last pulse: {formatVal(system.shadow_book.observed_at)}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {gateSuppressed ? (
