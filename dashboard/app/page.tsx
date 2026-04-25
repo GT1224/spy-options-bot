@@ -320,7 +320,7 @@ export default function Page() {
       await apiCall("/config", "POST", { alpaca_paper_enabled: true });
       await loadAll();
     } catch (err: any) {
-      setError(err?.message || "Paper on failed");
+      setError(err?.message || "Paper broker enable failed");
       await loadAll();
     }
   }
@@ -331,7 +331,7 @@ export default function Page() {
       await apiCall("/config", "POST", { alpaca_paper_enabled: false });
       await loadAll();
     } catch (err: any) {
-      setError(err?.message || "Paper off failed");
+      setError(err?.message || "Paper broker disable failed");
       await loadAll();
     }
   }
@@ -2240,8 +2240,8 @@ export default function Page() {
                     {opsAdvancedOpen ? "Hide advanced / recovery" : "Advanced / recovery"}
                   </button>
                   <span className="hive-ops2b-advanced-hint">
-                    Launch, paper lane, broker sync, paper AUTO toggle, and timed refresh — secondary lane; keep the deck
-                    clear.
+                    Launch, paper lane, paper read sync, paper AUTO toggle, and timed refresh — secondary lane; keep
+                    the deck clear.
                   </span>
                 </div>
                 {opsAdvancedOpen ? (
@@ -2302,7 +2302,7 @@ export default function Page() {
                   onClick={() => {
                     void syncBroker();
                   }}
-                  label="Sync broker"
+                  label="Sync paper read-only"
                   disabled={!paperBrokerEnabled}
                 />
                 <HiveButton
