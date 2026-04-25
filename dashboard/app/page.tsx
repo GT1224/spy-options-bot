@@ -583,12 +583,20 @@ export default function Page() {
       : undefined;
   const swarmKnown = swarmFromContract !== undefined || swarmFromHealth !== undefined;
   const running = swarmKnown ? !!(swarmFromContract ?? swarmFromHealth) : null;
-  const tradingEnabled =
-    system?.trading_enabled !== undefined && system?.trading_enabled !== null
-      ? !!system.trading_enabled
-      : hasHiveContract
-        ? false
-        : !!fullState?.config?.enabled;
+  /** Contract mirrors config; when contract slice is incomplete, fall back to raw /state.config (authoritative). */
+  const systemTradingKnown = system != null && typeof system?.trading_enabled === "boolean";
+  const tradingEnabled = systemTradingKnown ? !!system.trading_enabled : !!fullState?.config?.enabled;
+  const tradingUsesConfigFallback = hasHiveContract && !systemTradingKnown;
+  const tradingContractConfigDrift =
+    hasHiveContract &&
+    systemTradingKnown &&
+    typeof fullState?.config?.enabled === "boolean" &&
+    !!system.trading_enabled !== !!fullState.config.enabled;
+  const tradingPillSuffix = tradingContractConfigDrift
+    ? " · mismatch"
+    : tradingUsesConfigFallback
+      ? " · /state cfg"
+      : "";
 
   const promoStatus = promo?.status as string | undefined;
   const gateSuppressed = promoStatus === "suppressed";
@@ -1852,7 +1860,10 @@ export default function Page() {
                   }
                   active={running === true}
                 />
-                <StatusPill dense text={`Trading ${tradingEnabled ? "Armed" : "Safe"}`} />
+                <StatusPill
+                  dense
+                  text={`Trading ${tradingEnabled ? "Armed" : "Safe"}${tradingPillSuffix}`}
+                />
                 <StatusPill dense text={paperBrokerPillText} active={paperBrokerPillActive} />
                 <StatusPill dense text={liveLanePillText} tone={liveLanePillTone} />
                 <StatusPill dense text={surfacePillText} />
@@ -2000,6 +2011,15 @@ export default function Page() {
                       ? system.operator_posture_hint.length > 58
                         ? `${system.operator_posture_hint.slice(0, 58)}…`
                         : system.operator_posture_hint
+                      : "—"
+                  }
+                  muted
+                />
+                <RailRow
+                  label="Poll interval (config)"
+                  value={
+                    typeof fullState?.config?.poll_seconds === "number"
+                      ? `${fullState.config.poll_seconds}s`
                       : "—"
                   }
                   muted
