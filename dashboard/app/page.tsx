@@ -525,6 +525,8 @@ export default function Page() {
   const guardPillActive = guard?.status === "viable" && !!guard?.actionable;
 
   const shellVars = useMemo(() => hiveUiShellCssVars(uiPrefs), [uiPrefs]);
+  const treasuryReadoutCollapsed =
+    uiPrefs.treasuryCardSurface === "collapsed" || uiPrefs.orbitReadoutMode === "collapsed";
 
   return (
     <>
@@ -928,6 +930,7 @@ export default function Page() {
   flex-direction: column;
   gap: 12px;
   min-width: 0;
+  font-size: calc(11px * var(--hive-glance-scale, 1));
 }
 .hive-orbit-crown .hive-signal-context-bar {
   flex-wrap: wrap;
@@ -1071,13 +1074,13 @@ export default function Page() {
 [data-hive-orbit-readout="collapsed"] .hive-orbit-readout-stack {
   gap: 8px;
 }
-[data-hive-orbit-readout="collapsed"] .hive-orbit-readout-stack .hive-rail-card:last-of-type {
+[data-hive-treasury-effective="collapsed"] .hive-orbit-readout-stack .hive-surface-treasury {
   max-height: 5.2rem;
   overflow: hidden;
   position: relative;
   padding-bottom: 8px;
 }
-[data-hive-orbit-readout="collapsed"] .hive-orbit-readout-stack .hive-rail-card:last-of-type::after {
+[data-hive-treasury-effective="collapsed"] .hive-orbit-readout-stack .hive-surface-treasury::after {
   content: "";
   position: absolute;
   left: 0;
@@ -1087,8 +1090,46 @@ export default function Page() {
   pointer-events: none;
   background: linear-gradient(180deg, rgba(10,12,18,0) 0%, rgba(10,12,18,0.92) 75%);
 }
-[data-hive-orbit-readout="collapsed"] .hive-orbit-readout-stack .hive-rail-card:last-of-type .hive-rail-title {
+[data-hive-treasury-effective="collapsed"] .hive-orbit-readout-stack .hive-surface-treasury .hive-rail-title {
   margin-bottom: 4px;
+}
+[data-hive-operator-rail-effective="collapsed"] .hive-orbit-readout-stack .hive-surface-operator-readout {
+  max-height: 6.5rem;
+  overflow: hidden;
+  position: relative;
+  padding-bottom: 8px;
+}
+[data-hive-operator-rail-effective="collapsed"] .hive-orbit-readout-stack .hive-surface-operator-readout::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 20px;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(10,12,18,0) 0%, rgba(10,12,18,0.92) 75%);
+}
+.hive-tactical-deck-shell .hive-tactical-deck {
+  font-size: calc(12px * var(--hive-glance-scale, 1));
+}
+[data-hive-label-density="minimal"] .hive-deck-field-label {
+  opacity: 0.42;
+}
+[data-hive-label-density="dense"] .hive-deck-field-label {
+  letter-spacing: 0.14em !important;
+  font-size: 7px !important;
+}
+[data-hive-bee-log-surface="collapsed"] .hive-surface-bee-log .hive-bee-log-inner {
+  max-height: 220px;
+  overflow-y: auto;
+}
+[data-hive-diagnostics-surface="collapsed"] .hive-surface-diagnostics .hive-signal-grid {
+  max-height: 280px;
+  overflow-y: auto;
+}
+[data-hive-diagnostics-surface="collapsed"] .hive-surface-diagnostics .hive-signal-span {
+  max-height: 120px;
+  overflow-y: auto;
 }
 [data-hive-low-priority="collapsed"] .hive-lower-stack-ops2 .hive-bee-log-inner {
   max-height: 200px;
@@ -1097,12 +1138,14 @@ export default function Page() {
   max-height: 240px;
   overflow-y: auto;
 }
-[data-hive-low-priority="collapsed"] .hive-deck-collapsible-band {
+[data-hive-low-priority="collapsed"] .hive-deck-collapsible-band,
+[data-hive-deck-mini-row="collapsed"] .hive-deck-collapsible-band {
   max-height: 58px;
   overflow: hidden;
   position: relative;
 }
-[data-hive-low-priority="collapsed"] .hive-deck-collapsible-band::after {
+[data-hive-low-priority="collapsed"] .hive-deck-collapsible-band::after,
+[data-hive-deck-mini-row="collapsed"] .hive-deck-collapsible-band::after {
   content: "";
   position: absolute;
   left: 0;
@@ -1112,12 +1155,14 @@ export default function Page() {
   pointer-events: none;
   background: linear-gradient(180deg, transparent, rgba(5,6,10,0.92));
 }
-[data-hive-low-priority="collapsed"] .hive-deck-collapsible-thesis {
+[data-hive-low-priority="collapsed"] .hive-deck-collapsible-thesis,
+[data-hive-deck-thesis="collapsed"] .hive-deck-collapsible-thesis {
   max-height: 3.4rem;
   overflow: hidden;
   position: relative;
 }
-[data-hive-low-priority="collapsed"] .hive-deck-collapsible-thesis::after {
+[data-hive-low-priority="collapsed"] .hive-deck-collapsible-thesis::after,
+[data-hive-deck-thesis="collapsed"] .hive-deck-collapsible-thesis::after {
   content: "";
   position: absolute;
   left: 0;
@@ -1587,6 +1632,8 @@ export default function Page() {
         data-hive-low-priority={uiPrefs.collapseLowPrioritySections ? "collapsed" : "full"}
         data-hive-motion={uiPrefs.motionLevel}
         data-hive-readability={uiPrefs.readability}
+        data-hive-glance-scale={uiPrefs.glanceScale}
+        data-hive-label-density={uiPrefs.labelDensity}
         data-hive-preset={uiPrefs.activePreset}
         style={{
           ...shellVars,
@@ -1804,7 +1851,14 @@ export default function Page() {
               />
             </div>
 
-            <div className="hive-orbit-readout-stack" aria-label="Operator readout and treasury">
+            <div
+              className="hive-orbit-readout-stack"
+              aria-label="Operator readout and treasury"
+              data-hive-treasury-effective={treasuryReadoutCollapsed ? "collapsed" : "full"}
+              data-hive-operator-rail-effective={
+                uiPrefs.operatorReadoutRailSurface === "collapsed" ? "collapsed" : "full"
+              }
+            >
               {brokerStale ? (
                 <div
                   style={{
@@ -1824,7 +1878,7 @@ export default function Page() {
                     : null}
                 </div>
               ) : null}
-              <div className="hive-rail-card">
+              <div className="hive-rail-card hive-surface-operator-readout">
                 <h3 className="hive-rail-title">Operator readout</h3>
                 <RailRow
                   label="Lifecycle"
@@ -1874,7 +1928,7 @@ export default function Page() {
                 />
               </div>
 
-              <div className="hive-rail-card">
+              <div className="hive-rail-card hive-surface-treasury">
                 <h3 className="hive-rail-title">Treasury</h3>
                 <RailRow label="Source" value={treasurySource} muted />
                 <RailRow label="Cash" value={formatVal(perf?.cash ?? fullState?.cash)} />
@@ -2226,26 +2280,32 @@ export default function Page() {
             </div>
 
             <div className="hive-stage-body hive-stage-body--orbit-solo">
-              <div className="hive-tactical-deck">
-                <TacticalFieldDeck
-                  running={running === true}
-                  swarmRunningKnown={swarmKnown}
-                  tradingEnabled={tradingEnabled}
-                  system={system}
-                  signal={signal}
-                  top={top}
-                  recommended={recommended}
-                  guard={guard}
-                  promo={promo}
-                  cq={cq}
-                  edge={edge}
-                  delta={delta}
-                  regime={regime}
-                  gatePromoted={gatePromoted}
-                  gateSuppressed={gateSuppressed}
-                  gateHold={gateHold}
-                  gatePillText={gatePillText}
-                />
+              <div
+                className="hive-tactical-deck-shell"
+                data-hive-deck-mini-row={uiPrefs.deckMiniRowSurface}
+                data-hive-deck-thesis={uiPrefs.deckThesisSurface}
+              >
+                <div className="hive-tactical-deck">
+                  <TacticalFieldDeck
+                    running={running === true}
+                    swarmRunningKnown={swarmKnown}
+                    tradingEnabled={tradingEnabled}
+                    system={system}
+                    signal={signal}
+                    top={top}
+                    recommended={recommended}
+                    guard={guard}
+                    promo={promo}
+                    cq={cq}
+                    edge={edge}
+                    delta={delta}
+                    regime={regime}
+                    gatePromoted={gatePromoted}
+                    gateSuppressed={gateSuppressed}
+                    gateHold={gateHold}
+                    gatePillText={gatePillText}
+                  />
+                </div>
               </div>
             </div>
 
@@ -2610,25 +2670,68 @@ export default function Page() {
           </section>
 
           <div className="hive-lower-stack-ops2 hive-lower-stack-ops4a">
-            <div className="hive-stack">
-              <Panel
-                variant="diagnostics"
-                title="Activity · bee log"
-                subtitle="Recent in-process stream (this worker only)"
+            {uiPrefs.beeLogSurface === "hidden" ? (
+              <div
+                className="hive-stack hive-surface-bee-log"
+                data-hive-bee-log-surface="hidden"
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 14,
+                  border: `1px dashed ${HIVE_UI.borderDeep}`,
+                  background: HIVE_UI.panel,
+                  fontSize: 10,
+                  color: HIVE_UI.textMuted,
+                  letterSpacing: "0.08em",
+                  lineHeight: 1.45,
+                }}
               >
-                <div className="hive-bee-log-inner">
-                  {(fullState?.logs || []).length
-                    ? (fullState.logs as string[]).join("\n")
-                    : (
-                        <span style={{ color: HIVE_UI.textMuted, letterSpacing: "0.06em" }}>
-                          No bee activity yet
-                        </span>
-                      )}
-                </div>
-              </Panel>
-            </div>
+                Bee log panel hidden — enable under Configure · Operator surfaces.
+              </div>
+            ) : (
+              <div
+                className="hive-stack hive-surface-bee-log"
+                data-hive-bee-log-surface={uiPrefs.beeLogSurface}
+              >
+                <Panel
+                  variant="diagnostics"
+                  title="Activity · bee log"
+                  subtitle="Recent in-process stream (this worker only)"
+                >
+                  <div className="hive-bee-log-inner">
+                    {(fullState?.logs || []).length
+                      ? (fullState.logs as string[]).join("\n")
+                      : (
+                          <span style={{ color: HIVE_UI.textMuted, letterSpacing: "0.06em" }}>
+                            No bee activity yet
+                          </span>
+                        )}
+                  </div>
+                </Panel>
+              </div>
+            )}
 
-            <div className="hive-stack">
+            {uiPrefs.diagnosticsGridSurface === "hidden" ? (
+              <div
+                className="hive-stack hive-surface-diagnostics"
+                data-hive-diagnostics-surface="hidden"
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 14,
+                  border: `1px dashed ${HIVE_UI.borderDeep}`,
+                  background: HIVE_UI.panel,
+                  fontSize: 10,
+                  color: HIVE_UI.textMuted,
+                  letterSpacing: "0.08em",
+                  lineHeight: 1.45,
+                }}
+              >
+                Diagnostics grid hidden — rationale still appears in the tactical deck when published.
+              </div>
+            ) : (
+              <div
+                className="hive-stack hive-surface-diagnostics"
+                data-hive-diagnostics-surface={uiPrefs.diagnosticsGridSurface}
+              >
               <Panel
                 variant="diagnostics"
                 title="Advanced · diagnostics"
@@ -2753,6 +2856,7 @@ export default function Page() {
                 </div>
               </Panel>
             </div>
+            )}
           </div>
             </div>
           </div>
@@ -3040,12 +3144,17 @@ export default function Page() {
                         "hive-drawer-seg" +
                         (uiPrefs.orbitReadoutMode === v ? " hive-drawer-seg--on" : "")
                       }
-                      onClick={() => setUiPrefs((u) => patchHiveUi(u, { orbitReadoutMode: v }))}
+                      onClick={() =>
+                        setUiPrefs((u) => patchHiveUi(u, { orbitReadoutMode: v, treasuryCardSurface: v }))
+                      }
                     >
                       {v === "full" ? "Full" : "Collapsed"}
                     </button>
                   ))}
                 </div>
+                <p style={{ fontSize: 10, color: HIVE_UI.textDim, margin: "8px 0 0", lineHeight: 1.4 }}>
+                  Quick link for treasury clip — fine-tune per rail under Operator surfaces.
+                </p>
               </div>
 
               <div className="hive-drawer-section">
@@ -3075,6 +3184,118 @@ export default function Page() {
                 <p style={{ fontSize: 10, color: HIVE_UI.textDim, margin: "8px 0 0", lineHeight: 1.4 }}>
                   Clips bee log, diagnostics depth, and secondary tactical deck bands — scroll where needed.
                 </p>
+              </div>
+
+              <div className="hive-drawer-section">
+                <div className="hive-drawer-label">Operator surfaces · panels</div>
+                <p style={{ fontSize: 10, color: HIVE_UI.textMuted, margin: "0 0 10px", lineHeight: 1.45 }}>
+                  Per-panel precision. Lifecycle / treasury rails never fully hide — use Collapsed for a degraded clip.
+                  Primary tactical signal leg is always visible.
+                </p>
+                <div className="hive-drawer-label" style={{ marginTop: 8, marginBottom: 6 }}>
+                  Bee log
+                </div>
+                <div className="hive-drawer-seg-row">
+                  {(["full", "collapsed", "hidden"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={
+                        "hive-drawer-seg" + (uiPrefs.beeLogSurface === v ? " hive-drawer-seg--on" : "")
+                      }
+                      onClick={() => setUiPrefs((u) => patchHiveUi(u, { beeLogSurface: v }))}
+                    >
+                      {v === "full" ? "Full" : v === "collapsed" ? "Collapsed" : "Hidden"}
+                    </button>
+                  ))}
+                </div>
+                <div className="hive-drawer-label" style={{ marginTop: 10, marginBottom: 6 }}>
+                  Diagnostics grid
+                </div>
+                <div className="hive-drawer-seg-row">
+                  {(["full", "collapsed", "hidden"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={
+                        "hive-drawer-seg" +
+                        (uiPrefs.diagnosticsGridSurface === v ? " hive-drawer-seg--on" : "")
+                      }
+                      onClick={() => setUiPrefs((u) => patchHiveUi(u, { diagnosticsGridSurface: v }))}
+                    >
+                      {v === "full" ? "Full" : v === "collapsed" ? "Collapsed" : "Hidden"}
+                    </button>
+                  ))}
+                </div>
+                <div className="hive-drawer-label" style={{ marginTop: 10, marginBottom: 6 }}>
+                  Tactical deck · CQ / edge / guard row
+                </div>
+                <div className="hive-drawer-seg-row">
+                  {(["full", "collapsed"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={
+                        "hive-drawer-seg" + (uiPrefs.deckMiniRowSurface === v ? " hive-drawer-seg--on" : "")
+                      }
+                      onClick={() => setUiPrefs((u) => patchHiveUi(u, { deckMiniRowSurface: v }))}
+                    >
+                      {v === "full" ? "Full" : "Collapsed"}
+                    </button>
+                  ))}
+                </div>
+                <div className="hive-drawer-label" style={{ marginTop: 10, marginBottom: 6 }}>
+                  Tactical deck · thesis band
+                </div>
+                <div className="hive-drawer-seg-row">
+                  {(["full", "collapsed"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={
+                        "hive-drawer-seg" + (uiPrefs.deckThesisSurface === v ? " hive-drawer-seg--on" : "")
+                      }
+                      onClick={() => setUiPrefs((u) => patchHiveUi(u, { deckThesisSurface: v }))}
+                    >
+                      {v === "full" ? "Full" : "Collapsed"}
+                    </button>
+                  ))}
+                </div>
+                <div className="hive-drawer-label" style={{ marginTop: 10, marginBottom: 6 }}>
+                  Operator readout rail (lifecycle)
+                </div>
+                <div className="hive-drawer-seg-row">
+                  {(["full", "collapsed"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={
+                        "hive-drawer-seg" +
+                        (uiPrefs.operatorReadoutRailSurface === v ? " hive-drawer-seg--on" : "")
+                      }
+                      onClick={() => setUiPrefs((u) => patchHiveUi(u, { operatorReadoutRailSurface: v }))}
+                    >
+                      {v === "full" ? "Full" : "Collapsed"}
+                    </button>
+                  ))}
+                </div>
+                <div className="hive-drawer-label" style={{ marginTop: 10, marginBottom: 6 }}>
+                  Treasury card
+                </div>
+                <div className="hive-drawer-seg-row">
+                  {(["full", "collapsed"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={
+                        "hive-drawer-seg" + (uiPrefs.treasuryCardSurface === v ? " hive-drawer-seg--on" : "")
+                      }
+                      onClick={() => setUiPrefs((u) => patchHiveUi(u, { treasuryCardSurface: v }))}
+                    >
+                      {v === "full" ? "Full" : "Collapsed"}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="hive-drawer-section">
@@ -3111,6 +3332,43 @@ export default function Page() {
                     </button>
                   ))}
                 </div>
+                <div className="hive-drawer-label" style={{ marginTop: 12, marginBottom: 6 }}>
+                  Quick-glance scale
+                </div>
+                <div className="hive-drawer-seg-row">
+                  {(["standard", "large", "xlarge"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={
+                        "hive-drawer-seg" + (uiPrefs.glanceScale === v ? " hive-drawer-seg--on" : "")
+                      }
+                      onClick={() => setUiPrefs((u) => patchHiveUi(u, { glanceScale: v }))}
+                    >
+                      {v === "standard" ? "Standard" : v === "large" ? "Large" : "XL"}
+                    </button>
+                  ))}
+                </div>
+                <div className="hive-drawer-label" style={{ marginTop: 10, marginBottom: 6 }}>
+                  Deck field labels
+                </div>
+                <div className="hive-drawer-seg-row">
+                  {(["normal", "minimal", "dense"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={
+                        "hive-drawer-seg" + (uiPrefs.labelDensity === v ? " hive-drawer-seg--on" : "")
+                      }
+                      onClick={() => setUiPrefs((u) => patchHiveUi(u, { labelDensity: v }))}
+                    >
+                      {v === "normal" ? "Normal" : v === "minimal" ? "Minimal" : "Dense"}
+                    </button>
+                  ))}
+                </div>
+                <p style={{ fontSize: 10, color: HIVE_UI.textDim, margin: "8px 0 0", lineHeight: 1.4 }}>
+                  Label density affects tactical deck section titles only (not lifecycle truth lines).
+                </p>
               </div>
 
               <div className="hive-drawer-section">
@@ -3393,7 +3651,10 @@ function TacticalFieldDeck({
             boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
           }}
         >
-          <div style={{ ...miniTitle, color: "#c9a24a", marginBottom: 8, letterSpacing: "0.2em" }}>
+          <div
+            className="hive-deck-field-label"
+            style={{ ...miniTitle, color: "#c9a24a", marginBottom: 8, letterSpacing: "0.2em" }}
+          >
             Top signal · leg
           </div>
           <div
@@ -3421,7 +3682,9 @@ function TacticalFieldDeck({
             boxShadow: "inset 0 1px 0 rgba(255,255,255,0.022)",
           }}
         >
-          <div style={{ ...miniTitle, marginBottom: 8 }}>Market · setup</div>
+          <div className="hive-deck-field-label" style={{ ...miniTitle, marginBottom: 8 }}>
+            Market · setup
+          </div>
           <HiveRow
             label="Spot"
             value={formatVal(signal?.spot)}
@@ -3445,11 +3708,15 @@ function TacticalFieldDeck({
 
       <div className="hive-deck-mini-row hive-deck-collapsible-band" style={{ marginBottom: 12 }}>
         <div style={miniCard}>
-          <div style={miniTitle}>Contract quality</div>
+          <div className="hive-deck-field-label" style={miniTitle}>
+            Contract quality
+          </div>
           <div style={{ fontSize: 13, fontWeight: 800, color: HIVE_UI.textSoft }}>{cqLine}</div>
         </div>
         <div style={miniCard}>
-          <div style={miniTitle}>Execution edge</div>
+          <div className="hive-deck-field-label" style={miniTitle}>
+            Execution edge
+          </div>
           <div style={{ fontSize: 13, fontWeight: 800, color: HIVE_UI.textSoft }}>
             {formatVal(edge?.status)} · score{" "}
             {edge?.score !== undefined && edge?.score !== null ? String(edge.score) : "—"}
@@ -3459,7 +3726,9 @@ function TacticalFieldDeck({
           </div>
         </div>
         <div style={miniCard}>
-          <div style={miniTitle}>Guard · gate</div>
+          <div className="hive-deck-field-label" style={miniTitle}>
+            Guard · gate
+          </div>
           <div style={{ fontSize: 13, fontWeight: 800, color: HIVE_UI.textSoft }}>
             {guard?.status ? `${guard.status}${guard.actionable ? " · act" : ""}` : "—"} · {gateShort}
           </div>
@@ -3482,7 +3751,9 @@ function TacticalFieldDeck({
           marginBottom: thesis ? 10 : 0,
         }}
       >
-        <div style={{ ...miniTitle, marginBottom: 7 }}>Cycle delta · blockers</div>
+        <div className="hive-deck-field-label" style={{ ...miniTitle, marginBottom: 7 }}>
+          Cycle delta · blockers
+        </div>
         <div style={{ fontSize: 13, fontWeight: 700, color: HIVE_UI.textSoft, lineHeight: 1.5 }}>
           {deltaLine}
         </div>

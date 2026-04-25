@@ -22,6 +22,16 @@ export type HivePulseContextMode = "full" | "collapsed";
 /** Operator readout + treasury rails: collapsed soft-fades secondary treasury detail (lifecycle rail stays). */
 export type HiveOrbitReadoutMode = "full" | "collapsed";
 
+/** UICTRL-3: supplementary panels — may hide when non-critical. */
+export type HivePanelTri = "full" | "collapsed" | "hidden";
+/** UICTRL-3: truth-adjacent or deck bands — never hidden in prefs UI for rails. */
+export type HivePanelBi = "full" | "collapsed";
+
+/** Quick-glance body scale (tactical deck + readout rails). */
+export type HiveGlanceScale = "standard" | "large" | "xlarge";
+/** Deck / rail label cadence (scoped in CSS to tactical deck field labels). */
+export type HiveLabelDensity = "normal" | "minimal" | "dense";
+
 export type HiveUiPresetId =
   | "stealth"
   | "command_center"
@@ -56,6 +66,18 @@ export type HiveUiPrefs = {
   orbitReadoutMode: HiveOrbitReadoutMode;
   /** Bee log, diagnostics, and secondary deck bands — scroll-clipped when collapsed. */
   collapseLowPrioritySections: boolean;
+  /** UICTRL-3 — explicit surfaces (see Configure). */
+  beeLogSurface: HivePanelTri;
+  diagnosticsGridSurface: HivePanelTri;
+  /** CQ / execution edge / guard mini row in tactical deck (not the primary signal leg). */
+  deckMiniRowSurface: HivePanelBi;
+  deckThesisSurface: HivePanelBi;
+  /** Lifecycle / posture / pending rail — never hidden; collapsed clips secondary rows with fade. */
+  operatorReadoutRailSurface: HivePanelBi;
+  /** Treasury card — never hidden; collapsed clips rows with fade. */
+  treasuryCardSurface: HivePanelBi;
+  glanceScale: HiveGlanceScale;
+  labelDensity: HiveLabelDensity;
 };
 
 const STORAGE_KEY = "hive_ui_prefs_v1";
@@ -85,6 +107,14 @@ const PRESET_PATCH: Record<HiveUiPresetApplyId, Partial<Omit<HiveUiPrefs, "schem
     pulseContextMode: "collapsed",
     orbitReadoutMode: "collapsed",
     collapseLowPrioritySections: true,
+    beeLogSurface: "collapsed",
+    diagnosticsGridSurface: "collapsed",
+    deckMiniRowSurface: "collapsed",
+    deckThesisSurface: "collapsed",
+    operatorReadoutRailSurface: "full",
+    treasuryCardSurface: "collapsed",
+    glanceScale: "standard",
+    labelDensity: "normal",
     heroStrip: "hidden",
     motionLevel: "off",
     readability: "standard",
@@ -103,6 +133,14 @@ const PRESET_PATCH: Record<HiveUiPresetApplyId, Partial<Omit<HiveUiPrefs, "schem
     pulseContextMode: "full",
     orbitReadoutMode: "full",
     collapseLowPrioritySections: false,
+    beeLogSurface: "full",
+    diagnosticsGridSurface: "full",
+    deckMiniRowSurface: "full",
+    deckThesisSurface: "full",
+    operatorReadoutRailSurface: "full",
+    treasuryCardSurface: "full",
+    glanceScale: "standard",
+    labelDensity: "normal",
     heroStrip: "hidden",
     motionLevel: "low",
     readability: "standard",
@@ -121,6 +159,14 @@ const PRESET_PATCH: Record<HiveUiPresetApplyId, Partial<Omit<HiveUiPrefs, "schem
     pulseContextMode: "collapsed",
     orbitReadoutMode: "collapsed",
     collapseLowPrioritySections: true,
+    beeLogSurface: "collapsed",
+    diagnosticsGridSurface: "collapsed",
+    deckMiniRowSurface: "collapsed",
+    deckThesisSurface: "collapsed",
+    operatorReadoutRailSurface: "full",
+    treasuryCardSurface: "collapsed",
+    glanceScale: "standard",
+    labelDensity: "normal",
     heroStrip: "hidden",
     motionLevel: "off",
     readability: "standard",
@@ -139,6 +185,14 @@ const PRESET_PATCH: Record<HiveUiPresetApplyId, Partial<Omit<HiveUiPrefs, "schem
     pulseContextMode: "full",
     orbitReadoutMode: "full",
     collapseLowPrioritySections: false,
+    beeLogSurface: "full",
+    diagnosticsGridSurface: "full",
+    deckMiniRowSurface: "full",
+    deckThesisSurface: "full",
+    operatorReadoutRailSurface: "full",
+    treasuryCardSurface: "full",
+    glanceScale: "large",
+    labelDensity: "normal",
     heroStrip: "compact",
     motionLevel: "high",
     readability: "standard",
@@ -157,6 +211,14 @@ const PRESET_PATCH: Record<HiveUiPresetApplyId, Partial<Omit<HiveUiPrefs, "schem
     pulseContextMode: "full",
     orbitReadoutMode: "full",
     collapseLowPrioritySections: false,
+    beeLogSurface: "full",
+    diagnosticsGridSurface: "full",
+    deckMiniRowSurface: "full",
+    deckThesisSurface: "full",
+    operatorReadoutRailSurface: "full",
+    treasuryCardSurface: "full",
+    glanceScale: "large",
+    labelDensity: "normal",
     heroStrip: "hidden",
     motionLevel: "low",
     readability: "high_contrast",
@@ -175,6 +237,14 @@ const PRESET_PATCH: Record<HiveUiPresetApplyId, Partial<Omit<HiveUiPrefs, "schem
     pulseContextMode: "full",
     orbitReadoutMode: "full",
     collapseLowPrioritySections: false,
+    beeLogSurface: "full",
+    diagnosticsGridSurface: "full",
+    deckMiniRowSurface: "full",
+    deckThesisSurface: "full",
+    operatorReadoutRailSurface: "full",
+    treasuryCardSurface: "full",
+    glanceScale: "xlarge",
+    labelDensity: "normal",
     heroStrip: "full",
     motionLevel: "low",
     readability: "relaxed",
@@ -236,6 +306,18 @@ function isPulseCtx(v: unknown): v is HivePulseContextMode {
 function isOrbitReadout(v: unknown): v is HiveOrbitReadoutMode {
   return v === "full" || v === "collapsed";
 }
+function isPanelTri(v: unknown): v is HivePanelTri {
+  return v === "full" || v === "collapsed" || v === "hidden";
+}
+function isPanelBi(v: unknown): v is HivePanelBi {
+  return v === "full" || v === "collapsed";
+}
+function isGlance(v: unknown): v is HiveGlanceScale {
+  return v === "standard" || v === "large" || v === "xlarge";
+}
+function isLabelDensity(v: unknown): v is HiveLabelDensity {
+  return v === "normal" || v === "minimal" || v === "dense";
+}
 
 type LegacyV1 = {
   schema?: number;
@@ -275,6 +357,14 @@ function baseFromV1(j: LegacyV1): Omit<HiveUiPrefs, "schema" | "activePreset"> {
     pulseContextMode: "full",
     orbitReadoutMode: "full",
     collapseLowPrioritySections: false,
+    beeLogSurface: "full",
+    diagnosticsGridSurface: "full",
+    deckMiniRowSurface: "full",
+    deckThesisSurface: "full",
+    operatorReadoutRailSurface: "full",
+    treasuryCardSurface: "full",
+    glanceScale: "standard",
+    labelDensity: "normal",
   };
 }
 
@@ -312,11 +402,25 @@ function migrateV2(j: Record<string, unknown>): HiveUiPrefs {
     pulseContextMode: "full",
     orbitReadoutMode: "full",
     collapseLowPrioritySections: false,
+    beeLogSurface: "full",
+    diagnosticsGridSurface: "full",
+    deckMiniRowSurface: "full",
+    deckThesisSurface: "full",
+    operatorReadoutRailSurface: "full",
+    treasuryCardSurface: "full",
+    glanceScale: "standard",
+    labelDensity: "normal",
   };
 }
 
 function coerceV3(j: Record<string, unknown>): HiveUiPrefs {
   const bgInt = isBgInt(j.backgroundIntensity) ? j.backgroundIntensity : DEFAULT_HIVE_UI_PREFS.backgroundIntensity;
+  const orbitRm = isOrbitReadout(j.orbitReadoutMode) ? j.orbitReadoutMode : "full";
+  const treasuryCardSurface = isPanelBi(j.treasuryCardSurface)
+    ? j.treasuryCardSurface
+    : orbitRm === "collapsed"
+      ? "collapsed"
+      : "full";
   return {
     schema: 3,
     activePreset: isPreset(j.activePreset) ? j.activePreset : "command_center",
@@ -341,9 +445,19 @@ function coerceV3(j: Record<string, unknown>): HiveUiPrefs {
     readability: isRead(j.readability) ? j.readability : "standard",
     layoutMode: isLayoutMode(j.layoutMode) ? j.layoutMode : "command_center",
     pulseContextMode: isPulseCtx(j.pulseContextMode) ? j.pulseContextMode : "full",
-    orbitReadoutMode: isOrbitReadout(j.orbitReadoutMode) ? j.orbitReadoutMode : "full",
+    orbitReadoutMode: orbitRm,
     collapseLowPrioritySections:
       typeof j.collapseLowPrioritySections === "boolean" ? j.collapseLowPrioritySections : false,
+    beeLogSurface: isPanelTri(j.beeLogSurface) ? j.beeLogSurface : "full",
+    diagnosticsGridSurface: isPanelTri(j.diagnosticsGridSurface) ? j.diagnosticsGridSurface : "full",
+    deckMiniRowSurface: isPanelBi(j.deckMiniRowSurface) ? j.deckMiniRowSurface : "full",
+    deckThesisSurface: isPanelBi(j.deckThesisSurface) ? j.deckThesisSurface : "full",
+    operatorReadoutRailSurface: isPanelBi(j.operatorReadoutRailSurface)
+      ? j.operatorReadoutRailSurface
+      : "full",
+    treasuryCardSurface,
+    glanceScale: isGlance(j.glanceScale) ? j.glanceScale : "standard",
+    labelDensity: isLabelDensity(j.labelDensity) ? j.labelDensity : "normal",
   };
 }
 
@@ -393,6 +507,14 @@ export function applyOperatorMinimal(prev: HiveUiPrefs): HiveUiPrefs {
     pulseContextMode: "collapsed",
     orbitReadoutMode: "collapsed",
     collapseLowPrioritySections: true,
+    beeLogSurface: "collapsed",
+    diagnosticsGridSurface: "collapsed",
+    deckMiniRowSurface: "collapsed",
+    deckThesisSurface: "collapsed",
+    operatorReadoutRailSurface: "full",
+    treasuryCardSurface: "collapsed",
+    glanceScale: "standard",
+    labelDensity: "normal",
     heroStrip: "hidden",
   };
 }
@@ -407,6 +529,14 @@ export function applyOperatorFullObservability(prev: HiveUiPrefs): HiveUiPrefs {
     pulseContextMode: "full",
     orbitReadoutMode: "full",
     collapseLowPrioritySections: false,
+    beeLogSurface: "full",
+    diagnosticsGridSurface: "full",
+    deckMiniRowSurface: "full",
+    deckThesisSurface: "full",
+    operatorReadoutRailSurface: "full",
+    treasuryCardSurface: "full",
+    glanceScale: "large",
+    labelDensity: "normal",
   };
 }
 
@@ -445,6 +575,8 @@ export function hiveUiShellCssVars(p: HiveUiPrefs): CSSProperties {
       : p.shadowDepth === "high"
         ? `inset 0 1px 0 rgba(255,255,255,0.045), 0 18px 44px rgba(0,0,0,0.52), 0 0 28px rgba(199,154,49,${accentGlow})`
         : `inset 0 1px 0 rgba(255,255,255,0.04), 0 14px 36px rgba(0,0,0,0.42), 0 0 24px rgba(199,154,49,${accentGlow})`;
+  const glanceScale =
+    p.glanceScale === "large" ? "1.06" : p.glanceScale === "xlarge" ? "1.12" : "1";
   return {
     ["--hive-glass-blur" as string]: glassBlur,
     ["--hive-scrim-inset" as string]: String(scrimInset),
@@ -452,6 +584,7 @@ export function hiveUiShellCssVars(p: HiveUiPrefs): CSSProperties {
     ["--hive-shadow-lift" as string]: shadowLift,
     ["--hive-border-glow" as string]: borderGlowStr,
     ["--hive-orbit-ops-shadow" as string]: orbitOpsShadow,
+    ["--hive-glance-scale" as string]: glanceScale,
   } as CSSProperties;
 }
 
