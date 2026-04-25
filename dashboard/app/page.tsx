@@ -27,6 +27,9 @@ const HIVE_API = "/api/hive";
 
 type PillTone = "neutral" | "promoted" | "hold" | "suppressed";
 
+/** Tactical readout provenance when hive_contract_v1 is present (HIVE-W4-TRUTH1-B). */
+type HiveSignalReadoutMode = "raw_state_only" | "contract" | "legacy_snapshot" | "contract_incomplete";
+
 /** POST /paper/order + hive_contract_v1.system_state.manual_paper_last_broker_snapshot */
 type PaperOrderObservability = {
   order_id?: string | null;
@@ -405,6 +408,7 @@ export default function Page() {
   }, [fullState?.hive_contract_v1?.system_state]);
 
   const hive = fullState?.hive_contract_v1;
+  const hasHiveContract = !!fullState?.hive_contract_v1;
   const system = hive?.system_state;
   const top = hive?.top_signal;
   const perf = hive?.performance_state;
@@ -461,8 +465,10 @@ export default function Page() {
         operator_hint?: string;
       }
     | undefined;
+  const liveReadFromRawState =
+    hasHiveContract && !system?.live_readiness && !!fullState?.live_readiness;
   const liveReadSummary = liveRead?.summary_code;
-  const liveLanePillText =
+  const liveLanePillTextCore =
     liveReadSummary === "missing_credentials"
       ? "Live lane: BLOCKED (no live keys)"
       : liveReadSummary === "live_read_ready"
@@ -472,6 +478,10 @@ export default function Page() {
           : liveReadSummary === "live_credentials_ok_not_synced"
             ? "Live lane: keys OK · sync pending"
             : "Live lane: —";
+  const liveLanePillText =
+    liveReadFromRawState && liveLanePillTextCore.startsWith("Live lane:")
+      ? `${liveLanePillTextCore} · legacy /state`
+      : liveLanePillTextCore;
   const liveLanePillTone: PillTone =
     liveReadSummary === "missing_credentials"
       ? "hold"
@@ -485,6 +495,28 @@ export default function Page() {
 
   const signal = top?.setup ?? fullState?.signal_snapshot ?? {};
   const recommended = top?.recommended_trade ?? signal?.recommended_trade ?? {};
+
+  /** How tactical / signal readouts are sourced when hive_contract_v1 exists (TRUTH1-B provenance). */
+  const signalReadoutMode: HiveSignalReadoutMode = !hasHiveContract
+    ? "raw_state_only"
+    : top?.setup
+      ? "contract"
+      : fullState?.signal_snapshot
+        ? "legacy_snapshot"
+        : "contract_incomplete";
+
+  const treasuryLegacyMix =
+    hasHiveContract &&
+    ((perf?.cash === undefined && fullState?.cash !== undefined) ||
+      (perf?.equity === undefined && fullState?.equity !== undefined) ||
+      (perf?.realized_pnl_today === undefined && fullState?.realized_pnl_today !== undefined) ||
+      (perf?.consecutive_losses === undefined && fullState?.consecutive_losses !== undefined));
+
+  const providerLegacyMix =
+    hasHiveContract &&
+    (system?.provider_mode === undefined || system?.provider_mode === null) &&
+    (fullState?.provider_mode != null || health?.provider != null);
+
   const swarmFromContract =
     system?.bot_running !== undefined && system?.bot_running !== null
       ? !!system.bot_running
@@ -495,7 +527,6 @@ export default function Page() {
       : undefined;
   const swarmKnown = swarmFromContract !== undefined || swarmFromHealth !== undefined;
   const running = swarmKnown ? !!(swarmFromContract ?? swarmFromHealth) : null;
-  const hasHiveContract = !!fullState?.hive_contract_v1;
   const tradingEnabled =
     system?.trading_enabled !== undefined && system?.trading_enabled !== null
       ? !!system.trading_enabled
@@ -1931,15 +1962,30 @@ export default function Page() {
                 />
                 <RailRow
                   label="Provider"
-                  value={formatVal(
+                  value={`${formatVal(
                     system?.provider_mode ?? fullState?.provider_mode ?? health?.provider
-                  )}
+                  )}${providerLegacyMix ? " · outside contract" : ""}`}
                   muted
                 />
               </div>
 
               <div className="hive-rail-card hive-surface-treasury">
                 <h3 className="hive-rail-title">Treasury</h3>
+                {treasuryLegacyMix ? (
+                  <div
+                    style={{
+                      fontSize: 9,
+                      lineHeight: 1.35,
+                      color: HIVE_UI.textMuted,
+                      letterSpacing: "0.06em",
+                      margin: "-2px 0 6px",
+                      maxWidth: "42ch",
+                    }}
+                  >
+                    One or more figures below fall back to raw <code style={{ fontSize: 9 }}>/state</code> because{" "}
+                    <code style={{ fontSize: 9 }}>hive_contract_v1.performance_state</code> omitted that field.
+                  </div>
+                ) : null}
                 <RailRow label="Source" value={treasurySource} muted />
                 <RailRow label="Cash" value={formatVal(perf?.cash ?? fullState?.cash)} />
                 <RailRow label="Equity" value={formatVal(perf?.equity ?? fullState?.equity)} />
@@ -2300,6 +2346,7 @@ export default function Page() {
                     running={running === true}
                     swarmRunningKnown={swarmKnown}
                     tradingEnabled={tradingEnabled}
+                    signalReadoutMode={signalReadoutMode}
                     system={system}
                     signal={signal}
                     top={top}
@@ -2705,7 +2752,11 @@ export default function Page() {
                 <Panel
                   variant="diagnostics"
                   title="Activity · bee log"
-                  subtitle="Recent in-process stream (this worker only)"
+                  subtitle={
+                    hasHiveContract
+                      ? "Recent in-process stream — raw /state.logs (not in hive_contract_v1)"
+                      : "Recent in-process stream (this worker only)"
+                  }
                 >
                   <div className="hive-bee-log-inner">
                     {(fullState?.logs || []).length
@@ -3460,6 +3511,7 @@ function TacticalFieldDeck({
   running,
   swarmRunningKnown,
   tradingEnabled,
+  signalReadoutMode,
   system,
   signal,
   top,
@@ -3478,6 +3530,7 @@ function TacticalFieldDeck({
   running: boolean;
   swarmRunningKnown: boolean;
   tradingEnabled: boolean;
+  signalReadoutMode: HiveSignalReadoutMode;
   system: any;
   signal: any;
   top: any;
@@ -3501,7 +3554,14 @@ function TacticalFieldDeck({
         ? "SWARM ACTIVE · ARMED"
         : "SWARM ACTIVE · DISARMED";
 
-  const postureSub =
+  const signalReadoutPrefix =
+    signalReadoutMode === "legacy_snapshot"
+      ? "Tactical columns use legacy /state.signal_snapshot — hive_contract_v1.top_signal.setup was absent. "
+      : signalReadoutMode === "contract_incomplete"
+        ? "Tactical contract incomplete: no top_signal.setup and no signal_snapshot — readouts below may be empty. "
+        : "";
+
+  const postureSubInner =
     typeof system?.operator_posture_hint === "string" && system.operator_posture_hint.length
       ? system.operator_posture_hint
       : typeof system?.lifecycle_phase === "string"
@@ -3515,6 +3575,11 @@ function TacticalFieldDeck({
           : running
             ? "Loop online — awaiting structured posture from hive core."
             : "No active loop. Launch bees or pulse cycle to run a tactical refresh.";
+
+  const postureSub =
+    signalReadoutMode === "legacy_snapshot" || signalReadoutMode === "contract_incomplete"
+      ? signalReadoutPrefix + postureSubInner
+      : postureSubInner;
 
   const lastCycle = formatVal(system?.last_cycle_at);
   const pulseAge =
