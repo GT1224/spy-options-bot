@@ -174,6 +174,9 @@ export default function Page() {
       setHealth(healthOk && healthData && typeof healthData === "object" ? healthData : null);
       setFullState(stateData);
     } catch (err: any) {
+      // Do not leave prior /state + health on screen with a new error — that reads as fresh truth.
+      setFullState(null);
+      setHealth(null);
       const msg = err?.message || "Could not connect to backend";
       const looksNetwork =
         /failed to fetch|networkerror|load failed|fetch|econnrefused|connection refused/i.test(
@@ -430,8 +433,9 @@ export default function Page() {
             ? `Surface: ${execSurface}`
             : "Surface: —";
 
-  const treasurySource =
-    brokerSync?.performance_source === "alpaca_paper"
+  const treasurySource = !brokerSync
+    ? "Unavailable — broker_sync missing from contract"
+    : brokerSync.performance_source === "alpaca_paper"
       ? "Alpaca paper (read-only sync)"
       : "Demo seed (not broker-backed)";
   const brokerStale =
@@ -491,10 +495,13 @@ export default function Page() {
       : undefined;
   const swarmKnown = swarmFromContract !== undefined || swarmFromHealth !== undefined;
   const running = swarmKnown ? !!(swarmFromContract ?? swarmFromHealth) : null;
+  const hasHiveContract = !!fullState?.hive_contract_v1;
   const tradingEnabled =
     system?.trading_enabled !== undefined && system?.trading_enabled !== null
       ? !!system.trading_enabled
-      : !!fullState?.config?.enabled;
+      : hasHiveContract
+        ? false
+        : !!fullState?.config?.enabled;
 
   const promoStatus = promo?.status as string | undefined;
   const gateSuppressed = promoStatus === "suppressed";
@@ -1914,9 +1921,11 @@ export default function Page() {
                   label="Pending"
                   value={
                     system?.pending_signals_semantics === "broker_orders_only"
-                      ? `${formatVal(
-                          system?.pending_signals_count ?? 0
-                        )} — Alpaca open orders (all symbols; not fills or positions)`
+                      ? typeof system?.pending_signals_count === "number"
+                        ? `${formatVal(
+                            system.pending_signals_count
+                          )} — Alpaca open orders (all symbols; not fills or positions)`
+                        : "— — open-order count unavailable (contract incomplete)"
                       : formatVal(system?.pending_signals_count ?? "—")
                   }
                 />
@@ -3510,8 +3519,10 @@ function TacticalFieldDeck({
   const lastCycle = formatVal(system?.last_cycle_at);
   const pulseAge =
     system?.signal_age_seconds !== undefined && system?.signal_age_seconds !== null
-      ? `${system.signal_age_seconds}s`
-      : "—";
+      ? `${system.signal_age_seconds}s${system?.signal_stale ? " · stale" : ""}`
+      : system?.signal_stale
+        ? "— · stale"
+        : "—";
 
   const sessionLine = regime?.code ? String(regime.code) : "—";
   const rth = regime?.market_hours ? "RTH on" : "RTH off";
@@ -4242,6 +4253,6 @@ function HiveRow({
 }
 
 function formatVal(value: any) {
-  if (value === null || value === undefined) return "-";
+  if (value === null || value === undefined) return "—";
   return String(value);
 }
