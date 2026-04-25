@@ -533,7 +533,7 @@ export default function Page() {
     liveReadSummary === "missing_credentials"
       ? "Live lane: BLOCKED (no live keys)"
       : liveReadSummary === "live_read_ready"
-        ? "Live lane: read OK"
+        ? "Live lane: read OK (obs-only)"
         : liveReadSummary === "live_sync_failed"
           ? "Live lane: read DEGRADED"
           : liveReadSummary === "live_credentials_ok_not_synced"
@@ -1935,7 +1935,7 @@ export default function Page() {
               }}
             >
               <strong style={{ color: HIVE_UI.textMuted, letterSpacing: "0.12em", fontSize: 9 }}>
-                LIVE OPERATOR
+                LIVE OBSERVABILITY (READ-ONLY)
               </strong>
               <div style={{ marginTop: 6 }}>{liveRead.operator_hint}</div>
             </div>
@@ -2310,7 +2310,7 @@ export default function Page() {
                   onClick={() => {
                     void syncLiveRead();
                   }}
-                  label="Sync live read"
+                  label="Sync live read-only"
                 />
                 <HiveButton
                   compact
