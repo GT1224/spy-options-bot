@@ -100,6 +100,43 @@ const HIVE_UI = {
     "background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, opacity 160ms ease, transform 160ms ease, filter 160ms ease, color 160ms ease",
 } as const;
 
+/** HIVE-W4-XFER1-B: snapshot freshness color — never “success green” for broker lookup alone. */
+function paperManualObsFreshnessColor(freshness: string | null | undefined): string {
+  const f = (freshness ?? "").toUpperCase();
+  if (f.includes("LOOKUP FAILED") || f.includes("UNKNOWN")) return HIVE_UI.danger;
+  return HIVE_UI.textDim;
+}
+
+/** Lifecycle label color — green reserved for broker-reported fill terminal states. */
+function paperManualObsLifecycleColor(label: string | null | undefined): string {
+  const s = (label ?? "").toUpperCase();
+  if (s === "FILLED" || s.includes("PARTIAL")) return HIVE_UI.good;
+  if (s.includes("REJECT")) return HIVE_UI.danger;
+  if (s.includes("CANCELED") || s.includes("EXPIRED")) return HIVE_UI.textMuted;
+  if (s.includes("NOT IN OPEN")) return HIVE_UI.textSoft;
+  if (
+    s.includes("ACCEPTED") ||
+    s.includes("WORKING") ||
+    s.includes("HELD") ||
+    s.includes("REPLACED") ||
+    s === "DONE FOR DAY"
+  ) {
+    return HIVE_UI.accent;
+  }
+  return HIVE_UI.textMuted;
+}
+
+function paperManualWorkingWithoutFillTimestamp(obs: PaperOrderObservability): boolean {
+  const l = (obs.hive_lifecycle_label ?? "").toUpperCase();
+  const workingLike =
+    l.includes("ACCEPTED") ||
+    l.includes("WORKING") ||
+    l.includes("HELD") ||
+    l.includes("REPLACED") ||
+    l === "DONE FOR DAY";
+  return workingLike && !obs.filled_at;
+}
+
 export default function Page() {
   const [health, setHealth] = useState<any>(null);
   const [fullState, setFullState] = useState<any>(null);
@@ -2628,6 +2665,20 @@ export default function Page() {
                 >
                   <div
                     style={{
+                      fontSize: 8,
+                      letterSpacing: "0.1em",
+                      fontWeight: 700,
+                      color: HIVE_UI.textDim,
+                      textTransform: "uppercase",
+                      marginBottom: 6,
+                      maxWidth: "62ch",
+                    }}
+                  >
+                    Last manual paper order — broker snapshot (submit response or last sync reconcile; not a live
+                    stream).
+                  </div>
+                  <div
+                    style={{
                       display: "flex",
                       flexWrap: "wrap",
                       gap: "6px 12px",
@@ -2640,13 +2691,7 @@ export default function Page() {
                         fontSize: 9,
                         fontWeight: 800,
                         letterSpacing: "0.14em",
-                        color:
-                          (paperOrderObs.snapshot_freshness ?? "") === "LOOKUP FAILED / UNKNOWN"
-                            ? HIVE_UI.danger
-                            : (paperOrderObs.snapshot_freshness ?? "") ===
-                                "RESOLVED FROM BROKER ORDER LOOKUP"
-                              ? HIVE_UI.good
-                              : HIVE_UI.textDim,
+                        color: paperManualObsFreshnessColor(paperOrderObs.snapshot_freshness),
                       }}
                     >
                       {paperOrderObs.snapshot_freshness ?? "STALE / LAST KNOWN"}
@@ -2656,7 +2701,7 @@ export default function Page() {
                         fontSize: 10,
                         fontWeight: 800,
                         letterSpacing: "0.12em",
-                        color: HIVE_UI.accent,
+                        color: paperManualObsLifecycleColor(paperOrderObs.hive_lifecycle_label),
                       }}
                     >
                       {paperOrderObs.hive_lifecycle_label ?? "STATUS UNKNOWN"}
@@ -2683,7 +2728,7 @@ export default function Page() {
                       {paperOrderObs.qty != null ? paperOrderObs.qty : "—"}
                     </span>
                     {" · "}
-                    Broker filled qty{" "}
+                    Filled qty (broker-reported){" "}
                     <span style={{ color: HIVE_UI.textSoft }}>
                       {paperOrderObs.filled_qty != null ? paperOrderObs.filled_qty : "—"}
                     </span>
@@ -2697,6 +2742,12 @@ export default function Page() {
                       </>
                     ) : null}
                   </div>
+                  {paperManualWorkingWithoutFillTimestamp(paperOrderObs) ? (
+                    <div style={{ marginTop: 4, fontSize: 9, color: HIVE_UI.textDim, lineHeight: 1.4 }}>
+                      Order is working or accepted at the broker — that is not a fill or an updated portfolio
+                      position until Alpaca reports a fill (see filled at / broker status).
+                    </div>
+                  ) : null}
                   <div style={{ color: HIVE_UI.textMuted, marginTop: 3 }}>
                     Submitted{" "}
                     <span style={{ color: HIVE_UI.textSoft }}>
