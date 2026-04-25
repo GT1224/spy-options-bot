@@ -12,12 +12,14 @@ import {
   hiveUiPresetLabel,
   hiveUiShellCssVars,
   loadHiveUiPrefs,
+  normalizeHiveUiPrefs,
+  resetOperatorSurfacesToCommandCenter,
   saveHiveUiPrefs,
   type HiveUiPrefs,
 } from "../lib/hive-ui-prefs";
 
 function patchHiveUi(u: HiveUiPrefs, patch: Partial<HiveUiPrefs>): HiveUiPrefs {
-  return { ...u, ...patch, schema: 3, activePreset: "custom" };
+  return normalizeHiveUiPrefs({ ...u, ...patch, schema: 3, activePreset: "custom" });
 }
 
 /** Same-origin BFF — admin key never in the browser (H2). */
@@ -525,8 +527,7 @@ export default function Page() {
   const guardPillActive = guard?.status === "viable" && !!guard?.actionable;
 
   const shellVars = useMemo(() => hiveUiShellCssVars(uiPrefs), [uiPrefs]);
-  const treasuryReadoutCollapsed =
-    uiPrefs.treasuryCardSurface === "collapsed" || uiPrefs.orbitReadoutMode === "collapsed";
+  const treasuryReadoutCollapsed = uiPrefs.treasuryCardSurface === "collapsed";
 
   return (
     <>
@@ -3093,8 +3094,9 @@ export default function Page() {
                     lineHeight: 1.4,
                   }}
                 >
-                  One-tap bundles · switches to Custom. Critical readouts stay visible; treasury rail soft-clips when
-                  collapsed.
+                  One-tap bundles · switches to <strong style={{ color: HIVE_UI.textSoft }}>Custom</strong> and align
+                  layout + panel rows below. Does not change shell appearance presets unless those fields are in the
+                  bundle.
                 </p>
                 <div className="hive-drawer-seg-row">
                   <button
@@ -3134,30 +3136,6 @@ export default function Page() {
               </div>
 
               <div className="hive-drawer-section">
-                <div className="hive-drawer-label">Readout rails</div>
-                <div className="hive-drawer-seg-row">
-                  {(["full", "collapsed"] as const).map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      className={
-                        "hive-drawer-seg" +
-                        (uiPrefs.orbitReadoutMode === v ? " hive-drawer-seg--on" : "")
-                      }
-                      onClick={() =>
-                        setUiPrefs((u) => patchHiveUi(u, { orbitReadoutMode: v, treasuryCardSurface: v }))
-                      }
-                    >
-                      {v === "full" ? "Full" : "Collapsed"}
-                    </button>
-                  ))}
-                </div>
-                <p style={{ fontSize: 10, color: HIVE_UI.textDim, margin: "8px 0 0", lineHeight: 1.4 }}>
-                  Quick link for treasury clip — fine-tune per rail under Operator surfaces.
-                </p>
-              </div>
-
-              <div className="hive-drawer-section">
                 <div className="hive-drawer-label">Collapse low-priority</div>
                 <div className="hive-drawer-seg-row">
                   {(
@@ -3182,15 +3160,22 @@ export default function Page() {
                   ))}
                 </div>
                 <p style={{ fontSize: 10, color: HIVE_UI.textDim, margin: "8px 0 0", lineHeight: 1.4 }}>
-                  Clips bee log, diagnostics depth, and secondary tactical deck bands — scroll where needed.
+                  Extra clip pass on bee log, diagnostics, and tactical deck secondary bands. Stacks with each panel’s
+                  own mode (whichever is stricter). Independent from named presets until you change it manually (then
+                  preset becomes Custom).
                 </p>
               </div>
 
               <div className="hive-drawer-section">
                 <div className="hive-drawer-label">Operator surfaces · panels</div>
                 <p style={{ fontSize: 10, color: HIVE_UI.textMuted, margin: "0 0 10px", lineHeight: 1.45 }}>
-                  Per-panel precision. Lifecycle / treasury rails never fully hide — use Collapsed for a degraded clip.
-                  Primary tactical signal leg is always visible.
+                  <strong style={{ color: HIVE_UI.textSoft }}>Hideable:</strong> bee log, diagnostics grid.{" "}
+                  <strong style={{ color: HIVE_UI.textSoft }}>Collapsible only:</strong> tactical CQ/edge/guard row,
+                  thesis band, lifecycle readout rail, treasury card. <strong style={{ color: HIVE_UI.textSoft }}>
+                    Protected:
+                  </strong>{" "}
+                  primary tactical signal leg + stage session / RTH / pulse-age pills. Manual changes here set
+                  preset to <strong style={{ color: HIVE_UI.textSoft }}>Custom</strong>.
                 </p>
                 <div className="hive-drawer-label" style={{ marginTop: 8, marginBottom: 6 }}>
                   Bee log
@@ -3296,6 +3281,31 @@ export default function Page() {
                     </button>
                   ))}
                 </div>
+                <p style={{ fontSize: 10, color: HIVE_UI.textDim, margin: "8px 0 0", lineHeight: 1.4 }}>
+                  Treasury is the source of truth for treasury clip; legacy{" "}
+                  <code style={{ fontSize: 9, color: HIVE_UI.textMuted }}>orbitReadoutMode</code> mirrors it on save /
+                  load so stored prefs never disagree.
+                </p>
+                <button
+                  type="button"
+                  style={{
+                    marginTop: 10,
+                    width: "100%",
+                    padding: "8px 10px",
+                    borderRadius: 10,
+                    border: `1px solid ${HIVE_UI.border}`,
+                    background: HIVE_UI.panel2,
+                    color: HIVE_UI.textSoft,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => setUiPrefs((u) => resetOperatorSurfacesToCommandCenter(u))}
+                >
+                  Reset panels & readability to Command Center baseline
+                </button>
               </div>
 
               <div className="hive-drawer-section">
@@ -3367,7 +3377,8 @@ export default function Page() {
                   ))}
                 </div>
                 <p style={{ fontSize: 10, color: HIVE_UI.textDim, margin: "8px 0 0", lineHeight: 1.4 }}>
-                  Label density affects tactical deck section titles only (not lifecycle truth lines).
+                  Label density affects tactical deck section titles only (not lifecycle truth lines). Quick-glance
+                  scales font in the tactical deck and orbit readout stack.
                 </p>
               </div>
 

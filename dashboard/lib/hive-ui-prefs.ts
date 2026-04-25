@@ -82,6 +82,17 @@ export type HiveUiPrefs = {
 
 const STORAGE_KEY = "hive_ui_prefs_v1";
 
+/**
+ * UICTRL-LOCK1: treasury card is the operator-facing source of truth for treasury clip.
+ * `orbitReadoutMode` is retained for schema compatibility and CSS hooks — always mirrored from treasury.
+ */
+export function normalizeHiveUiPrefs(p: HiveUiPrefs): HiveUiPrefs {
+  return {
+    ...p,
+    orbitReadoutMode: p.treasuryCardSurface,
+  };
+}
+
 export const HIVE_UI_PRESET_ORDER: HiveUiPresetApplyId[] = [
   "stealth",
   "command_center",
@@ -251,12 +262,14 @@ const PRESET_PATCH: Record<HiveUiPresetApplyId, Partial<Omit<HiveUiPrefs, "schem
   },
 };
 
-export const DEFAULT_HIVE_UI_PREFS = {
+const DEFAULT_HIVE_UI_PREFS_RAW = {
   schema: 3 as const,
   activePreset: "command_center" as const,
   advancedDefault: "closed" as const,
   ...PRESET_PATCH.command_center,
 } as HiveUiPrefs;
+
+export const DEFAULT_HIVE_UI_PREFS = normalizeHiveUiPrefs(DEFAULT_HIVE_UI_PREFS_RAW);
 
 function isPreset(v: unknown): v is HiveUiPresetId {
   return (
@@ -370,7 +383,7 @@ function baseFromV1(j: LegacyV1): Omit<HiveUiPrefs, "schema" | "activePreset"> {
 
 function migrateFromV1(j: LegacyV1): HiveUiPrefs {
   const b = baseFromV1(j);
-  return { schema: 3, activePreset: "command_center", ...b };
+  return normalizeHiveUiPrefs({ schema: 3, activePreset: "command_center", ...b });
 }
 
 function migrateV2(j: Record<string, unknown>): HiveUiPrefs {
@@ -379,7 +392,7 @@ function migrateV2(j: Record<string, unknown>): HiveUiPrefs {
     return "medium";
   };
   const bgInt = isBgInt(j.backgroundIntensity) ? j.backgroundIntensity : "medium";
-  return {
+  return normalizeHiveUiPrefs({
     schema: 3,
     activePreset: "command_center",
     backgroundVisibility: isBgVis(j.backgroundVisibility)
@@ -410,7 +423,7 @@ function migrateV2(j: Record<string, unknown>): HiveUiPrefs {
     treasuryCardSurface: "full",
     glanceScale: "standard",
     labelDensity: "normal",
-  };
+  });
 }
 
 function coerceV3(j: Record<string, unknown>): HiveUiPrefs {
@@ -421,7 +434,7 @@ function coerceV3(j: Record<string, unknown>): HiveUiPrefs {
     : orbitRm === "collapsed"
       ? "collapsed"
       : "full";
-  return {
+  return normalizeHiveUiPrefs({
     schema: 3,
     activePreset: isPreset(j.activePreset) ? j.activePreset : "command_center",
     backgroundVisibility: isBgVis(j.backgroundVisibility)
@@ -458,7 +471,7 @@ function coerceV3(j: Record<string, unknown>): HiveUiPrefs {
     treasuryCardSurface,
     glanceScale: isGlance(j.glanceScale) ? j.glanceScale : "standard",
     labelDensity: isLabelDensity(j.labelDensity) ? j.labelDensity : "normal",
-  };
+  });
 }
 
 export function loadHiveUiPrefs(): HiveUiPrefs {
@@ -479,7 +492,8 @@ export function loadHiveUiPrefs(): HiveUiPrefs {
 export function saveHiveUiPrefs(p: HiveUiPrefs): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...p, schema: 3 as const }));
+    const n = normalizeHiveUiPrefs(p);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...n, schema: 3 as const }));
   } catch {
     /* quota / private mode */
   }
@@ -488,18 +502,18 @@ export function saveHiveUiPrefs(p: HiveUiPrefs): void {
 /** Apply a named preset bundle; preserves operator Advanced default rail preference. */
 export function applyHiveUiPreset(id: HiveUiPresetApplyId, prev: HiveUiPrefs): HiveUiPrefs {
   const patch = PRESET_PATCH[id];
-  return {
+  return normalizeHiveUiPrefs({
     schema: 3,
-    activePreset: id,
     ...DEFAULT_HIVE_UI_PREFS,
     ...patch,
+    activePreset: id,
     advancedDefault: prev.advancedDefault,
-  };
+  });
 }
 
 /** One-shot operator surface: tight crown, collapsed rails, clipped diagnostics. Sets preset to Custom. */
 export function applyOperatorMinimal(prev: HiveUiPrefs): HiveUiPrefs {
-  return {
+  return normalizeHiveUiPrefs({
     ...prev,
     schema: 3,
     activePreset: "custom",
@@ -516,12 +530,12 @@ export function applyOperatorMinimal(prev: HiveUiPrefs): HiveUiPrefs {
     glanceScale: "standard",
     labelDensity: "normal",
     heroStrip: "hidden",
-  };
+  });
 }
 
 /** One-shot: wide shell, full pulse/readout rails, expanded secondary sections. Sets preset to Custom. */
 export function applyOperatorFullObservability(prev: HiveUiPrefs): HiveUiPrefs {
-  return {
+  return normalizeHiveUiPrefs({
     ...prev,
     schema: 3,
     activePreset: "custom",
@@ -537,7 +551,27 @@ export function applyOperatorFullObservability(prev: HiveUiPrefs): HiveUiPrefs {
     treasuryCardSurface: "full",
     glanceScale: "large",
     labelDensity: "normal",
-  };
+  });
+}
+
+/** Reset operator panels + readability to Command Center preset slice; shell unchanged; preset → Custom. */
+export function resetOperatorSurfacesToCommandCenter(prev: HiveUiPrefs): HiveUiPrefs {
+  const cc = PRESET_PATCH.command_center;
+  return normalizeHiveUiPrefs({
+    ...prev,
+    activePreset: "custom",
+    collapseLowPrioritySections: cc.collapseLowPrioritySections!,
+    beeLogSurface: cc.beeLogSurface!,
+    diagnosticsGridSurface: cc.diagnosticsGridSurface!,
+    deckMiniRowSurface: cc.deckMiniRowSurface!,
+    deckThesisSurface: cc.deckThesisSurface!,
+    operatorReadoutRailSurface: cc.operatorReadoutRailSurface!,
+    treasuryCardSurface: cc.treasuryCardSurface!,
+    glanceScale: cc.glanceScale!,
+    labelDensity: cc.labelDensity!,
+    readability: cc.readability!,
+    orbitReadoutMode: cc.orbitReadoutMode!,
+  });
 }
 
 const tierBlurPx: Record<HiveShellTier, string> = {
