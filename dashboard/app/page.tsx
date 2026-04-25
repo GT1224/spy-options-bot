@@ -3969,6 +3969,84 @@ function TacticalFieldDeck({
             ) : null}
           </div>
         ) : null}
+        {system?.capital_posture &&
+        typeof system.capital_posture === "object" &&
+        !Array.isArray(system.capital_posture) ? (
+          <div
+            style={{
+              marginTop: 10,
+              padding: "8px 10px",
+              borderRadius: 10,
+              border: `1px solid ${HIVE_UI.border}`,
+              background: "linear-gradient(180deg, rgba(255,255,255,0.025), rgba(0,0,0,0.09))",
+              maxWidth: "62ch",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 8,
+                fontWeight: 800,
+                letterSpacing: "0.18em",
+                color: HIVE_UI.textDim,
+                textTransform: "uppercase",
+                marginBottom: 6,
+              }}
+            >
+              Capital posture (read-only · v1)
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: HIVE_UI.textSoft, lineHeight: 1.35 }}>
+              {typeof system.capital_posture.tier_label === "string"
+                ? system.capital_posture.tier_label
+                : formatVal(system.capital_posture.tier)}{" "}
+              <span style={{ fontSize: 10, fontWeight: 700, color: HIVE_UI.textMuted }}>
+                → posture {formatVal(system.capital_posture.posture)} (
+                {String(system.capital_posture.status ?? "—").toUpperCase()})
+              </span>
+            </div>
+            <div style={{ fontSize: 10, color: HIVE_UI.textDim, lineHeight: 1.45, marginTop: 6 }}>
+              Provisional trust tier only — not sizing, not an allocator, not historical edge proof. Read-only trust
+              signal; HIVE does not change size from this block yet.
+            </div>
+            {Array.isArray(system.capital_posture.rationale) && system.capital_posture.rationale.length ? (
+              <ul
+                style={{
+                  margin: "8px 0 0 0",
+                  paddingLeft: 16,
+                  fontSize: 10,
+                  color: HIVE_UI.textMuted,
+                  lineHeight: 1.4,
+                }}
+              >
+                {system.capital_posture.rationale.slice(0, 5).map((line: string, i: number) => (
+                  <li key={i}>{typeof line === "string" ? line : formatVal(line)}</li>
+                ))}
+              </ul>
+            ) : null}
+            {Array.isArray(system.capital_posture.blockers) && system.capital_posture.blockers.length ? (
+              <div style={{ fontSize: 10, color: HIVE_UI.accent, marginTop: 6, lineHeight: 1.4 }}>
+                <strong>Blockers:</strong>{" "}
+                {system.capital_posture.blockers.slice(0, 5).map((b: string, i: number) => (
+                  <span key={i}>
+                    {i > 0 ? " · " : ""}
+                    {typeof b === "string" ? b : formatVal(b)}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            {typeof system.capital_posture.source === "string" && system.capital_posture.source.length ? (
+              <div style={{ fontSize: 9, color: HIVE_UI.textDim, marginTop: 6, lineHeight: 1.35 }}>
+                {system.capital_posture.source.length > 180
+                  ? `${system.capital_posture.source.slice(0, 180)}…`
+                  : system.capital_posture.source}
+              </div>
+            ) : null}
+            {system.capital_posture.observed_at ? (
+              <div style={{ fontSize: 9, color: HIVE_UI.textDim, marginTop: 6 }}>
+                Anchored to last pulse: {formatVal(system.capital_posture.observed_at)}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         {system?.regime && typeof system.regime === "object" && !Array.isArray(system.regime) ? (
           <div
             style={{

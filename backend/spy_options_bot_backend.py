@@ -22,6 +22,7 @@ from hive_flow_context_v1 import FLOW_BUFFER_CAP, compute_hive_flow_context_v1
 from hive_guardrails_v1 import compute_hive_guardrails_v1
 from hive_promotion_gate_v1 import compute_hive_promotion_gate_v1
 from hive_regime_observability_v1 import compute_hive_regime_observability_v1
+from hive_capital_posture_v1 import compute_hive_capital_posture_v1
 from hive_operator_review_v1 import compute_hive_operator_review_v1
 from hive_shadow_book_v1 import compute_hive_shadow_book_v1
 from hive_signal_freshness_v1 import compute_hive_signal_freshness_v1
@@ -1228,6 +1229,21 @@ def build_hive_contract_v1() -> dict[str, Any]:
         signal_stale=signal_stale,
         last_loop_at=last_at,
     )
+    capital_posture = compute_hive_capital_posture_v1(
+        last_loop_at=last_at,
+        signal_stale=signal_stale,
+        signal_freshness=signal_freshness,
+        shadow_book=shadow_book,
+        guardrails=guardrails,
+        contract_quality=contract_quality,
+        execution_edge=execution_edge,
+        promotion_gate=promotion_gate,
+        execution_surface=execution_surface,
+        broker_sync=broker_sync,
+        trading_enabled=trading_enabled,
+        bot_running=bot_running,
+        trade_action=trade_action,
+    )
 
     return {
         "system_state": {
@@ -1253,6 +1269,8 @@ def build_hive_contract_v1() -> dict[str, Any]:
             "shadow_book": shadow_book,
             # OAR1-P1: current-state operator review — not historical daily after-action.
             "operator_review": operator_review,
+            # C1-P1: provisional trust tier / capital posture — not an allocator.
+            "capital_posture": capital_posture,
             "operator_posture_hint": posture_hint,
             "freshness": {"signal_stale_after_ms": SIGNAL_STALE_AFTER_MS},
             "session_regime": session_regime,
@@ -1318,6 +1336,7 @@ def build_hive_contract_v1() -> dict[str, Any]:
                 "system_state.signal_freshness",
                 "system_state.shadow_book",
                 "system_state.operator_review",
+                "system_state.capital_posture",
                 "system_state.execution_surface",
                 "system_state.lifecycle_phase",
                 "system_state.lifecycle_hint",
